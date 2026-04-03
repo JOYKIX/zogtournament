@@ -279,7 +279,12 @@ export class GuestCamPublisher {
     const unsubscribeGuests = listenValue(camGuestsRef(), (snapshot) => {
       const guests = snapshot.val() || {};
       const peers = Object.entries(guests)
-        .filter(([id]) => id !== this.guestId)
+        .filter(([id, guest]) => {
+          if (id === this.guestId) {
+            return false;
+          }
+          return Boolean(guest?.voiceGroupConnected);
+        })
         .map(([id, guest]) => ({
           id,
           name: String(guest?.name || 'Invité'),
@@ -318,6 +323,32 @@ export class GuestCamPublisher {
     const connection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
     const remoteStream = new MediaStream();
     const localAudioTracks = this.localStream.getAudioTracks();
+    const pendingRemoteCandidates = [];
+    let remoteDescriptionReady = false;
+
+    const addRemoteCandidate = async (candidate) => {
+      if (!candidate) {
+        return;
+      }
+
+      if (!remoteDescriptionReady) {
+        pendingRemoteCandidates.push(candidate);
+        return;
+      }
+
+      await connection.addIceCandidate(new RTCIceCandidate(candidate));
+    };
+
+    const flushRemoteCandidates = async () => {
+      if (!remoteDescriptionReady || !pendingRemoteCandidates.length) {
+        return;
+      }
+
+      while (pendingRemoteCandidates.length > 0) {
+        const candidate = pendingRemoteCandidates.shift();
+        await connection.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    };
 
     localAudioTracks.forEach((track) => connection.addTrack(track, this.localStream));
 
@@ -344,7 +375,7 @@ export class GuestCamPublisher {
       const candidates = snapshot.val() || {};
       for (const candidate of Object.values(candidates)) {
         try {
-          await connection.addIceCandidate(new RTCIceCandidate(candidate));
+          await addRemoteCandidate(candidate);
         } catch (error) {
           this.onLog?.(`[voice/${peerId}] ICE invalide: ${error.message}`);
         }
@@ -357,6 +388,8 @@ export class GuestCamPublisher {
         return;
       }
       await connection.setRemoteDescription(new RTCSessionDescription(offer));
+      remoteDescriptionReady = true;
+      await flushRemoteCandidates();
       if (!connection.currentLocalDescription) {
         const answer = await connection.createAnswer();
         await connection.setLocalDescription(answer);
@@ -375,6 +408,8 @@ export class GuestCamPublisher {
         return;
       }
       await connection.setRemoteDescription(new RTCSessionDescription(answer));
+      remoteDescriptionReady = true;
+      await flushRemoteCandidates();
     });
 
     this.voiceConnections.set(peerId, {
