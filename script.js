@@ -43,7 +43,7 @@ const toggleOverlayModeBtn = document.getElementById('toggleOverlayModeBtn');
 
 let usersCache = [];
 let participantsCache = [];
-let matchesCache = [];
+let tournamentCache = null;
 let currentProfile = null;
 let currentOverlay = { matchIndex: 0, mode: 'duel' };
 
@@ -82,62 +82,6 @@ function normalizeUsers(snapshotValue) {
     }));
 }
 
-function findUserByUsername(username) {
-  const normalized = username.toLowerCase();
-  return usersCache.find((user) => String(user.username || '').toLowerCase() === normalized);
-}
-
-function buildRounds(matches) {
-  if (!Array.isArray(matches) || !matches.length) {
-    return [];
-  }
-
-  const rounds = [matches];
-  let cursor = matches.length;
-
-  while (cursor > 1) {
-    cursor = Math.ceil(cursor / 2);
-    rounds.push(Array.from({ length: cursor }, () => ({ left: null, right: null })));
-  }
-
-  return rounds;
-}
-
-async function ensureDatabaseShape() {
-  const snapshot = await get(rootRef);
-  const value = snapshot.val() || {};
-
-  if (!value.users || typeof value.users !== 'object') {
-    await set(usersRef, {});
-  }
-
-  if (!value.participants || typeof value.participants !== 'object') {
-    await set(participantsRef, {});
-  }
-
-  if (!Array.isArray(value.matches)) {
-    await set(matchesRef, []);
-  }
-
-  if (!value.overlay || typeof value.overlay !== 'object') {
-    await set(overlayRef, {
-      matchIndex: 0,
-      mode: 'duel',
-      updatedAt: Date.now(),
-    });
-  } else if (value.overlay.mode !== 'duel' && value.overlay.mode !== 'tree') {
-    await update(overlayRef, { mode: 'duel' });
-  }
-
-  if (value.profile === undefined) {
-    await set(profileRef, null);
-  }
-
-  if (value.profiles !== undefined) {
-    await remove(ref(rootRef, 'profiles'));
-  }
-}
-
 function normalizeParticipants(snapshotValue) {
   if (!snapshotValue || typeof snapshotValue !== 'object') {
     return [];
@@ -151,12 +95,206 @@ function normalizeParticipants(snapshotValue) {
     }));
 }
 
-function normalizeMatches(snapshotValue) {
-  if (!Array.isArray(snapshotValue)) {
+function findUserByUsername(username) {
+  const normalized = username.toLowerCase();
+  return usersCache.find((user) => String(user.username || '').toLowerCase() === normalized);
+}
+
+function getRoundTitle(roundIndex, totalRounds) {
+  const roundsUntilFinal = totalRounds - roundIndex;
+
+  if (roundsUntilFinal === 1) {
+    return 'Finale';
+  }
+
+  if (roundsUntilFinal === 2) {
+    return 'Demi-finales';
+  }
+
+  if (roundsUntilFinal === 3) {
+    return 'Quarts de finale';
+  }
+
+  if (roundsUntilFinal === 4) {
+    return 'Huitièmes de finale';
+  }
+
+  if (roundsUntilFinal === 5) {
+    return 'Seizièmes de finale';
+  }
+
+  return `Tour ${roundIndex + 1}`;
+}
+
+function emptyMatch() {
+  return {
+    left: null,
+    right: null,
+    winnerSide: null,
+  };
+}
+
+function cloneMatch(match) {
+  return {
+    left: match?.left || null,
+    right: match?.right || null,
+    winnerSide: match?.winnerSide === 'left' || match?.winnerSide === 'right' ? match.winnerSide : null,
+  };
+}
+
+function nextPowerOfTwo(value) {
+  let power = 1;
+  while (power < value) {
+    power *= 2;
+  }
+  return power;
+}
+
+function shuffleParticipants(participants) {
+  const shuffled = [...participants];
+
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
+}
+
+function computeWinner(match) {
+  const left = match.left;
+  const right = match.right;
+
+  if (!left && !right) {
+    return { side: null, player: null };
+  }
+
+  if (left && !right) {
+    return { side: 'left', player: left };
+  }
+
+  if (!left && right) {
+    return { side: 'right', player: right };
+  }
+
+  if (match.winnerSide === 'left') {
+    return { side: 'left', player: left };
+  }
+
+  if (match.winnerSide === 'right') {
+    return { side: 'right', player: right };
+  }
+
+  return { side: null, player: null };
+}
+
+function rebuildTournament(rawTournament) {
+  if (!rawTournament || !Array.isArray(rawTournament.rounds) || !rawTournament.rounds.length) {
+    return null;
+  }
+
+  const rounds = rawTournament.rounds.map((round) => (Array.isArray(round) ? round.map(cloneMatch) : []));
+
+  for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex += 1) {
+    const currentRound = rounds[roundIndex];
+    const nextRound = rounds[roundIndex + 1];
+
+    nextRound.forEach((match) => {
+      match.left = null;
+      match.right = null;
+    });
+
+    currentRound.forEach((match, matchIndex) => {
+      const winner = computeWinner(match);
+      match.winnerSide = winner.side;
+
+      if (!winner.player) {
+        return;
+      }
+
+      const targetMatch = nextRound[Math.floor(matchIndex / 2)];
+      if (!targetMatch) {
+        return;
+      }
+
+      if (matchIndex % 2 === 0) {
+        targetMatch.left = winner.player;
+      } else {
+        targetMatch.right = winner.player;
+      }
+    });
+  }
+
+  const championMatch = rounds[rounds.length - 1][0] || emptyMatch();
+  const champion = computeWinner(championMatch).player;
+
+  return {
+    rounds,
+    generatedAt: rawTournament.generatedAt || Date.now(),
+    champion,
+  };
+}
+
+function normalizeTournament(snapshotValue) {
+  if (!snapshotValue) {
+    return null;
+  }
+
+  if (Array.isArray(snapshotValue)) {
+    const legacyRound = snapshotValue
+      .filter((match) => match?.left?.pseudo && match?.right?.pseudo)
+      .map((match) => ({
+        left: match.left,
+        right: match.right,
+        winnerSide: null,
+      }));
+
+    if (!legacyRound.length) {
+      return null;
+    }
+
+    const tournament = {
+      rounds: [legacyRound],
+      generatedAt: Date.now(),
+    };
+
+    return rebuildTournament(tournament);
+  }
+
+  return rebuildTournament(snapshotValue);
+}
+
+function getOverlayMatches(tournament) {
+  if (!tournament || !Array.isArray(tournament.rounds)) {
     return [];
   }
 
-  return snapshotValue.filter((match) => match?.left?.pseudo && match?.right?.pseudo);
+  const items = [];
+  tournament.rounds.forEach((round, roundIndex) => {
+    round.forEach((match, matchIndex) => {
+      if (!match.left && !match.right) {
+        return;
+      }
+
+      items.push({
+        roundIndex,
+        matchIndex,
+        ...match,
+      });
+    });
+  });
+
+  return items;
+}
+
+function getCurrentOverlayMeta() {
+  const flatMatches = getOverlayMatches(tournamentCache);
+  const safeIndex = Math.max(0, Math.min(currentOverlay.matchIndex || 0, Math.max(flatMatches.length - 1, 0)));
+  return {
+    flatMatches,
+    safeIndex,
+    current: flatMatches[safeIndex] || null,
+  };
 }
 
 function toggleEditMode(participant = null) {
@@ -210,39 +348,69 @@ function renderParticipants() {
 function renderBracket() {
   bracketContainer.innerHTML = '';
 
-  if (!matchesCache.length) {
-    bracketContainer.innerHTML = '<p>Pas de match généré.</p>';
+  if (!tournamentCache?.rounds?.length) {
+    bracketContainer.innerHTML = '<p>Pas de bracket généré.</p>';
     return;
   }
 
-  const rounds = buildRounds(matchesCache);
+  const { flatMatches, safeIndex, current } = getCurrentOverlayMeta();
 
-  rounds.forEach((round, roundIndex) => {
+  tournamentCache.rounds.forEach((round, roundIndex) => {
     const roundCol = document.createElement('section');
     roundCol.className = 'round';
 
-    const title = roundIndex === rounds.length - 1 ? 'Finale' : `Tour ${roundIndex + 1}`;
+    const title = getRoundTitle(roundIndex, tournamentCache.rounds.length);
     roundCol.innerHTML = `<h4>${title}</h4>`;
 
     round.forEach((match, matchIndex) => {
       const node = document.createElement('article');
       node.className = 'match';
 
-      if (roundIndex === 0) {
-        const absoluteIndex = matchIndex;
-        node.classList.toggle('active', absoluteIndex === currentOverlay.matchIndex);
-        node.innerHTML = `
-          <div>${escapeHtml(match.left?.pseudo || 'TBD')} (${escapeHtml(match.left?.character || '...')})</div>
-          <div class="vs">VS</div>
-          <div>${escapeHtml(match.right?.pseudo || 'TBD')} (${escapeHtml(match.right?.character || '...')})</div>
-        `;
-        node.addEventListener('click', () => setOverlayMatch(absoluteIndex));
-      } else {
-        node.innerHTML = `
-          <div>TBD</div>
-          <div class="vs">VS</div>
-          <div>TBD</div>
-        `;
+      const overlayIndex = flatMatches.findIndex(
+        (entry) => entry.roundIndex === roundIndex && entry.matchIndex === matchIndex,
+      );
+
+      if (overlayIndex !== -1 && overlayIndex === safeIndex) {
+        node.classList.add('active');
+      }
+
+      const winner = computeWinner(match);
+      const leftName = escapeHtml(match.left?.pseudo || 'En attente');
+      const rightName = escapeHtml(match.right?.pseudo || 'En attente');
+      const leftCharacter = escapeHtml(match.left?.character || '—');
+      const rightCharacter = escapeHtml(match.right?.character || '—');
+
+      node.innerHTML = `
+        <button type="button" class="slot ${winner.side === 'left' ? 'is-winner' : ''}" data-side="left">
+          <span class="slot-name">${leftName}</span>
+          <span class="slot-character">${leftCharacter}</span>
+        </button>
+        <div class="vs">VS</div>
+        <button type="button" class="slot ${winner.side === 'right' ? 'is-winner' : ''}" data-side="right">
+          <span class="slot-name">${rightName}</span>
+          <span class="slot-character">${rightCharacter}</span>
+        </button>
+        <button type="button" class="ghost select-overlay" data-overlay-index="${overlayIndex}">Afficher en duel</button>
+      `;
+
+      const [leftBtn, rightBtn] = node.querySelectorAll('.slot');
+      const overlayBtn = node.querySelector('.select-overlay');
+
+      if (!match.left || !match.right) {
+        leftBtn.disabled = true;
+        rightBtn.disabled = true;
+      }
+
+      leftBtn.addEventListener('click', () => setWinner(roundIndex, matchIndex, 'left'));
+      rightBtn.addEventListener('click', () => setWinner(roundIndex, matchIndex, 'right'));
+
+      if (overlayBtn) {
+        if (overlayIndex === -1) {
+          overlayBtn.disabled = true;
+          overlayBtn.textContent = 'Pas prêt';
+        } else {
+          overlayBtn.addEventListener('click', () => setOverlayMatch(overlayIndex));
+        }
       }
 
       roundCol.appendChild(node);
@@ -250,6 +418,20 @@ function renderBracket() {
 
     bracketContainer.appendChild(roundCol);
   });
+
+  if (tournamentCache.champion?.pseudo) {
+    const championNode = document.createElement('div');
+    championNode.className = 'champion-banner';
+    championNode.innerHTML = `🏆 Vainqueur: <strong>${escapeHtml(tournamentCache.champion.pseudo)}</strong> (${escapeHtml(
+      tournamentCache.champion.character || '—',
+    )})`;
+    bracketContainer.appendChild(championNode);
+  } else if (current) {
+    const helpNode = document.createElement('p');
+    helpNode.className = 'hint';
+    helpNode.textContent = 'Clique sur un joueur dans chaque match pour le faire avancer.';
+    bracketContainer.appendChild(helpNode);
+  }
 }
 
 function updateOverlayModeButton() {
@@ -258,11 +440,12 @@ function updateOverlayModeButton() {
 }
 
 async function setOverlayMatch(index) {
-  if (!matchesCache.length) {
+  const { flatMatches } = getCurrentOverlayMeta();
+  if (!flatMatches.length) {
     return;
   }
 
-  const clamped = Math.max(0, Math.min(index, matchesCache.length - 1));
+  const clamped = Math.max(0, Math.min(index, flatMatches.length - 1));
   await update(overlayRef, {
     matchIndex: clamped,
     updatedAt: Date.now(),
@@ -270,11 +453,12 @@ async function setOverlayMatch(index) {
 }
 
 async function shiftOverlayMatch(delta) {
-  if (!matchesCache.length) {
+  const { safeIndex, flatMatches } = getCurrentOverlayMeta();
+  if (!flatMatches.length) {
     return;
   }
 
-  await setOverlayMatch((currentOverlay.matchIndex || 0) + delta);
+  await setOverlayMatch(safeIndex + delta);
 }
 
 async function toggleOverlayMode() {
@@ -285,28 +469,62 @@ async function toggleOverlayMode() {
   });
 }
 
-async function generateMatches() {
-  const participants = participantsCache.map(({ id, ...participant }) => participant);
+function createTournament(participants) {
+  const sanitized = shuffleParticipants(
+    participants.map(({ id, ...participant }) => ({
+      pseudo: participant.pseudo,
+      character: participant.character,
+      image: participant.image || '',
+    })),
+  );
 
-  if (participants.length < 2) {
+  const bracketSize = nextPowerOfTwo(sanitized.length);
+  const roundsCount = Math.log2(bracketSize);
+
+  const rounds = Array.from({ length: roundsCount }, (_, roundIndex) => {
+    const matchesInRound = bracketSize / 2 ** (roundIndex + 1);
+    return Array.from({ length: matchesInRound }, () => emptyMatch());
+  });
+
+  const firstRound = rounds[0];
+  for (let i = 0; i < bracketSize; i += 2) {
+    const matchIndex = i / 2;
+    firstRound[matchIndex].left = sanitized[i] || null;
+    firstRound[matchIndex].right = sanitized[i + 1] || null;
+  }
+
+  return rebuildTournament({ rounds, generatedAt: Date.now() });
+}
+
+async function generateMatches() {
+  if (participantsCache.length < 2) {
     alert('Ajoute au moins 2 participants.');
     return;
   }
 
-  for (let i = participants.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [participants[i], participants[j]] = [participants[j], participants[i]];
-  }
-
-  const matches = [];
-  for (let i = 0; i < participants.length; i += 2) {
-    if (participants[i + 1]) {
-      matches.push({ left: participants[i], right: participants[i + 1] });
-    }
-  }
-
-  await set(matchesRef, matches);
+  const tournament = createTournament(participantsCache);
+  await set(matchesRef, tournament);
   await setOverlayMatch(0);
+}
+
+async function setWinner(roundIndex, matchIndex, side) {
+  if (!tournamentCache?.rounds?.[roundIndex]?.[matchIndex]) {
+    return;
+  }
+
+  const tournament = {
+    ...tournamentCache,
+    rounds: tournamentCache.rounds.map((round) => round.map(cloneMatch)),
+  };
+
+  const targetMatch = tournament.rounds[roundIndex][matchIndex];
+  if (!targetMatch.left || !targetMatch.right) {
+    return;
+  }
+
+  targetMatch.winnerSide = side;
+  const rebuilt = rebuildTournament(tournament);
+  await set(matchesRef, rebuilt);
 }
 
 function openOverlayWindow() {
@@ -396,6 +614,41 @@ function showApp() {
   updateOverlayModeButton();
 }
 
+async function ensureDatabaseShape() {
+  const snapshot = await get(rootRef);
+  const value = snapshot.val() || {};
+
+  if (!value.users || typeof value.users !== 'object') {
+    await set(usersRef, {});
+  }
+
+  if (!value.participants || typeof value.participants !== 'object') {
+    await set(participantsRef, {});
+  }
+
+  if (!value.matches) {
+    await set(matchesRef, null);
+  }
+
+  if (!value.overlay || typeof value.overlay !== 'object') {
+    await set(overlayRef, {
+      matchIndex: 0,
+      mode: 'duel',
+      updatedAt: Date.now(),
+    });
+  } else if (value.overlay.mode !== 'duel' && value.overlay.mode !== 'tree') {
+    await update(overlayRef, { mode: 'duel' });
+  }
+
+  if (value.profile === undefined) {
+    await set(profileRef, null);
+  }
+
+  if (value.profiles !== undefined) {
+    await remove(ref(rootRef, 'profiles'));
+  }
+}
+
 function bindRealtimeSubscriptions() {
   onValue(usersRef, async (snapshot) => {
     const usersMap = snapshot.val() || {};
@@ -423,7 +676,7 @@ function bindRealtimeSubscriptions() {
   });
 
   onValue(matchesRef, (snapshot) => {
-    matchesCache = normalizeMatches(snapshot.val());
+    tournamentCache = normalizeTournament(snapshot.val());
     renderBracket();
   });
 
@@ -551,13 +804,13 @@ clearParticipantsBtn.addEventListener('click', async () => {
     return;
   }
 
-  const confirmed = window.confirm('Vider tous les participants et l\'arbre ?');
+  const confirmed = window.confirm('Vider tous les participants et le tournoi ?');
   if (!confirmed) {
     return;
   }
 
   await set(participantsRef, {});
-  await set(matchesRef, []);
+  await set(matchesRef, null);
   await setOverlayMatch(0);
   participantMessage.textContent = 'Participants vidés.';
 });
