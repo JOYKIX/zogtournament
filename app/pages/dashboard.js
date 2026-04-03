@@ -13,7 +13,7 @@ import {
   set,
   update,
   usersRef,
-} from './firebase.js';
+} from '../shared/firebase.js';
 import {
   BRACKET_SIZE,
   cloneMatch,
@@ -23,7 +23,8 @@ import {
   getRoundTitle,
   normalizeTournament,
   rebuildTournament,
-} from './bracket.js';
+} from '../shared/tournament.js';
+import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
@@ -59,28 +60,6 @@ let currentProfile = null;
 let currentOverlay = { matchIndex: 0 };
 let isConnected = false;
 let usersLoaded = false;
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function normalizeImageUrl(url) {
-  const raw = String(url || '').trim();
-  if (!raw) {
-    return 'https://placehold.co/72x72?text=?';
-  }
-
-  if (!/^https?:\/\//i.test(raw)) {
-    return 'https://placehold.co/72x72?text=?';
-  }
-
-  return raw;
-}
 
 function normalizeUsers(snapshotValue) {
   if (!snapshotValue || typeof snapshotValue !== 'object') {
@@ -156,7 +135,7 @@ function renderParticipants() {
 
     li.innerHTML = `
       <div class="participant-inline">
-        <img src="${normalizeImageUrl(participant.image)}" alt="${safePseudo}" />
+        <img src="${normalizeImageUrl(participant.image, 'https://placehold.co/72x72?text=?')}" alt="${safePseudo}" />
         <div>
           <strong>${index + 1}. ${safePseudo}</strong><br />
           <span>${safeCharacter}</span>
