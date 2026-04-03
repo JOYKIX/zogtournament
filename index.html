@@ -8,11 +8,15 @@
   </head>
   <body>
     <main class="container">
-      <section id="loginSection" class="card">
-        <h1>Compte</h1>
-        <p id="connectionStatus" class="message"></p>
+      <section id="loginSection" class="card auth-card">
+        <header class="auth-header">
+          <p class="eyebrow">Zog Tournament</p>
+          <h1>Gestion pro des tournois</h1>
+          <p id="connectionStatus" class="message"></p>
+        </header>
+
         <div class="grid two-columns auth-grid">
-          <form id="createProfileForm" class="panel">
+          <form id="createProfileForm" class="panel glass-panel">
             <h2>Créer un profil</h2>
             <p class="hint">Maximum 2 comptes sur le site.</p>
 
@@ -26,7 +30,7 @@
             <p id="createProfileMessage" class="message"></p>
           </form>
 
-          <form id="loginForm" class="panel">
+          <form id="loginForm" class="panel glass-panel">
             <h2>Connexion</h2>
 
             <label for="username">Identifiant</label>
@@ -41,17 +45,22 @@
         </div>
       </section>
 
-      <section id="appSection" class="card hidden">
-        <header class="toolbar">
+      <section id="appSection" class="hidden app-layout">
+        <header class="card app-header">
           <div>
-            <h2>Créateur d'arbre de tournoi</h2>
-            <p class="hint">Gère les participants, modifie-les puis diffuse l'overlay en mode duel ou arbre.</p>
+            <p class="eyebrow">Dashboard tournoi</p>
+            <h2>Pilote ton bracket de A à Z</h2>
+            <p class="hint">Un vrai arbre: 8 en quarts, 4 en demies, 2 en finale. Le gagnant passe automatiquement au tour suivant.</p>
           </div>
-          <button id="logoutBtn" class="secondary">Déconnexion</button>
+          <div class="actions wrap">
+            <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
+            <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
+            <button id="logoutBtn" class="secondary">Déconnexion</button>
+          </div>
         </header>
 
-        <div class="grid two-columns">
-          <form id="participantForm" class="panel">
+        <section class="grid dashboard-grid">
+          <form id="participantForm" class="card panel">
             <h3 id="participantFormTitle">Ajouter un participant</h3>
             <input id="editParticipantId" name="editParticipantId" type="hidden" />
 
@@ -71,18 +80,21 @@
             <p id="participantMessage" class="message"></p>
           </form>
 
-          <section class="panel">
+          <section class="card panel">
             <header class="toolbar compact">
               <h3>Participants</h3>
               <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider</button>
             </header>
             <ul id="participantsList" class="list"></ul>
           </section>
-        </div>
+        </section>
 
-        <section class="panel">
-          <header class="toolbar wrap">
-            <h3>Arbre de tournoi</h3>
+        <section class="card panel">
+          <header class="toolbar wrap bracket-header">
+            <div>
+              <h3>Arbre de tournoi</h3>
+              <p class="hint" id="bracketSummaryText">Configure le format puis génère les matchs.</p>
+            </div>
             <div class="actions wrap bracket-controls">
               <label for="bracketSizeSelect" class="size-label">Format</label>
               <select id="bracketSizeSelect" class="size-select" aria-label="Taille du bracket">
@@ -96,10 +108,9 @@
               <button id="generateBracketBtn" class="secondary">Générer les matchs</button>
               <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
               <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
-              <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
-              <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
             </div>
           </header>
+          <div id="roundBreakdown" class="round-breakdown"></div>
           <div id="bracketContainer" class="bracket"></div>
         </section>
       </section>
