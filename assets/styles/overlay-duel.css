@@ -3,33 +3,53 @@ body {
   margin: 0;
   width: 100%;
   height: 100%;
+  overflow: hidden;
   background: transparent;
   font-family: Inter, Arial, sans-serif;
   color: #f5f8ff;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .overlay-root {
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
   pointer-events: none;
-  padding: 2vh 2vw;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: clamp(8px, 1.4vh, 20px) clamp(12px, 2vw, 30px) clamp(20px, 3vh, 42px);
   background: transparent;
 }
 
 .duel-view {
   --fighter-image-height: 760px;
-  width: 100%;
+  width: min(100%, calc(100dvh * 16 / 9));
+  max-width: 100%;
   height: 100%;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: end;
-  gap: 1.4rem;
+  gap: clamp(0.75rem, 1.6vw, 2.2rem);
+  padding-bottom: clamp(8px, 1.6vh, 22px);
 }
 
 .fighter {
   display: flex;
   align-items: flex-end;
-  justify-content: center;
+}
+
+.fighter-left {
+  justify-content: flex-start;
+}
+
+.fighter-right {
+  justify-content: flex-end;
 }
 
 .fighter-card {
@@ -37,23 +57,25 @@ body {
   max-width: min(44vw, 760px);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.25rem;
+  align-items: center;
+  text-align: center;
+  gap: 0.2rem;
   background: transparent;
 }
 
 .fighter img {
   display: block;
   width: auto;
-  height: min(var(--fighter-image-height), 86vh);
+  height: min(var(--fighter-image-height), calc(100dvh - 240px));
   max-width: min(40vw, 620px);
+  max-height: calc(100dvh - 240px);
   object-fit: cover;
   border-radius: 18px;
   background: transparent;
 }
 
 .fighter .character {
-  font-size: clamp(1.8rem, 3.6vw, 3rem);
+  font-size: clamp(1.6rem, 3.2vw, 3rem);
   font-weight: 900;
   letter-spacing: 0.01em;
   line-height: 1.05;
@@ -61,8 +83,8 @@ body {
 }
 
 .fighter .name {
-  font-size: clamp(0.95rem, 1.6vw, 1.4rem);
-  font-weight: 600;
-  opacity: 0.95;
+  font-size: clamp(1rem, 1.7vw, 1.45rem);
+  font-weight: 700;
+  opacity: 0.98;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.88);
 }
