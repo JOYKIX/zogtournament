@@ -52,14 +52,28 @@ const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
 const overlayNextBtn = document.getElementById('overlayNextBtn');
+const duelImageHeightInput = document.getElementById('duelImageHeightPx');
+
+const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
+const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
+const MAX_DUEL_IMAGE_HEIGHT_PX = 1400;
 
 let usersCache = [];
 let participantsCache = [];
 let tournamentCache = null;
 let currentProfile = null;
-let currentOverlay = { matchIndex: 0 };
+let currentOverlay = { matchIndex: 0, imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX };
 let isConnected = false;
 let usersLoaded = false;
+
+function sanitizeDuelImageHeight(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_IMAGE_HEIGHT_PX;
+  }
+
+  return Math.max(MIN_DUEL_IMAGE_HEIGHT_PX, Math.min(MAX_DUEL_IMAGE_HEIGHT_PX, Math.round(parsed)));
+}
 
 function normalizeUsers(snapshotValue) {
   if (!snapshotValue || typeof snapshotValue !== 'object') {
@@ -264,6 +278,15 @@ async function shiftOverlayMatch(delta) {
   await setOverlayMatch(safeIndex + delta);
 }
 
+async function setOverlayImageHeight(heightPx) {
+  const safeHeight = sanitizeDuelImageHeight(heightPx);
+
+  await update(overlayRef, {
+    imageHeightPx: safeHeight,
+    updatedAt: Date.now(),
+  });
+}
+
 async function generateMatches() {
   if (participantsCache.length < 2) {
     alert('Ajoute au moins 2 participants.');
@@ -439,6 +462,12 @@ async function ensureDatabaseShape() {
   if (!value.overlay || typeof value.overlay !== 'object') {
     await set(overlayRef, {
       matchIndex: 0,
+      imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
+      updatedAt: Date.now(),
+    });
+  } else if (!Number.isFinite(Number(value.overlay.imageHeightPx))) {
+    await update(overlayRef, {
+      imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
       updatedAt: Date.now(),
     });
   }
@@ -493,7 +522,13 @@ function bindRealtimeSubscriptions() {
     const value = snapshot.val() || {};
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
+      imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
     };
+
+    if (duelImageHeightInput) {
+      duelImageHeightInput.value = String(currentOverlay.imageHeightPx);
+    }
+
     renderBracket();
   });
 }
@@ -646,6 +681,18 @@ generateBracketBtn.addEventListener('click', () => {
 
 overlayPrevBtn.addEventListener('click', () => shiftOverlayMatch(-1));
 overlayNextBtn.addEventListener('click', () => shiftOverlayMatch(1));
+
+duelImageHeightInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeHeight = sanitizeDuelImageHeight(target.value);
+  target.value = String(safeHeight);
+  await setOverlayImageHeight(safeHeight);
+});
+
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
 openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
 logoutBtn.addEventListener('click', () => {

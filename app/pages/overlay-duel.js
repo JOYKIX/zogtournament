@@ -4,9 +4,24 @@ import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 
 const leftFighter = document.getElementById('leftFighter');
 const rightFighter = document.getElementById('rightFighter');
+const duelView = document.querySelector('.duel-view');
+
+const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
+const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
+const MAX_DUEL_IMAGE_HEIGHT_PX = 1400;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
+let currentImageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
+
+function sanitizeDuelImageHeight(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_IMAGE_HEIGHT_PX;
+  }
+
+  return Math.max(MIN_DUEL_IMAGE_HEIGHT_PX, Math.min(MAX_DUEL_IMAGE_HEIGHT_PX, Math.round(parsed)));
+}
 
 function fighterMarkup(player) {
   if (!player) {
@@ -32,6 +47,10 @@ function render() {
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
+
+  if (duelView) {
+    duelView.style.setProperty('--fighter-image-height', `${currentImageHeightPx}px`);
+  }
 }
 
 onValue(matchesRef, (snapshot) => {
@@ -42,5 +61,6 @@ onValue(matchesRef, (snapshot) => {
 onValue(overlayRef, (snapshot) => {
   const value = snapshot.val() || {};
   currentMatchIndex = Number(value.matchIndex || 0);
+  currentImageHeightPx = sanitizeDuelImageHeight(value.imageHeightPx);
   render();
 });
