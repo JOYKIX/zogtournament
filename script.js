@@ -5,6 +5,7 @@ import {
   overlayRef,
   participantsRef,
   profileRef,
+  profilesRef,
   push,
   ref,
   remove,
@@ -15,6 +16,7 @@ import {
 } from './firebase.js';
 
 const MAX_ACCOUNTS = 2;
+const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
 
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
@@ -44,6 +46,37 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function normalizeImageUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) {
+    return 'https://placehold.co/72x72?text=?';
+  }
+
+  if (!/^https?:\/\//i.test(raw)) {
+    return 'https://placehold.co/72x72?text=?';
+  }
+
+  return raw;
+}
+
+function normalizeUsers(snapshotValue) {
+  if (!snapshotValue || typeof snapshotValue !== 'object') {
+    return [];
+  }
+
+  return Object.entries(snapshotValue)
+    .filter(([, user]) => user && typeof user === 'object')
+    .map(([id, user]) => ({
+      id,
+      ...user,
+    }));
+}
+
+function findUserByUsername(username) {
+  const normalized = username.toLowerCase();
+  return usersCache.find((user) => String(user.username || '').toLowerCase() === normalized);
+}
+
 async function ensureDatabaseShape() {
   const snapshot = await get(rootRef);
   const value = snapshot.val() || {};
@@ -52,6 +85,10 @@ async function ensureDatabaseShape() {
 
   if (!value.users || typeof value.users !== 'object') {
     initialPatch.users = {};
+  }
+
+  if (!value.profiles || typeof value.profiles !== 'object') {
+    initialPatch.profiles = {};
   }
 
   if (!value.participants || typeof value.participants !== 'object') {
@@ -114,7 +151,7 @@ function renderParticipants() {
 
     li.innerHTML = `
       <div class="participant-inline">
-        <img src="${participant.image || 'https://placehold.co/72x72?text=?'}" alt="${safePseudo}" />
+        <img src="${normalizeImageUrl(participant.image)}" alt="${safePseudo}" />
         <div>
           <strong>${index + 1}. ${safePseudo}</strong><br />
           <span>${safeCharacter}</span>
@@ -183,12 +220,17 @@ function openOverlayWindow() {
 }
 
 async function login(username, password) {
-  const user = usersCache.find((entry) => entry.username === username && entry.password === password);
-  if (!user) {
+  if (!username || !password) {
+    return false;
+  }
+
+  const user = findUserByUsername(username);
+  if (!user || user.password !== password) {
     return false;
   }
 
   await set(profileRef, {
+    uid: user.id,
     username: user.username,
     loggedAt: Date.now(),
   });
@@ -201,8 +243,18 @@ async function createProfile(username, password) {
     return { ok: false, message: 'Identifiant et mot de passe obligatoires.' };
   }
 
-  const hasExistingUsername = usersCache.some((entry) => entry.username === username);
-  if (hasExistingUsername) {
+  if (!USERNAME_REGEX.test(username)) {
+    return {
+      ok: false,
+      message: 'Identifiant invalide (3-24 caractères: lettres, chiffres, _ ou -).',
+    };
+  }
+
+  if (password.length < 6) {
+    return { ok: false, message: 'Mot de passe trop court (6 caractères minimum).' };
+  }
+
+  if (findUserByUsername(username)) {
     return { ok: false, message: 'Ce nom de compte existe déjà.' };
   }
 
@@ -210,19 +262,37 @@ async function createProfile(username, password) {
     return { ok: false, message: 'Limite atteinte : 2 comptes maximum.' };
   }
 
-  const userRef = ref(usersRef, username);
+  const userRef = push(usersRef);
+  const uid = userRef.key;
+
+  if (!uid) {
+    return { ok: false, message: 'Erreur interne: uid utilisateur introuvable.' };
+  }
+
+  const now = Date.now();
+
   await set(userRef, {
     username,
     password,
-    createdAt: Date.now(),
+    createdAt: now,
   });
 
-  return { ok: true, message: 'Compte créé. Tu peux te connecter.' };
+  await set(ref(profilesRef, uid), {
+    username,
+    displayName: username,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return { ok: true, message: 'Compte et profil Firebase créés. Tu peux te connecter.' };
 }
 
 async function logout() {
-  await remove(profileRef);
-  await remove(overlayRef);
+  await set(profileRef, null);
+  await update(overlayRef, {
+    matchIndex: 0,
+    updatedAt: Date.now(),
+  });
 }
 
 function showLogin() {
@@ -240,9 +310,9 @@ function showApp() {
 function bindRealtimeSubscriptions() {
   onValue(usersRef, async (snapshot) => {
     const usersMap = snapshot.val() || {};
-    usersCache = Object.values(usersMap);
+    usersCache = normalizeUsers(usersMap);
 
-    if (currentProfile?.username && !usersMap[currentProfile.username]) {
+    if (currentProfile?.uid && !usersMap[currentProfile.uid]) {
       await logout();
     }
   });
