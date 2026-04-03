@@ -65,6 +65,7 @@ export class GuestCamPublisher {
     this.muted = false;
     this.audioProcessingContext = null;
     this.audioProcessingNodes = null;
+    this.captureStream = null;
   }
 
   createPairKey(guestA, guestB) {
@@ -78,6 +79,14 @@ export class GuestCamPublisher {
 
   setAudioInput(deviceId) {
     this.selectedAudioInputId = deviceId || '';
+  }
+
+  stopCaptureStream() {
+    if (!this.captureStream) {
+      return;
+    }
+    this.captureStream.getTracks().forEach((track) => track.stop());
+    this.captureStream = null;
   }
 
   hasAudioTrack() {
@@ -207,13 +216,33 @@ export class GuestCamPublisher {
 
   async enableCamera() {
     this.localStream?.getTracks().forEach((track) => track.stop());
+    this.stopCaptureStream();
     this.stopAudioProcessing();
     const audio = this.buildAudioConstraints();
 
-    const captureStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio,
-    });
+    let captureStream;
+    try {
+      captureStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio,
+      });
+    } catch (error) {
+      const canFallbackToDefaultMic =
+        this.selectedAudioInputId &&
+        (error?.name === 'OverconstrainedError' || error?.name === 'NotFoundError');
+      if (!canFallbackToDefaultMic) {
+        throw error;
+      }
+      this.onLog?.(
+        `[audio] Micro sélectionné indisponible (${error.name}), bascule automatique vers le micro par défaut.`,
+      );
+      this.selectedAudioInputId = '';
+      captureStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: this.buildAudioConstraints(),
+      });
+    }
+    this.captureStream = captureStream;
     const videoTrack = captureStream.getVideoTracks()[0];
     const rawAudioTrack = captureStream.getAudioTracks()[0];
     const outputAudioTrack = rawAudioTrack ? this.buildProcessedAudioTrack(rawAudioTrack) : null;
@@ -226,9 +255,6 @@ export class GuestCamPublisher {
     }
 
     this.localStream = new MediaStream([videoTrack, ...(outputAudioTrack ? [outputAudioTrack] : [])]);
-    if (rawAudioTrack && outputAudioTrack !== rawAudioTrack) {
-      rawAudioTrack.stop();
-    }
     this.localStream.getAudioTracks().forEach((track) => {
       track.enabled = !this.muted;
     });
@@ -612,6 +638,7 @@ export class GuestCamPublisher {
     }
 
     this.localStream?.getTracks().forEach((track) => track.stop());
+    this.stopCaptureStream();
     this.stopAudioProcessing();
     this.localStream = null;
     this.guestId = null;
