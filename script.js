@@ -3,6 +3,7 @@ import {
   onValue,
   overlayRef,
   participantsRef,
+  profileRef,
   push,
   ref,
   remove,
@@ -10,10 +11,6 @@ import {
   update,
   usersRef,
 } from './firebase.js';
-
-const STORAGE_KEYS = {
-  session: 'zog.session',
-};
 
 const defaultUser = {
   username: 'zogadmin1',
@@ -35,8 +32,20 @@ const openOverlayBtn = document.getElementById('openOverlayBtn');
 let usersCache = [];
 let participantsCache = [];
 let matchesCache = [];
+let currentProfile = null;
 
-function normalizeList(snapshotValue) {
+function normalizeParticipants(snapshotValue) {
+  if (!snapshotValue) {
+    return [];
+  }
+
+  return Object.entries(snapshotValue).map(([id, participant]) => ({
+    id,
+    ...participant,
+  }));
+}
+
+function normalizeMatches(snapshotValue) {
   if (!snapshotValue) {
     return [];
   }
@@ -62,6 +71,7 @@ function renderParticipants() {
           <span>${participant.character}</span>
         </div>
       </div>
+      <button class="danger" type="button" data-delete-id="${participant.id}">Supprimer</button>
     `;
     participantsList.appendChild(li);
   });
@@ -96,7 +106,7 @@ async function setOverlayMatch(index) {
 }
 
 async function generateMatches() {
-  const participants = [...participantsCache];
+  const participants = participantsCache.map(({ id, ...participant }) => participant);
 
   if (participants.length < 2) {
     alert('Ajoute au moins 2 participants.');
@@ -123,19 +133,23 @@ function openOverlayWindow() {
   window.open('overlay.html', '_blank', 'width=1280,height=720');
 }
 
-function login(username, password) {
+async function login(username, password) {
   const user = usersCache.find((entry) => entry.username === username && entry.password === password);
   if (!user) {
     return false;
   }
 
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ username: user.username }));
+  await set(profileRef, {
+    username: user.username,
+    loggedAt: Date.now(),
+  });
+
   return true;
 }
 
-function logout() {
-  localStorage.removeItem(STORAGE_KEYS.session);
-  showLogin();
+async function logout() {
+  await remove(profileRef);
+  await remove(overlayRef);
 }
 
 function showLogin() {
@@ -161,37 +175,42 @@ function bindRealtimeSubscriptions() {
       return;
     }
 
-    const session = localStorage.getItem(STORAGE_KEYS.session);
-    if (!session) {
-      return;
-    }
-
-    const { username } = JSON.parse(session);
-    if (!usersMap[username]) {
-      logout();
+    if (currentProfile?.username && !usersMap[currentProfile.username]) {
+      await logout();
     }
   });
 
+  onValue(profileRef, (snapshot) => {
+    currentProfile = snapshot.val();
+
+    if (currentProfile?.username) {
+      showApp();
+      return;
+    }
+
+    showLogin();
+  });
+
   onValue(participantsRef, (snapshot) => {
-    participantsCache = normalizeList(snapshot.val());
+    participantsCache = normalizeParticipants(snapshot.val());
     renderParticipants();
   });
 
   onValue(matchesRef, (snapshot) => {
-    matchesCache = normalizeList(snapshot.val());
+    matchesCache = normalizeMatches(snapshot.val());
     renderBracket();
   });
 }
 
-loginForm.addEventListener('submit', (event) => {
+loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(loginForm);
   const username = String(formData.get('username') || '').trim();
   const password = String(formData.get('password') || '');
 
-  if (login(username, password)) {
+  if (await login(username, password)) {
     loginMessage.textContent = '';
-    showApp();
+    loginForm.reset();
   } else {
     loginMessage.textContent = 'Identifiants invalides.';
   }
@@ -217,22 +236,28 @@ participantForm.addEventListener('submit', async (event) => {
   participantForm.reset();
 });
 
+participantsList.addEventListener('click', async (event) => {
+  const deleteButton = event.target.closest('[data-delete-id]');
+  if (!deleteButton) {
+    return;
+  }
+
+  const participantId = deleteButton.dataset.deleteId;
+  if (!participantId) {
+    return;
+  }
+
+  const participantRef = ref(participantsRef, participantId);
+  await remove(participantRef);
+});
+
 generateBracketBtn.addEventListener('click', () => {
   generateMatches();
 });
 openOverlayBtn.addEventListener('click', openOverlayWindow);
-logoutBtn.addEventListener('click', logout);
+logoutBtn.addEventListener('click', () => {
+  logout();
+});
 
 bindRealtimeSubscriptions();
-
-if (localStorage.getItem(STORAGE_KEYS.session)) {
-  showApp();
-} else {
-  showLogin();
-}
-
-window.addEventListener('beforeunload', () => {
-  if (!localStorage.getItem(STORAGE_KEYS.session)) {
-    remove(overlayRef);
-  }
-});
+showLogin();
