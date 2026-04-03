@@ -36,16 +36,16 @@ const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
 
 const generateBracketBtn = document.getElementById('generateBracketBtn');
 const bracketContainer = document.getElementById('bracketContainer');
-const openOverlayBtn = document.getElementById('openOverlayBtn');
+const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
+const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
 const overlayNextBtn = document.getElementById('overlayNextBtn');
-const toggleOverlayModeBtn = document.getElementById('toggleOverlayModeBtn');
 
 let usersCache = [];
 let participantsCache = [];
 let tournamentCache = null;
 let currentProfile = null;
-let currentOverlay = { matchIndex: 0, mode: 'duel' };
+let currentOverlay = { matchIndex: 0 };
 
 function escapeHtml(value) {
   return String(value)
@@ -434,11 +434,6 @@ function renderBracket() {
   }
 }
 
-function updateOverlayModeButton() {
-  const modeLabel = currentOverlay.mode === 'tree' ? 'Arbre' : 'Duel';
-  toggleOverlayModeBtn.textContent = `Mode overlay: ${modeLabel}`;
-}
-
 async function setOverlayMatch(index) {
   const { flatMatches } = getCurrentOverlayMeta();
   if (!flatMatches.length) {
@@ -459,14 +454,6 @@ async function shiftOverlayMatch(delta) {
   }
 
   await setOverlayMatch(safeIndex + delta);
-}
-
-async function toggleOverlayMode() {
-  const mode = currentOverlay.mode === 'tree' ? 'duel' : 'tree';
-  await update(overlayRef, {
-    mode,
-    updatedAt: Date.now(),
-  });
 }
 
 function createTournament(participants) {
@@ -527,8 +514,12 @@ async function setWinner(roundIndex, matchIndex, side) {
   await set(matchesRef, rebuilt);
 }
 
-function openOverlayWindow() {
+function openDuelOverlayWindow() {
   window.open('overlay.html', '_blank', 'width=1600,height=900');
+}
+
+function openTreeOverlayWindow() {
+  window.open('overlay-tree.html', '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
@@ -596,7 +587,6 @@ async function logout() {
   await set(profileRef, null);
   await update(overlayRef, {
     matchIndex: 0,
-    mode: 'duel',
     updatedAt: Date.now(),
   });
 }
@@ -611,7 +601,6 @@ function showApp() {
   appSection.classList.remove('hidden');
   renderParticipants();
   renderBracket();
-  updateOverlayModeButton();
 }
 
 async function ensureDatabaseShape() {
@@ -633,11 +622,8 @@ async function ensureDatabaseShape() {
   if (!value.overlay || typeof value.overlay !== 'object') {
     await set(overlayRef, {
       matchIndex: 0,
-      mode: 'duel',
       updatedAt: Date.now(),
     });
-  } else if (value.overlay.mode !== 'duel' && value.overlay.mode !== 'tree') {
-    await update(overlayRef, { mode: 'duel' });
   }
 
   if (value.profile === undefined) {
@@ -684,10 +670,8 @@ function bindRealtimeSubscriptions() {
     const value = snapshot.val() || {};
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
-      mode: value.mode === 'tree' ? 'tree' : 'duel',
     };
     renderBracket();
-    updateOverlayModeButton();
   });
 }
 
@@ -821,8 +805,8 @@ generateBracketBtn.addEventListener('click', () => {
 
 overlayPrevBtn.addEventListener('click', () => shiftOverlayMatch(-1));
 overlayNextBtn.addEventListener('click', () => shiftOverlayMatch(1));
-toggleOverlayModeBtn.addEventListener('click', () => toggleOverlayMode());
-openOverlayBtn.addEventListener('click', openOverlayWindow);
+openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
+openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
 logoutBtn.addEventListener('click', () => {
   logout();
 });
