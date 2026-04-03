@@ -21,6 +21,9 @@ function sanitizeGuests(value) {
     status: String(guest?.status || 'idle'),
     cameraEnabled: Boolean(guest?.cameraEnabled),
     microphoneEnabled: Boolean(guest?.microphoneEnabled),
+    includeOverlayAudio: typeof guest?.includeOverlayAudio === 'boolean' ? guest.includeOverlayAudio : true,
+    streamConnected: Boolean(guest?.streamConnected),
+    voiceGroupConnected: Boolean(guest?.voiceGroupConnected),
     joinedAt: Number(guest?.joinedAt || 0),
     updatedAt: Number(guest?.updatedAt || 0),
   }));

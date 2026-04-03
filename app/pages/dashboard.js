@@ -28,7 +28,7 @@ import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 import { createKeybindingManager, formatBinding } from '../shared/keybindings.js';
 import { CAM_SLOT_IDS } from '../webrtc/constants.js';
 import { GuestCamAdminManager } from '../webrtc/admin-room.js';
-import { camSlotsRef } from '../webrtc/signaling.js';
+import { camSlotsRef, patchGuest } from '../webrtc/signaling.js';
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
@@ -1146,6 +1146,15 @@ function getCamStatusLabel(guest) {
   if (guest.status === 'disconnected') {
     return 'Déconnecté';
   }
+  if (guest.streamConnected && guest.voiceGroupConnected) {
+    return 'Flux + vocal connectés';
+  }
+  if (guest.streamConnected) {
+    return 'Flux connecté';
+  }
+  if (guest.voiceGroupConnected) {
+    return 'Vocal connecté';
+  }
   return 'En attente';
 }
 
@@ -1188,6 +1197,9 @@ function renderCamView() {
             </label>
             <label class="setting-field inline-toggle">Visible
               <input type="checkbox" data-cam-visible="${guest.id}" ${selectedSlot && camSlotsCache?.[selectedSlot]?.visible ? 'checked' : ''} />
+            </label>
+            <label class="setting-field inline-toggle">Son overlay
+              <input type="checkbox" data-cam-overlay-audio="${guest.id}" ${guest.includeOverlayAudio ? 'checked' : ''} />
             </label>
           </div>
           <div class="actions">
@@ -1957,6 +1969,18 @@ camGuestsList?.addEventListener('change', async (event) => {
       return;
     }
     await camManager.setSlotVisibility(slotId, target.checked);
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.dataset.camOverlayAudio) {
+    const guestId = target.dataset.camOverlayAudio;
+    if (!guestId) {
+      return;
+    }
+    await patchGuest(guestId, {
+      includeOverlayAudio: target.checked,
+      updatedAt: Date.now(),
+    });
   }
 });
 
@@ -1967,21 +1991,22 @@ camGuestsList?.addEventListener('click', async (event) => {
   }
 
   const button = target.closest('[data-cam-remove]');
-  if (!(button instanceof HTMLButtonElement)) {
-    return;
-  }
-
-  const guestId = button.dataset.camRemove;
-  if (!guestId) {
-    return;
-  }
-
-  for (const slotId of CAM_SLOT_IDS) {
-    if (camSlotsCache?.[slotId]?.guestId === guestId) {
-      await camManager.assignSlot(slotId, null);
+  if (button instanceof HTMLButtonElement) {
+    const guestId = button.dataset.camRemove;
+    if (!guestId) {
+      return;
     }
+
+    for (const slotId of CAM_SLOT_IDS) {
+      if (camSlotsCache?.[slotId]?.guestId === guestId) {
+        await camManager.assignSlot(slotId, null);
+      }
+    }
+    await camManager.removeGuestSlotBindings(guestId);
+    return;
   }
-  await camManager.removeGuestSlotBindings(guestId);
+
+  return;
 });
 
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
