@@ -66,6 +66,8 @@ export class GuestCamPublisher {
     this.audioProcessingContext = null;
     this.audioProcessingNodes = null;
     this.captureStream = null;
+    this.microphoneDeadzone = 0.06;
+    this.microphoneGateOpen = true;
   }
 
   createPairKey(guestA, guestB) {
@@ -79,6 +81,11 @@ export class GuestCamPublisher {
 
   setAudioInput(deviceId) {
     this.selectedAudioInputId = deviceId || '';
+  }
+
+  setMicrophoneDeadzone(value) {
+    const deadzone = Number.isFinite(value) ? Math.max(0, Math.min(0.3, value)) : 0;
+    this.microphoneDeadzone = deadzone;
   }
 
   stopCaptureStream() {
@@ -150,9 +157,14 @@ export class GuestCamPublisher {
     if (!this.audioProcessingNodes) {
       return;
     }
+    if (this.audioProcessingNodes.gateInterval) {
+      clearInterval(this.audioProcessingNodes.gateInterval);
+    }
     this.audioProcessingNodes.source?.disconnect();
     this.audioProcessingNodes.highPass?.disconnect();
     this.audioProcessingNodes.compressor?.disconnect();
+    this.audioProcessingNodes.analyser?.disconnect();
+    this.audioProcessingNodes.gateGain?.disconnect();
     this.audioProcessingNodes.outputGain?.disconnect();
     this.audioProcessingNodes.destination?.disconnect();
     this.audioProcessingNodes = null;
@@ -187,25 +199,72 @@ export class GuestCamPublisher {
       compressor.attack.value = 0.003;
       compressor.release.value = 0.2;
 
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.7;
+      const analyserBuffer = new Uint8Array(analyser.fftSize);
+
+      const gateGain = context.createGain();
+      gateGain.gain.value = 1;
+
       const outputGain = context.createGain();
       outputGain.gain.value = 1;
 
       const destination = context.createMediaStreamDestination();
       source.connect(highPass);
       highPass.connect(compressor);
-      compressor.connect(outputGain);
+      compressor.connect(analyser);
+      compressor.connect(gateGain);
+      gateGain.connect(outputGain);
       outputGain.connect(destination);
+
+      const applyGateState = (isOpen) => {
+        this.microphoneGateOpen = isOpen;
+        gateGain.gain.setTargetAtTime(isOpen ? 1 : 0, context.currentTime, 0.012);
+      };
+      applyGateState(true);
+
+      const deadzoneChecker = window.setInterval(() => {
+        analyser.getByteTimeDomainData(analyserBuffer);
+        let squaredSum = 0;
+        for (let i = 0; i < analyserBuffer.length; i += 1) {
+          const centered = (analyserBuffer[i] - 128) / 128;
+          squaredSum += centered * centered;
+        }
+        const rms = Math.sqrt(squaredSum / analyserBuffer.length);
+        const baseThreshold = this.microphoneDeadzone;
+        const openThreshold = Math.max(0, baseThreshold * 0.8);
+        const closeThreshold = Math.min(0.35, baseThreshold * 1.2);
+
+        if (this.microphoneGateOpen) {
+          if (rms < openThreshold) {
+            applyGateState(false);
+          }
+        } else if (rms > closeThreshold) {
+          applyGateState(true);
+        }
+      }, 65);
 
       const processedTrack = destination.stream.getAudioTracks()[0];
       if (!processedTrack) {
+        clearInterval(deadzoneChecker);
         context.close().catch(() => {});
         this.onLog?.('[audio] Pipeline Web Audio indisponible: piste brute conservée.');
         return rawAudioTrack;
       }
 
       this.audioProcessingContext = context;
-      this.audioProcessingNodes = { source, highPass, compressor, outputGain, destination };
-      this.onLog?.('[audio] Pipeline Web Audio active (high-pass + compresseur léger).');
+      this.audioProcessingNodes = {
+        source,
+        highPass,
+        compressor,
+        analyser,
+        gateGain,
+        outputGain,
+        destination,
+        gateInterval: deadzoneChecker,
+      };
+      this.onLog?.('[audio] Pipeline Web Audio active (high-pass + compresseur + gate zone morte).');
       return processedTrack;
     } catch (error) {
       this.onLog?.(`[audio] Pipeline Web Audio en échec (${error.message}), piste brute conservée.`);

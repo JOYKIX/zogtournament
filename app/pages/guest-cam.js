@@ -12,6 +12,8 @@ const guestVoicePeers = document.getElementById('guestVoicePeers');
 const microphoneSelect = document.getElementById('microphoneSelect');
 const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
 const guestPeerList = document.getElementById('guestPeerList');
+const microDeadzoneRange = document.getElementById('microDeadzoneRange');
+const microDeadzoneValue = document.getElementById('microDeadzoneValue');
 const peerAudioEls = new Map();
 let peersCache = [];
 
@@ -47,6 +49,12 @@ function renderPeerList() {
       return `<li><div class="peer-item-row"><strong>${escapeHtml(peer.name)}</strong><span>${icon} ${stateLabel}</span></div></li>`;
     })
     .join('');
+}
+
+function renderDeadzoneValue(value) {
+  if (!microDeadzoneValue) return;
+  const safeValue = Number.isFinite(value) ? value : 0;
+  microDeadzoneValue.textContent = `${safeValue}%`;
 }
 
 const publisher = new GuestCamPublisher({
@@ -101,6 +109,13 @@ const publisher = new GuestCamPublisher({
   },
 });
 
+function applyDeadzoneFromUi() {
+  const value = Number.parseInt(microDeadzoneRange?.value || '0', 10);
+  const deadzonePercent = Number.isFinite(value) ? Math.max(0, Math.min(30, value)) : 0;
+  publisher.setMicrophoneDeadzone(deadzonePercent / 100);
+  renderDeadzoneValue(deadzonePercent);
+}
+
 async function refreshMicrophones() {
   const devices = await publisher.listAudioInputs();
   const options = ['<option value="">Micro par défaut</option>'];
@@ -116,6 +131,7 @@ async function refreshMicrophones() {
 
 renderPeerList();
 renderMuteButton(false, false);
+applyDeadzoneFromUi();
 
 refreshMicrophones().catch(() => {
   // Les labels de périphériques peuvent être vides avant la permission micro.
@@ -123,6 +139,10 @@ refreshMicrophones().catch(() => {
 
 microphoneSelect?.addEventListener('change', () => {
   publisher.setAudioInput(microphoneSelect.value);
+});
+
+microDeadzoneRange?.addEventListener('input', () => {
+  applyDeadzoneFromUi();
 });
 
 refreshMicrophonesBtn?.addEventListener('click', async () => {
