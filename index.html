@@ -114,6 +114,13 @@
                 Temps initial timer (sec)
                 <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
               </label>
+              <label class="overlay-size-field" for="duelTimerProfile">
+                Profil timer
+                <select id="duelTimerProfile">
+                  <option value="classic">Classique (actuel)</option>
+                  <option value="healthbar">Barre de vie (Tekken)</option>
+                </select>
+              </label>
               <label class="overlay-size-field" for="duelTimerOffsetYPx">
                 Position verticale timer (px)
                 <input id="duelTimerOffsetYPx" type="number" min="-400" max="400" step="2" value="0" />
