@@ -26,6 +26,9 @@ import {
 } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 import { createKeybindingManager, formatBinding } from '../shared/keybindings.js';
+import { CAM_SLOT_IDS } from '../webrtc/constants.js';
+import { GuestCamAdminManager } from '../webrtc/admin-room.js';
+import { camSlotsRef } from '../webrtc/signaling.js';
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
@@ -94,6 +97,8 @@ const bindingDisplayNextMatch = document.getElementById('bindingDisplayNextMatch
 const bindingDisplayWinParticipant1 = document.getElementById('bindingDisplayWinParticipant1');
 const bindingDisplayWinParticipant2 = document.getElementById('bindingDisplayWinParticipant2');
 const resetBindingsBtn = document.getElementById('resetBindingsBtn');
+const camGuestsList = document.getElementById('camGuestsList');
+const camStatus = document.getElementById('camStatus');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
@@ -137,6 +142,10 @@ let isConnected = false;
 let usersLoaded = false;
 let timerTickHandle = null;
 let keybindingManager = null;
+let camGuestsCache = [];
+let camSlotsCache = {};
+const camStreams = new Map();
+let camManager = null;
 
 const KEYBINDING_ACTION_LABELS = {
   start: 'Démarrer',
@@ -372,7 +381,7 @@ function parseViewFromHash() {
     .replace('#', '')
     .trim()
     .toLowerCase();
-  return ['participants', 'config', 'keybinds', 'live'].includes(normalized) ? normalized : 'participants';
+  return ['participants', 'config', 'keybinds', 'live', 'cam'].includes(normalized) ? normalized : 'participants';
 }
 
 function renderActiveView(viewName) {
@@ -1055,6 +1064,82 @@ function renderConnectionStatus() {
   connectionStatus.textContent = '⚠️ Connexion à la base perdue. Vérifie Internet/Firebase puis réessaie.';
 }
 
+function getCamStatusLabel(guest) {
+  if (!guest) {
+    return 'En attente';
+  }
+  if (!guest.cameraEnabled) {
+    return 'Caméra absente';
+  }
+  if (guest.status === 'connected') {
+    return 'Connecté';
+  }
+  if (guest.status === 'connecting') {
+    return 'Connexion';
+  }
+  if (guest.status === 'disconnected') {
+    return 'Déconnecté';
+  }
+  return 'En attente';
+}
+
+function renderCamView() {
+  if (!camGuestsList) {
+    return;
+  }
+
+  if (!camGuestsCache.length) {
+    camGuestsList.innerHTML = '<p class="message">Aucun invité connecté.</p>';
+    if (camStatus) {
+      camStatus.textContent = 'En attente d’invités.';
+    }
+    return;
+  }
+
+  if (camStatus) {
+    camStatus.textContent = `${camGuestsCache.length} invité(s) connecté(s).`;
+  }
+
+  camGuestsList.innerHTML = camGuestsCache
+    .map((guest) => {
+      const selectedSlot =
+        CAM_SLOT_IDS.find((slotId) => camSlotsCache?.[slotId]?.guestId === guest.id) || '';
+      const hasStream = Boolean(camStreams.get(guest.id));
+      return `
+        <article class="sub-card cam-guest-card" data-guest-id="${guest.id}">
+          <h4>${escapeHtml(guest.name)}</h4>
+          <p class="message no-margin">${getCamStatusLabel(guest)} · ${hasStream ? 'Flux actif' : 'Flux indisponible'}</p>
+          <video class="cam-preview" data-guest-video="${guest.id}" autoplay playsinline muted></video>
+          <div class="settings-grid two-cols">
+            <label class="setting-field">Slot overlay
+              <select data-cam-slot="${guest.id}">
+                <option value="">Non affiché</option>
+                ${CAM_SLOT_IDS.map(
+                  (slotId) =>
+                    `<option value="${slotId}" ${selectedSlot === slotId ? 'selected' : ''}>${slotId.toUpperCase()}</option>`
+                ).join('')}
+              </select>
+            </label>
+            <label class="setting-field inline-toggle">Visible
+              <input type="checkbox" data-cam-visible="${guest.id}" ${selectedSlot && camSlotsCache?.[selectedSlot]?.visible ? 'checked' : ''} />
+            </label>
+          </div>
+          <div class="actions">
+            <button type="button" class="ghost danger" data-cam-remove="${guest.id}">Retirer le flux</button>
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+
+  camGuestsCache.forEach((guest) => {
+    const video = camGuestsList.querySelector(`[data-guest-video="${guest.id}"]`);
+    if (video instanceof HTMLVideoElement) {
+      video.srcObject = camStreams.get(guest.id) || null;
+    }
+  });
+}
+
 async function refreshUsersCache() {
   const snapshot = await get(usersRef);
   usersCache = normalizeUsers(snapshot.val() || {});
@@ -1136,6 +1221,37 @@ async function ensureDatabaseShape() {
 
   if (value.profile === undefined) {
     await set(profileRef, null);
+  }
+
+  if (!value.cam || typeof value.cam !== 'object') {
+    await set(ref(rootRef, 'cam'), {
+      guests: {},
+      slots: {
+        slot1: { guestId: null, visible: false, updatedAt: Date.now() },
+        slot2: { guestId: null, visible: false, updatedAt: Date.now() },
+        slot3: { guestId: null, visible: false, updatedAt: Date.now() },
+      },
+      signals: {
+        admin: {},
+        overlay: {},
+      },
+    });
+  } else {
+    const camPatches = {};
+    CAM_SLOT_IDS.forEach((slotId) => {
+      if (!value.cam.slots || typeof value.cam.slots[slotId] !== 'object') {
+        camPatches[`slots/${slotId}`] = { guestId: null, visible: false, updatedAt: Date.now() };
+      }
+    });
+    if (!value.cam.signals || typeof value.cam.signals !== 'object') {
+      camPatches.signals = { admin: {}, overlay: {} };
+    }
+    if (!value.cam.guests || typeof value.cam.guests !== 'object') {
+      camPatches.guests = {};
+    }
+    if (Object.keys(camPatches).length) {
+      await update(ref(rootRef, 'cam'), camPatches);
+    }
   }
 
   if (value.profiles !== undefined) {
@@ -1256,6 +1372,30 @@ function bindRealtimeSubscriptions() {
     renderLiveWinnerControls();
     syncTimerParticipantLabels();
   });
+
+  onValue(camSlotsRef(), (snapshot) => {
+    camSlotsCache = snapshot.val() || {};
+    renderCamView();
+  });
+
+  camManager = new GuestCamAdminManager({
+    onGuestsChanged: (guests) => {
+      camGuestsCache = guests;
+      renderCamView();
+    },
+    onRemoteTrack: (guestId, stream) => {
+      if (stream) {
+        camStreams.set(guestId, stream);
+      } else {
+        camStreams.delete(guestId);
+      }
+      renderCamView();
+    },
+    onLog: (message) => {
+      console.log('[CamAdmin]', message);
+    },
+  });
+  camManager.start();
 }
 
 window.addEventListener('hashchange', () => {
@@ -1660,6 +1800,67 @@ liveWinnerParticipant2Btn?.addEventListener('click', async () => {
   await setCurrentMatchWinner('right');
 });
 
+camGuestsList?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !camManager) {
+    return;
+  }
+
+  if (target instanceof HTMLSelectElement && target.dataset.camSlot) {
+    const guestId = target.dataset.camSlot;
+    const slotId = target.value;
+    if (!slotId) {
+      for (const candidateSlot of CAM_SLOT_IDS) {
+        if (camSlotsCache?.[candidateSlot]?.guestId === guestId) {
+          await camManager.assignSlot(candidateSlot, null);
+        }
+      }
+      return;
+    }
+
+    for (const candidateSlot of CAM_SLOT_IDS) {
+      if (candidateSlot !== slotId && camSlotsCache?.[candidateSlot]?.guestId === guestId) {
+        await camManager.assignSlot(candidateSlot, null);
+      }
+    }
+    await camManager.assignSlot(slotId, guestId);
+    return;
+  }
+
+  if (target instanceof HTMLInputElement && target.dataset.camVisible) {
+    const guestId = target.dataset.camVisible;
+    const slotId = CAM_SLOT_IDS.find((candidateSlot) => camSlotsCache?.[candidateSlot]?.guestId === guestId);
+    if (!slotId) {
+      return;
+    }
+    await camManager.setSlotVisibility(slotId, target.checked);
+  }
+});
+
+camGuestsList?.addEventListener('click', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !camManager) {
+    return;
+  }
+
+  const button = target.closest('[data-cam-remove]');
+  if (!(button instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const guestId = button.dataset.camRemove;
+  if (!guestId) {
+    return;
+  }
+
+  for (const slotId of CAM_SLOT_IDS) {
+    if (camSlotsCache?.[slotId]?.guestId === guestId) {
+      await camManager.assignSlot(slotId, null);
+    }
+  }
+  await camManager.removeGuestSlotBindings(guestId);
+});
+
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
 openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
 logoutBtn.addEventListener('click', () => {
@@ -1696,3 +1897,10 @@ timerTickHandle = window.setInterval(async () => {
 
   await setOverlayTimer(resolved);
 }, TIMER_TICK_INTERVAL_MS);
+
+window.addEventListener('beforeunload', () => {
+  if (timerTickHandle) {
+    window.clearInterval(timerTickHandle);
+  }
+  camManager?.stop();
+});
