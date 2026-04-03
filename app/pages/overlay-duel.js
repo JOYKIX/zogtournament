@@ -7,6 +7,8 @@ const rightFighter = document.getElementById('rightFighter');
 const duelView = document.querySelector('.duel-view');
 const timerParticipant1 = document.getElementById('timerParticipant1');
 const timerParticipant2 = document.getElementById('timerParticipant2');
+const timerP1Label = document.getElementById('timerP1Label');
+const timerP2Label = document.getElementById('timerP2Label');
 const timerP1Value = document.getElementById('timerP1Value');
 const timerP2Value = document.getElementById('timerP2Value');
 
@@ -18,8 +20,9 @@ const MIN_DUEL_IMAGE_GAP_PX = 0;
 const MAX_DUEL_IMAGE_GAP_PX = 600;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
+const DEFAULT_TIMER_LABEL_1 = 'Participant 1';
+const DEFAULT_TIMER_LABEL_2 = 'Participant 2';
 const TIMER_SECOND_MS = 1000;
-const TIMER_RENDER_INTERVAL_MS = 250;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
@@ -51,6 +54,11 @@ function sanitizeTextColor(value) {
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
 }
 
+function sanitizeTimerLabel(value, fallback) {
+  const normalized = String(value || '').trim();
+  return normalized || fallback;
+}
+
 function normalizeTimerState(timerValue = {}) {
   const initialSeconds = Number(timerValue.initialSeconds || DEFAULT_TIMER_INITIAL_SECONDS);
   const safeInitialSeconds = Number.isFinite(initialSeconds) ? Math.max(10, Math.min(7200, Math.round(initialSeconds))) : DEFAULT_TIMER_INITIAL_SECONDS;
@@ -61,34 +69,18 @@ function normalizeTimerState(timerValue = {}) {
     timerValue.activeParticipant === 1 || timerValue.activeParticipant === 2 ? timerValue.activeParticipant : null;
   const isRunning = Boolean(timerValue.isRunning && activeParticipant);
   const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
+  const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
+  const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
 
   return {
     initialSeconds: safeInitialSeconds,
     participant1Ms,
     participant2Ms,
+    participant1Label,
+    participant2Label,
     activeParticipant: isRunning ? activeParticipant : null,
     isRunning,
     lastUpdatedAt,
-  };
-}
-
-function resolveTimerNow(baseTimer, now = Date.now()) {
-  const timer = normalizeTimerState(baseTimer);
-  if (!timer.isRunning || !timer.activeParticipant) {
-    return timer;
-  }
-
-  const elapsed = Math.max(0, now - timer.lastUpdatedAt);
-  const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
-  const remaining = Math.max(0, timer[key] - elapsed);
-  const reachedZero = remaining === 0;
-
-  return {
-    ...timer,
-    [key]: remaining,
-    isRunning: reachedZero ? false : timer.isRunning,
-    activeParticipant: reachedZero ? null : timer.activeParticipant,
-    lastUpdatedAt: now,
   };
 }
 
@@ -130,12 +122,18 @@ function render() {
     duelView.style.setProperty('--fighter-text-color', currentTextColor);
   }
 
-  const resolvedTimer = resolveTimerNow(currentTimer, Date.now());
+  const resolvedTimer = normalizeTimerState(currentTimer);
   if (timerP1Value) {
     timerP1Value.textContent = formatTimer(resolvedTimer.participant1Ms);
   }
   if (timerP2Value) {
     timerP2Value.textContent = formatTimer(resolvedTimer.participant2Ms);
+  }
+  if (timerP1Label) {
+    timerP1Label.textContent = resolvedTimer.participant1Label;
+  }
+  if (timerP2Label) {
+    timerP2Label.textContent = resolvedTimer.participant2Label;
   }
 
   if (timerParticipant1 && timerParticipant2) {
@@ -158,7 +156,3 @@ onValue(overlayRef, (snapshot) => {
   currentTimer = normalizeTimerState(value.timer);
   render();
 });
-
-window.setInterval(() => {
-  render();
-}, TIMER_RENDER_INTERVAL_MS);

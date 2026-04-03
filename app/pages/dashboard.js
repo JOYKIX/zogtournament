@@ -69,9 +69,11 @@ const MIN_DUEL_IMAGE_GAP_PX = 0;
 const MAX_DUEL_IMAGE_GAP_PX = 600;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
+const DEFAULT_TIMER_LABEL_1 = 'Participant 1';
+const DEFAULT_TIMER_LABEL_2 = 'Participant 2';
 const MIN_TIMER_INITIAL_SECONDS = 10;
 const MAX_TIMER_INITIAL_SECONDS = 7200;
-const TIMER_TICK_INTERVAL_MS = 250;
+const TIMER_TICK_INTERVAL_MS = 1000;
 const TIMER_SECOND_MS = 1000;
 
 let usersCache = [];
@@ -121,6 +123,11 @@ function sanitizeTimerInitialSeconds(value) {
   return Math.max(MIN_TIMER_INITIAL_SECONDS, Math.min(MAX_TIMER_INITIAL_SECONDS, Math.round(parsed)));
 }
 
+function sanitizeTimerLabel(value, fallback) {
+  const normalized = String(value || '').trim();
+  return normalized || fallback;
+}
+
 function normalizeTimerState(timerValue = {}) {
   const initialSeconds = sanitizeTimerInitialSeconds(timerValue.initialSeconds);
   const initialMs = initialSeconds * TIMER_SECOND_MS;
@@ -130,11 +137,15 @@ function normalizeTimerState(timerValue = {}) {
     timerValue.activeParticipant === 1 || timerValue.activeParticipant === 2 ? timerValue.activeParticipant : null;
   const isRunning = Boolean(timerValue.isRunning && activeParticipant);
   const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
+  const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
+  const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
 
   return {
     initialSeconds,
     participant1Ms,
     participant2Ms,
+    participant1Label,
+    participant2Label,
     activeParticipant: isRunning ? activeParticipant : null,
     isRunning,
     lastUpdatedAt,
@@ -399,6 +410,28 @@ async function setOverlayTimer(timer) {
   await update(overlayRef, {
     timer: normalizeTimerState(timer),
     updatedAt: Date.now(),
+  });
+}
+
+function getTimerParticipantLabels() {
+  const { current } = getCurrentOverlayMeta();
+  return {
+    participant1Label: sanitizeTimerLabel(current?.left?.pseudo, DEFAULT_TIMER_LABEL_1),
+    participant2Label: sanitizeTimerLabel(current?.right?.pseudo, DEFAULT_TIMER_LABEL_2),
+  };
+}
+
+async function syncTimerParticipantLabels() {
+  const timer = normalizeTimerState(currentOverlay.timer);
+  const labels = getTimerParticipantLabels();
+  if (timer.participant1Label === labels.participant1Label && timer.participant2Label === labels.participant2Label) {
+    return;
+  }
+
+  await setOverlayTimer({
+    ...timer,
+    participant1Label: labels.participant1Label,
+    participant2Label: labels.participant2Label,
   });
 }
 
@@ -714,6 +747,7 @@ function bindRealtimeSubscriptions() {
   onValue(matchesRef, (snapshot) => {
     tournamentCache = normalizeTournament(snapshot.val());
     renderBracket();
+    syncTimerParticipantLabels();
   });
 
   onValue(overlayRef, (snapshot) => {
@@ -738,8 +772,15 @@ function bindRealtimeSubscriptions() {
     if (duelTimerInitialSecondsInput) {
       duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
     }
+    if (timerStartParticipantSelect?.options?.[0]) {
+      timerStartParticipantSelect.options[0].textContent = currentOverlay.timer.participant1Label;
+    }
+    if (timerStartParticipantSelect?.options?.[1]) {
+      timerStartParticipantSelect.options[1].textContent = currentOverlay.timer.participant2Label;
+    }
 
     renderBracket();
+    syncTimerParticipantLabels();
   });
 }
 
@@ -969,8 +1010,16 @@ timerTickHandle = window.setInterval(async () => {
     return;
   }
 
-  const resolved = resolveTimerNow(currentOverlay.timer, Date.now());
-  if (!resolved.isRunning && currentOverlay.timer.isRunning) {
-    await setOverlayTimer(resolved);
+  const baseTimer = normalizeTimerState(currentOverlay.timer);
+  const resolved = resolveTimerNow(baseTimer, Date.now());
+  if (
+    resolved.participant1Ms === baseTimer.participant1Ms &&
+    resolved.participant2Ms === baseTimer.participant2Ms &&
+    resolved.isRunning === baseTimer.isRunning &&
+    resolved.activeParticipant === baseTimer.activeParticipant
+  ) {
+    return;
   }
+
+  await setOverlayTimer(resolved);
 }, TIMER_TICK_INTERVAL_MS);
