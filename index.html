@@ -98,6 +98,30 @@
                 Hauteur image duel (px)
                 <input id="duelImageHeightPx" type="number" min="200" max="1400" step="10" value="760" />
               </label>
+              <label class="overlay-size-field" for="duelImageGapPx">
+                Écart entre images (px)
+                <input id="duelImageGapPx" type="number" min="0" max="600" step="2" value="36" />
+              </label>
+              <label class="overlay-size-field" for="duelTextColor">
+                Couleur texte
+                <input id="duelTextColor" type="color" value="#f5f8ff" />
+              </label>
+              <label class="overlay-size-field" for="duelTimerInitialSeconds">
+                Temps initial timer (sec)
+                <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
+              </label>
+              <label class="overlay-size-field" for="timerStartParticipant">
+                Participant de départ
+                <select id="timerStartParticipant">
+                  <option value="1">Participant 1</option>
+                  <option value="2">Participant 2</option>
+                </select>
+              </label>
+              <div class="timer-controls">
+                <button id="timerStartBtn" type="button">Start</button>
+                <button id="timerStopBtn" type="button" class="secondary">Stop</button>
+                <button id="timerSwitchBtn" type="button" class="secondary">Switch</button>
+              </div>
               <button id="generateBracketBtn" class="secondary">Créer le tournoi</button>
               <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
               <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>

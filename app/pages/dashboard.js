@@ -53,18 +53,41 @@ const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
 const overlayNextBtn = document.getElementById('overlayNextBtn');
 const duelImageHeightInput = document.getElementById('duelImageHeightPx');
+const duelImageGapInput = document.getElementById('duelImageGapPx');
+const duelTextColorInput = document.getElementById('duelTextColor');
+const duelTimerInitialSecondsInput = document.getElementById('duelTimerInitialSeconds');
+const timerStartParticipantSelect = document.getElementById('timerStartParticipant');
+const timerStartBtn = document.getElementById('timerStartBtn');
+const timerStopBtn = document.getElementById('timerStopBtn');
+const timerSwitchBtn = document.getElementById('timerSwitchBtn');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
 const MAX_DUEL_IMAGE_HEIGHT_PX = 1400;
+const DEFAULT_DUEL_IMAGE_GAP_PX = 36;
+const MIN_DUEL_IMAGE_GAP_PX = 0;
+const MAX_DUEL_IMAGE_GAP_PX = 600;
+const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_TIMER_INITIAL_SECONDS = 300;
+const MIN_TIMER_INITIAL_SECONDS = 10;
+const MAX_TIMER_INITIAL_SECONDS = 7200;
+const TIMER_TICK_INTERVAL_MS = 250;
+const TIMER_SECOND_MS = 1000;
 
 let usersCache = [];
 let participantsCache = [];
 let tournamentCache = null;
 let currentProfile = null;
-let currentOverlay = { matchIndex: 0, imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX };
+let currentOverlay = {
+  matchIndex: 0,
+  imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
+  imageGapPx: DEFAULT_DUEL_IMAGE_GAP_PX,
+  textColor: DEFAULT_DUEL_TEXT_COLOR,
+  timer: null,
+};
 let isConnected = false;
 let usersLoaded = false;
+let timerTickHandle = null;
 
 function sanitizeDuelImageHeight(value) {
   const parsed = Number(value);
@@ -73,6 +96,73 @@ function sanitizeDuelImageHeight(value) {
   }
 
   return Math.max(MIN_DUEL_IMAGE_HEIGHT_PX, Math.min(MAX_DUEL_IMAGE_HEIGHT_PX, Math.round(parsed)));
+}
+
+function sanitizeDuelImageGap(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_IMAGE_GAP_PX;
+  }
+
+  return Math.max(MIN_DUEL_IMAGE_GAP_PX, Math.min(MAX_DUEL_IMAGE_GAP_PX, Math.round(parsed)));
+}
+
+function sanitizeTextColor(value) {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
+}
+
+function sanitizeTimerInitialSeconds(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_TIMER_INITIAL_SECONDS;
+  }
+
+  return Math.max(MIN_TIMER_INITIAL_SECONDS, Math.min(MAX_TIMER_INITIAL_SECONDS, Math.round(parsed)));
+}
+
+function normalizeTimerState(timerValue = {}) {
+  const initialSeconds = sanitizeTimerInitialSeconds(timerValue.initialSeconds);
+  const initialMs = initialSeconds * TIMER_SECOND_MS;
+  const participant1Ms = Math.max(0, Math.round(Number(timerValue.participant1Ms ?? initialMs) || initialMs));
+  const participant2Ms = Math.max(0, Math.round(Number(timerValue.participant2Ms ?? initialMs) || initialMs));
+  const activeParticipant =
+    timerValue.activeParticipant === 1 || timerValue.activeParticipant === 2 ? timerValue.activeParticipant : null;
+  const isRunning = Boolean(timerValue.isRunning && activeParticipant);
+  const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
+
+  return {
+    initialSeconds,
+    participant1Ms,
+    participant2Ms,
+    activeParticipant: isRunning ? activeParticipant : null,
+    isRunning,
+    lastUpdatedAt,
+  };
+}
+
+function resolveTimerNow(baseTimer, now = Date.now()) {
+  const timer = normalizeTimerState(baseTimer);
+  if (!timer.isRunning || !timer.activeParticipant) {
+    return timer;
+  }
+
+  const elapsed = Math.max(0, now - timer.lastUpdatedAt);
+  if (elapsed <= 0) {
+    return timer;
+  }
+
+  const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
+  const remaining = Math.max(0, timer[key] - elapsed);
+  const reachedZero = remaining === 0;
+
+  return {
+    ...timer,
+    [key]: remaining,
+    isRunning: reachedZero ? false : timer.isRunning,
+    activeParticipant: reachedZero ? null : timer.activeParticipant,
+    lastUpdatedAt: now,
+  };
 }
 
 function normalizeUsers(snapshotValue) {
@@ -287,6 +377,91 @@ async function setOverlayImageHeight(heightPx) {
   });
 }
 
+async function setOverlayImageGap(gapPx) {
+  const safeGap = sanitizeDuelImageGap(gapPx);
+
+  await update(overlayRef, {
+    imageGapPx: safeGap,
+    updatedAt: Date.now(),
+  });
+}
+
+async function setOverlayTextColor(textColor) {
+  const safeColor = sanitizeTextColor(textColor);
+
+  await update(overlayRef, {
+    textColor: safeColor,
+    updatedAt: Date.now(),
+  });
+}
+
+async function setOverlayTimer(timer) {
+  await update(overlayRef, {
+    timer: normalizeTimerState(timer),
+    updatedAt: Date.now(),
+  });
+}
+
+async function setTimerInitialSeconds(initialSeconds) {
+  const safeInitialSeconds = sanitizeTimerInitialSeconds(initialSeconds);
+  const nextTimer = normalizeTimerState(currentOverlay.timer);
+  const initialMs = safeInitialSeconds * TIMER_SECOND_MS;
+  nextTimer.initialSeconds = safeInitialSeconds;
+  nextTimer.participant1Ms = initialMs;
+  nextTimer.participant2Ms = initialMs;
+  nextTimer.activeParticipant = null;
+  nextTimer.isRunning = false;
+  nextTimer.lastUpdatedAt = Date.now();
+
+  await setOverlayTimer(nextTimer);
+}
+
+async function startTimer(participant) {
+  const starter = participant === 2 ? 2 : 1;
+  const now = Date.now();
+  const timer = resolveTimerNow(currentOverlay.timer, now);
+  const key = starter === 1 ? 'participant1Ms' : 'participant2Ms';
+
+  if (timer[key] <= 0) {
+    return;
+  }
+
+  timer.activeParticipant = starter;
+  timer.isRunning = true;
+  timer.lastUpdatedAt = now;
+  await setOverlayTimer(timer);
+}
+
+async function stopTimer() {
+  const timer = resolveTimerNow(currentOverlay.timer, Date.now());
+  timer.activeParticipant = null;
+  timer.isRunning = false;
+  timer.lastUpdatedAt = Date.now();
+  await setOverlayTimer(timer);
+}
+
+async function switchTimer() {
+  const timer = resolveTimerNow(currentOverlay.timer, Date.now());
+  if (!timer.isRunning || !timer.activeParticipant) {
+    return;
+  }
+
+  const nextParticipant = timer.activeParticipant === 1 ? 2 : 1;
+  const nextKey = nextParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
+  if (timer[nextKey] <= 0) {
+    timer.activeParticipant = null;
+    timer.isRunning = false;
+    timer.lastUpdatedAt = Date.now();
+    await setOverlayTimer(timer);
+    return;
+  }
+
+  timer.activeParticipant = nextParticipant;
+  timer.isRunning = true;
+  timer.lastUpdatedAt = Date.now();
+  await setOverlayTimer(timer);
+}
+
 async function generateMatches() {
   if (participantsCache.length < 2) {
     alert('Ajoute au moins 2 participants.');
@@ -463,13 +638,36 @@ async function ensureDatabaseShape() {
     await set(overlayRef, {
       matchIndex: 0,
       imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
+      imageGapPx: DEFAULT_DUEL_IMAGE_GAP_PX,
+      textColor: DEFAULT_DUEL_TEXT_COLOR,
+      timer: normalizeTimerState({
+        initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS,
+      }),
       updatedAt: Date.now(),
     });
-  } else if (!Number.isFinite(Number(value.overlay.imageHeightPx))) {
-    await update(overlayRef, {
-      imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
-      updatedAt: Date.now(),
-    });
+  } else {
+    const patches = {};
+
+    if (!Number.isFinite(Number(value.overlay.imageHeightPx))) {
+      patches.imageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
+    }
+
+    if (!Number.isFinite(Number(value.overlay.imageGapPx))) {
+      patches.imageGapPx = DEFAULT_DUEL_IMAGE_GAP_PX;
+    }
+
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.textColor || '').trim())) {
+      patches.textColor = DEFAULT_DUEL_TEXT_COLOR;
+    }
+
+    if (!value.overlay.timer || typeof value.overlay.timer !== 'object') {
+      patches.timer = normalizeTimerState({ initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS });
+    }
+
+    if (Object.keys(patches).length) {
+      patches.updatedAt = Date.now();
+      await update(overlayRef, patches);
+    }
   }
 
   if (value.profile === undefined) {
@@ -523,10 +721,22 @@ function bindRealtimeSubscriptions() {
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
       imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
+      imageGapPx: sanitizeDuelImageGap(value.imageGapPx),
+      textColor: sanitizeTextColor(value.textColor),
+      timer: normalizeTimerState(value.timer),
     };
 
     if (duelImageHeightInput) {
       duelImageHeightInput.value = String(currentOverlay.imageHeightPx);
+    }
+    if (duelImageGapInput) {
+      duelImageGapInput.value = String(currentOverlay.imageGapPx);
+    }
+    if (duelTextColorInput) {
+      duelTextColorInput.value = currentOverlay.textColor;
+    }
+    if (duelTimerInitialSecondsInput) {
+      duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
     }
 
     renderBracket();
@@ -693,6 +903,52 @@ duelImageHeightInput?.addEventListener('change', async (event) => {
   await setOverlayImageHeight(safeHeight);
 });
 
+duelImageGapInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeGap = sanitizeDuelImageGap(target.value);
+  target.value = String(safeGap);
+  await setOverlayImageGap(safeGap);
+});
+
+duelTextColorInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeColor = sanitizeTextColor(target.value);
+  target.value = safeColor;
+  await setOverlayTextColor(safeColor);
+});
+
+duelTimerInitialSecondsInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeSeconds = sanitizeTimerInitialSeconds(target.value);
+  target.value = String(safeSeconds);
+  await setTimerInitialSeconds(safeSeconds);
+});
+
+timerStartBtn?.addEventListener('click', async () => {
+  const selected = Number(timerStartParticipantSelect?.value || 1);
+  await startTimer(selected);
+});
+
+timerStopBtn?.addEventListener('click', async () => {
+  await stopTimer();
+});
+
+timerSwitchBtn?.addEventListener('click', async () => {
+  await switchTimer();
+});
+
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
 openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
 logoutBtn.addEventListener('click', () => {
@@ -707,3 +963,14 @@ try {
 bindRealtimeSubscriptions();
 renderConnectionStatus();
 showLogin();
+
+timerTickHandle = window.setInterval(async () => {
+  if (!currentOverlay.timer?.isRunning || !currentOverlay.timer.activeParticipant) {
+    return;
+  }
+
+  const resolved = resolveTimerNow(currentOverlay.timer, Date.now());
+  if (!resolved.isRunning && currentOverlay.timer.isRunning) {
+    await setOverlayTimer(resolved);
+  }
+}, TIMER_TICK_INTERVAL_MS);

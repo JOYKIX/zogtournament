@@ -188,6 +188,23 @@ button.danger {
   margin: 0;
 }
 
+.overlay-size-field input[type='color'] {
+  min-height: 44px;
+  padding: 0.2rem;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-end;
+}
+
+.timer-controls button {
+  width: auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
 .grid.two-columns,
 .dashboard-grid {
   display: grid;
