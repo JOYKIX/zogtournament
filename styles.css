@@ -87,6 +87,20 @@ button.secondary {
   border-radius: 8px;
   padding: 0.75rem;
   margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.list li button {
+  width: auto;
+  margin-top: 0;
+}
+
+button.danger {
+  background: #7d2230;
+  border-color: #9f2d3d;
 }
 
 .bracket {

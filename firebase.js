@@ -27,12 +27,14 @@ const usersRef = ref(db, 'zogTournament/users');
 const participantsRef = ref(db, 'zogTournament/participants');
 const matchesRef = ref(db, 'zogTournament/matches');
 const overlayRef = ref(db, 'zogTournament/overlay');
+const profileRef = ref(db, 'zogTournament/profile');
 
 export {
   db,
   matchesRef,
   onValue,
   overlayRef,
+  profileRef,
   participantsRef,
   push,
   ref,
