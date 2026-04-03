@@ -18,6 +18,22 @@ export function camSlotsRef() {
   return ref(db, `${CAM_ROOT}/slots`);
 }
 
+export function camGuestVoicePairRef(pairKey) {
+  return ref(db, `${CAM_ROOT}/guestVoice/${pairKey}`);
+}
+
+export function camGuestVoiceOfferRef(pairKey) {
+  return ref(db, `${CAM_ROOT}/guestVoice/${pairKey}/offer`);
+}
+
+export function camGuestVoiceAnswerRef(pairKey) {
+  return ref(db, `${CAM_ROOT}/guestVoice/${pairKey}/answer`);
+}
+
+export function camGuestVoiceCandidatesRef(pairKey, guestId) {
+  return ref(db, `${CAM_ROOT}/guestVoice/${pairKey}/candidates/${guestId}`);
+}
+
 export function camSignalsRef(role, guestId) {
   return ref(db, `${CAM_ROOT}/signals/${role}/${guestId}`);
 }
@@ -64,6 +80,22 @@ export async function pushCandidate(role, sourceRole, guestId, payload) {
 
 export async function clearSignals(role, guestId) {
   await remove(camSignalsRef(role, guestId));
+}
+
+export async function writeGuestVoiceOffer(pairKey, payload) {
+  await set(camGuestVoiceOfferRef(pairKey), payload);
+}
+
+export async function writeGuestVoiceAnswer(pairKey, payload) {
+  await set(camGuestVoiceAnswerRef(pairKey), payload);
+}
+
+export async function pushGuestVoiceCandidate(pairKey, guestId, payload) {
+  await push(camGuestVoiceCandidatesRef(pairKey, guestId), payload);
+}
+
+export async function clearGuestVoicePair(pairKey) {
+  await remove(camGuestVoicePairRef(pairKey));
 }
 
 export async function writeSlots(payload) {

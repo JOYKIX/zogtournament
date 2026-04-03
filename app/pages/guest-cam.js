@@ -6,8 +6,10 @@ const joinGuestBtn = document.getElementById('joinGuestBtn');
 const leaveGuestBtn = document.getElementById('leaveGuestBtn');
 const guestStatus = document.getElementById('guestStatus');
 const guestPreview = document.getElementById('guestPreview');
+const guestVoicePeers = document.getElementById('guestVoicePeers');
 const microphoneSelect = document.getElementById('microphoneSelect');
 const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
+const peerAudioEls = new Map();
 
 const publisher = new GuestCamPublisher({
   onState: (state) => {
@@ -23,6 +25,27 @@ const publisher = new GuestCamPublisher({
   },
   onLocalStream: (stream) => {
     guestPreview.srcObject = stream;
+  },
+  onVoicePeerStream: (peerId, stream) => {
+    const existing = peerAudioEls.get(peerId);
+    if (!stream) {
+      existing?.remove();
+      peerAudioEls.delete(peerId);
+      return;
+    }
+
+    if (existing) {
+      existing.srcObject = stream;
+      return;
+    }
+
+    const audio = document.createElement('audio');
+    audio.autoplay = true;
+    audio.playsInline = true;
+    audio.dataset.peerId = peerId;
+    audio.srcObject = stream;
+    peerAudioEls.set(peerId, audio);
+    guestVoicePeers?.appendChild(audio);
   },
 });
 
