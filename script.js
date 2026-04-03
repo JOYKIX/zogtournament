@@ -5,7 +5,6 @@ import {
   overlayRef,
   participantsRef,
   profileRef,
-  profilesRef,
   push,
   ref,
   remove,
@@ -81,37 +80,31 @@ async function ensureDatabaseShape() {
   const snapshot = await get(rootRef);
   const value = snapshot.val() || {};
 
-  const initialPatch = {};
-
   if (!value.users || typeof value.users !== 'object') {
-    initialPatch.users = {};
-  }
-
-  if (!value.profiles || typeof value.profiles !== 'object') {
-    initialPatch.profiles = {};
+    await set(usersRef, {});
   }
 
   if (!value.participants || typeof value.participants !== 'object') {
-    initialPatch.participants = {};
+    await set(participantsRef, {});
   }
 
   if (!Array.isArray(value.matches)) {
-    initialPatch.matches = [];
+    await set(matchesRef, []);
   }
 
   if (!value.overlay || typeof value.overlay !== 'object') {
-    initialPatch.overlay = {
+    await set(overlayRef, {
       matchIndex: 0,
       updatedAt: Date.now(),
-    };
+    });
   }
 
   if (value.profile === undefined) {
-    initialPatch.profile = null;
+    await set(profileRef, null);
   }
 
-  if (Object.keys(initialPatch).length) {
-    await update(rootRef, initialPatch);
+  if (value.profiles !== undefined) {
+    await remove(ref(rootRef, 'profiles'));
   }
 }
 
@@ -277,14 +270,7 @@ async function createProfile(username, password) {
     createdAt: now,
   });
 
-  await set(ref(profilesRef, uid), {
-    username,
-    displayName: username,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  return { ok: true, message: 'Compte et profil Firebase créés. Tu peux te connecter.' };
+  return { ok: true, message: 'Compte créé. Tu peux te connecter.' };
 }
 
 async function logout() {
@@ -410,6 +396,10 @@ logoutBtn.addEventListener('click', () => {
   logout();
 });
 
-await ensureDatabaseShape();
+try {
+  await ensureDatabaseShape();
+} catch (error) {
+  console.error('Impossible d’initialiser la base de données', error);
+}
 bindRealtimeSubscriptions();
 showLogin();
