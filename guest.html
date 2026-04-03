@@ -8,38 +8,12 @@
     <link rel="stylesheet" href="assets/styles/guest.css" />
   </head>
   <body>
-    <main class="discord-shell">
-      <aside class="server-rail card" aria-label="Serveurs">
-        <div class="server-dot is-active" title="Zog Tournament">ZT</div>
-        <div class="server-dot" title="Warmup">WU</div>
-        <div class="server-dot" title="Custom">+</div>
-      </aside>
-
-      <aside class="channel-panel card" aria-label="Canaux vocaux">
-        <header class="panel-head">
-          <p class="eyebrow">Invité</p>
-          <h2>Régie Live</h2>
-        </header>
-
-        <div class="channel-group">
-          <p class="channel-group-title">SALONS VOCAUX</p>
-          <button class="channel-item is-active" type="button">🔊 Vocal Groupe</button>
-          <button class="channel-item" type="button">🎤 Check micro</button>
-        </div>
-
-        <div class="member-section">
-          <p class="channel-group-title">EN LIGNE</p>
-          <ul id="guestPeerList" class="member-list">
-            <li class="member-empty">Personne connecté pour le moment</li>
-          </ul>
-        </div>
-      </aside>
-
+    <main class="guest-shell">
       <section class="voice-stage card panel" aria-label="Salon vocal principal">
         <header class="section-head stage-head">
           <div>
-            <p class="eyebrow">Vocal groupe</p>
-            <h3>Interface type Discord</h3>
+            <p class="eyebrow">Espace invité</p>
+            <h3>Vocal groupe unique</h3>
           </div>
           <p id="guestStatus" class="message">En attente</p>
         </header>
@@ -64,13 +38,24 @@
 
         <div class="actions wrap stage-controls">
           <button id="enableCameraBtn" type="button">Activer caméra + micro</button>
-          <button id="joinGuestBtn" type="button" class="secondary">Rejoindre le vocal</button>
+          <button id="joinGuestBtn" type="button" class="secondary">Se connecter au groupe</button>
           <button id="refreshMicrophonesBtn" type="button" class="ghost">Rafraîchir les micros</button>
           <button id="leaveGuestBtn" type="button" class="ghost">Quitter</button>
         </div>
 
         <div id="guestVoicePeers" aria-hidden="true"></div>
       </section>
+
+      <aside class="online-panel card" aria-label="Membres en ligne">
+        <header class="panel-head">
+          <p class="eyebrow">Groupe vocal</p>
+          <h2>Membres en ligne</h2>
+        </header>
+        <p class="panel-hint">Un seul groupe est disponible. Les membres apparaissent dès qu'ils rejoignent.</p>
+        <ul id="guestPeerList" class="member-list">
+          <li class="member-empty">Personne connecté pour le moment</li>
+        </ul>
+      </aside>
     </main>
     <script type="module" src="app/pages/guest-cam.js"></script>
   </body>

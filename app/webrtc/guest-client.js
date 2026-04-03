@@ -24,11 +24,12 @@ function createId() {
 }
 
 export class GuestCamPublisher {
-  constructor({ onState, onLog, onLocalStream, onVoicePeerStream }) {
+  constructor({ onState, onLog, onLocalStream, onVoicePeerStream, onPeersChanged }) {
     this.onState = onState;
     this.onLog = onLog;
     this.onLocalStream = onLocalStream;
     this.onVoicePeerStream = onVoicePeerStream;
+    this.onPeersChanged = onPeersChanged;
     this.guestId = null;
     this.name = '';
     this.localStream = null;
@@ -150,9 +151,16 @@ export class GuestCamPublisher {
 
     const unsubscribeGuests = listenValue(camGuestsRef(), (snapshot) => {
       const guests = snapshot.val() || {};
-      const peerIds = Object.keys(guests)
-        .filter((id) => id !== this.guestId)
-        .sort();
+      const peers = Object.entries(guests)
+        .filter(([id]) => id !== this.guestId)
+        .map(([id, guest]) => ({
+          id,
+          name: String(guest?.name || 'Invité'),
+          status: String(guest?.status || 'connecting'),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+      const peerIds = peers.map((peer) => peer.id);
+      this.onPeersChanged?.(peers);
 
       const activePeerIds = new Set(peerIds);
       for (const peerId of peerIds) {
@@ -163,7 +171,7 @@ export class GuestCamPublisher {
         }
       }
 
-      for (const peerId of this.voiceConnections.keys()) {
+      for (const peerId of Array.from(this.voiceConnections.keys())) {
         if (!activePeerIds.has(peerId)) {
           this.closeVoiceConnection(peerId);
         }
@@ -305,5 +313,6 @@ export class GuestCamPublisher {
     this.guestId = null;
     this.onState?.('idle');
     this.onLocalStream?.(null);
+    this.onPeersChanged?.([]);
   }
 }
