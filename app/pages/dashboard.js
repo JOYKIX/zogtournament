@@ -97,6 +97,7 @@ let currentOverlay = {
   imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
   textColor: DEFAULT_DUEL_TEXT_COLOR,
   timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
+  timerProfile: DEFAULT_TIMER_PROFILE,
   timer: null,
 };
 let isConnected = false;
@@ -462,8 +463,10 @@ async function setOverlayTimerOffsetY(timerOffsetYPx) {
 }
 
 async function setOverlayTimer(timer) {
+  const normalizedTimer = normalizeTimerState(timer);
   await update(overlayRef, {
-    timer: normalizeTimerState(timer),
+    timerProfile: normalizedTimer.profile,
+    timer: normalizedTimer,
     updatedAt: Date.now(),
   });
 }
@@ -505,8 +508,9 @@ async function setTimerInitialSeconds(initialSeconds) {
 }
 
 async function setTimerProfile(profile) {
+  const safeProfile = sanitizeTimerProfile(profile);
   const nextTimer = normalizeTimerState(currentOverlay.timer);
-  nextTimer.profile = sanitizeTimerProfile(profile);
+  nextTimer.profile = safeProfile;
   await setOverlayTimer(nextTimer);
 }
 
@@ -736,6 +740,7 @@ async function ensureDatabaseShape() {
       imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
       textColor: DEFAULT_DUEL_TEXT_COLOR,
       timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
+      timerProfile: DEFAULT_TIMER_PROFILE,
       timer: normalizeTimerState({
         initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS,
         profile: DEFAULT_TIMER_PROFILE,
@@ -767,6 +772,10 @@ async function ensureDatabaseShape() {
 
     if (!value.overlay.timer || typeof value.overlay.timer !== 'object') {
       patches.timer = normalizeTimerState({ initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS, profile: DEFAULT_TIMER_PROFILE });
+    }
+    if (!value.overlay.timerProfile) {
+      const timerProfile = sanitizeTimerProfile(value.overlay.timer?.profile);
+      patches.timerProfile = timerProfile;
     }
 
     if (Object.keys(patches).length) {
@@ -824,6 +833,10 @@ function bindRealtimeSubscriptions() {
 
   onValue(overlayRef, (snapshot) => {
     const value = snapshot.val() || {};
+    const normalizedTimer = normalizeTimerState({
+      ...value.timer,
+      profile: value.timerProfile ?? value.timer?.profile,
+    });
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
       imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
@@ -831,7 +844,8 @@ function bindRealtimeSubscriptions() {
       imageOffsetYPx: sanitizeDuelImageOffsetY(value.imageOffsetYPx),
       textColor: sanitizeTextColor(value.textColor),
       timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
-      timer: normalizeTimerState(value.timer),
+      timerProfile: normalizedTimer.profile,
+      timer: normalizedTimer,
     };
 
     if (duelImageHeightInput) {
@@ -850,7 +864,7 @@ function bindRealtimeSubscriptions() {
       duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
     }
     if (duelTimerProfileSelect) {
-      duelTimerProfileSelect.value = currentOverlay.timer.profile;
+      duelTimerProfileSelect.value = currentOverlay.timerProfile;
     }
     if (duelTimerOffsetYInput) {
       duelTimerOffsetYInput.value = String(currentOverlay.timerOffsetYPx);
