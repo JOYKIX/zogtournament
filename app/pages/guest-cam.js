@@ -10,6 +10,7 @@ const guestVoicePeers = document.getElementById('guestVoicePeers');
 const microphoneSelect = document.getElementById('microphoneSelect');
 const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
 const guestPeerList = document.getElementById('guestPeerList');
+const overlayAudioEnabled = document.getElementById('overlayAudioEnabled');
 const peerAudioEls = new Map();
 let peersCache = [];
 
@@ -46,6 +47,7 @@ const publisher = new GuestCamPublisher({
       idle: 'Déconnecté',
       'camera-ready': 'Caméra + micro actifs, prêt à rejoindre',
       connected: 'Connecté à la régie',
+      disconnected: 'Connexion perdue, flux coupé automatiquement',
     };
     guestStatus.textContent = labelMap[state] || state;
   },
@@ -84,6 +86,7 @@ const publisher = new GuestCamPublisher({
     renderPeerList();
   },
 });
+publisher.setIncludeOverlayAudio(Boolean(overlayAudioEnabled?.checked ?? true));
 
 async function refreshMicrophones() {
   const devices = await publisher.listAudioInputs();
@@ -106,6 +109,10 @@ refreshMicrophones().catch(() => {
 
 microphoneSelect?.addEventListener('change', () => {
   publisher.setAudioInput(microphoneSelect.value);
+});
+
+overlayAudioEnabled?.addEventListener('change', () => {
+  publisher.setIncludeOverlayAudio(overlayAudioEnabled.checked);
 });
 
 refreshMicrophonesBtn?.addEventListener('click', async () => {

@@ -2,6 +2,7 @@ import { db, ref } from '../shared/firebase.js';
 import { CAM_SLOT_IDS, WEBRTC_CONFIGURATION } from './constants.js';
 import {
   camCandidatesRef,
+  camGuestsRef,
   listenValue,
   pushCandidate,
   writeSignalAnswer,
@@ -12,6 +13,7 @@ export class GuestCamOverlayReceiver {
     this.onSlotUpdate = onSlotUpdate;
     this.onLog = onLog;
     this.slots = {};
+    this.guests = {};
     this.connections = new Map();
     this.unsubscribers = [];
     this.offerFingerprints = new Map();
@@ -21,6 +23,12 @@ export class GuestCamOverlayReceiver {
     this.unsubscribers.push(
       listenValue(ref(db, 'zogTournament/cam/slots'), (snapshot) => {
         this.slots = snapshot.val() || {};
+        this.syncSlots();
+      })
+    );
+    this.unsubscribers.push(
+      listenValue(camGuestsRef(), (snapshot) => {
+        this.guests = snapshot.val() || {};
         this.syncSlots();
       })
     );
@@ -43,13 +51,18 @@ export class GuestCamOverlayReceiver {
   syncSlots() {
     CAM_SLOT_IDS.forEach((slotId) => {
       const slot = this.slots[slotId] || {};
-      const shouldShow = Boolean(slot.visible && slot.guestId);
+      const guest = slot.guestId ? this.guests?.[slot.guestId] : null;
+      const guestIsConnected = guest && (guest.status === 'connected' || guest.status === 'connecting');
+      const shouldShow = Boolean(slot.visible && slot.guestId && guestIsConnected);
       if (!shouldShow) {
-        this.onSlotUpdate?.(slotId, null, false);
+        this.onSlotUpdate?.(slotId, null, false, { guestId: null, includeOverlayAudio: false });
         return;
       }
       const connection = this.connections.get(slot.guestId);
-      this.onSlotUpdate?.(slotId, connection?.remoteStream || null, true);
+      this.onSlotUpdate?.(slotId, connection?.remoteStream || null, true, {
+        guestId: slot.guestId,
+        includeOverlayAudio: Boolean(guest?.includeOverlayAudio),
+      });
     });
   }
 
