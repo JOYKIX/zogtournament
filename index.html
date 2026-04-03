@@ -45,134 +45,188 @@
         </div>
       </section>
 
-      <section id="appSection" class="hidden app-layout">
+      <section id="appSection" class="hidden app-shell">
         <header class="card app-header">
           <div>
             <p class="eyebrow">Dashboard tournoi</p>
-            <h2>Dashboard tournoi</h2>
+            <h2>Contrôle tournoi & overlay</h2>
+            <p class="hint no-margin">Configuration, pilotage live et gestion des overlays depuis un seul espace.</p>
           </div>
-          <div class="actions wrap">
-            <button id="openDuelOverlayBtn">Overlay duel</button>
-            <button id="openTreeOverlayBtn" class="secondary">Overlay arbre</button>
-            <button id="logoutBtn" class="secondary">Déconnexion</button>
+          <div class="actions wrap top-actions">
+            <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
+            <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
+            <button id="logoutBtn" class="ghost">Déconnexion</button>
           </div>
         </header>
 
-        <section class="grid dashboard-grid">
-          <form id="participantForm" class="card panel">
-            <h3 id="participantFormTitle">Ajouter un participant</h3>
-            <input id="editParticipantId" name="editParticipantId" type="hidden" />
+        <section class="workspace-grid">
+          <section class="stack-col">
+            <article class="card panel section-card">
+              <header class="section-head">
+                <p class="eyebrow">Participants / Duel</p>
+                <h3>Roster et préparation des affrontements</h3>
+              </header>
 
-            <label for="pseudo">Pseudo</label>
-            <input id="pseudo" name="pseudo" type="text" required />
+              <div class="split-grid">
+                <form id="participantForm" class="sub-card">
+                  <h4 id="participantFormTitle">Ajouter un participant</h4>
+                  <input id="editParticipantId" name="editParticipantId" type="hidden" />
 
-            <label for="character">Perso</label>
-            <input id="character" name="character" type="text" required />
+                  <label for="pseudo">Pseudo</label>
+                  <input id="pseudo" name="pseudo" type="text" required />
 
-            <label for="image">Image (URL)</label>
-            <input id="image" name="image" type="url" placeholder="https://..." />
+                  <label for="character">Personnage</label>
+                  <input id="character" name="character" type="text" required />
 
-            <div class="actions stacked-mobile">
-              <button id="participantSubmitBtn" type="submit">Ajouter</button>
-              <button id="cancelEditBtn" type="button" class="secondary hidden">Annuler modification</button>
-            </div>
-            <p id="participantMessage" class="message"></p>
-          </form>
+                  <label for="image">Image (URL)</label>
+                  <input id="image" name="image" type="url" placeholder="https://..." />
 
-          <section class="card panel">
-            <header class="toolbar compact">
-              <h3>Participants</h3>
-              <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider</button>
-            </header>
-            <ul id="participantsList" class="list"></ul>
+                  <div class="actions stacked-mobile">
+                    <button id="participantSubmitBtn" type="submit">Enregistrer</button>
+                    <button id="cancelEditBtn" type="button" class="secondary hidden">Annuler modification</button>
+                  </div>
+                  <p id="participantMessage" class="message"></p>
+                </form>
+
+                <section class="sub-card participants-block">
+                  <header class="toolbar compact">
+                    <h4>Participants</h4>
+                    <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider la liste</button>
+                  </header>
+                  <ul id="participantsList" class="list"></ul>
+                </section>
+              </div>
+            </article>
+
+            <article class="card panel section-card">
+              <header class="section-head">
+                <p class="eyebrow">Contrôles live</p>
+                <h3>Pilotage du tournoi en direct</h3>
+              </header>
+
+              <div class="live-controls">
+                <button id="generateBracketBtn" class="secondary">Créer / régénérer le tournoi</button>
+                <div class="duel-nav">
+                  <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
+                  <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
+                </div>
+              </div>
+            </article>
           </section>
-        </section>
 
-        <section class="card panel">
-          <header class="toolbar wrap bracket-header">
-            <div>
-              <h3>Arbre de tournoi</h3>
-            </div>
-            <div class="actions wrap bracket-controls">
-              <label class="overlay-size-field" for="duelImageHeightPx">
-                Hauteur image duel (px)
-                <input id="duelImageHeightPx" type="number" step="10" value="760" />
-              </label>
-              <label class="overlay-size-field" for="duelImageOffsetXPx">
-                Décalage horizontal image (px)
-                <input id="duelImageOffsetXPx" type="number" step="2" value="18" />
-              </label>
-              <label class="overlay-size-field" for="duelImageOffsetYPx">
-                Décalage vertical image (px)
-                <input id="duelImageOffsetYPx" type="number" step="2" value="0" />
-              </label>
-              <label class="overlay-size-field" for="duelTextColor">
-                Couleur texte
-                <input id="duelTextColor" type="color" value="#f5f8ff" />
-              </label>
-              <label class="overlay-size-field" for="duelTimerInitialSeconds">
-                Temps initial timer (sec)
-                <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
-              </label>
-              <label class="overlay-size-field" for="duelTimerProfile">
-                Profil timer
-                <select id="duelTimerProfile">
-                  <option value="classic">Classique (actuel)</option>
-                  <option value="healthbar">Fighting / barres de vie</option>
-                </select>
-              </label>
-              <label class="overlay-size-field" for="duelHealthBarsEnabled">
-                Activer barres de vie
-                <input id="duelHealthBarsEnabled" type="checkbox" checked />
-              </label>
-              <label class="overlay-size-field" for="duelHealthBarHeightPx">
-                Hauteur barre (px)
-                <input id="duelHealthBarHeightPx" type="number" step="1" value="26" />
-              </label>
-              <label class="overlay-size-field" for="duelHealthBarWidthPercent">
-                Largeur barre (%)
-                <input id="duelHealthBarWidthPercent" type="number" step="1" value="40" />
-              </label>
-              <label class="overlay-size-field" for="duelHealthMainColor">
-                Couleur principale
-                <input id="duelHealthMainColor" type="color" value="#3ef784" />
-              </label>
-              <label class="overlay-size-field" for="duelHealthWarningColor">
-                Couleur warning
-                <input id="duelHealthWarningColor" type="color" value="#ff9f1a" />
-              </label>
-              <label class="overlay-size-field" for="duelHealthDangerColor">
-                Couleur danger
-                <input id="duelHealthDangerColor" type="color" value="#ff3a39" />
-              </label>
-              <label class="overlay-size-field" for="duelHealthAnimationIntensity">
-                Intensité animation (0-100)
-                <input id="duelHealthAnimationIntensity" type="number" min="0" max="100" step="5" value="80" />
-              </label>
-              <label class="overlay-size-field" for="duelHealthDangerEffects">
-                Effets danger
-                <input id="duelHealthDangerEffects" type="checkbox" checked />
-              </label>
-              <label class="overlay-size-field" for="duelTimerOffsetYPx">
-                Position verticale timer (px)
-                <input id="duelTimerOffsetYPx" type="number" step="2" value="0" />
-              </label>
-              <label class="overlay-size-field" for="timerStartParticipant">
-                Joueur de départ
-                <select id="timerStartParticipant">
-                  <option value="1">Joueur 1</option>
-                  <option value="2">Joueur 2</option>
-                </select>
-              </label>
+          <section class="stack-col">
+            <article class="card panel section-card">
+              <header class="section-head">
+                <p class="eyebrow">Timer</p>
+                <h3>Réglages du chrono & commandes</h3>
+              </header>
+
+              <div class="settings-grid two-cols">
+                <label class="setting-field" for="duelTimerInitialSeconds">
+                  Temps initial (secondes)
+                  <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
+                </label>
+                <label class="setting-field" for="duelTimerOffsetYPx">
+                  Position verticale timer (px)
+                  <input id="duelTimerOffsetYPx" type="number" step="2" value="0" />
+                </label>
+                <label class="setting-field" for="duelTimerProfile">
+                  Profil de timer
+                  <select id="duelTimerProfile">
+                    <option value="classic">Classique (actuel)</option>
+                    <option value="healthbar">Fighting / barres de vie</option>
+                  </select>
+                </label>
+                <label class="setting-field" for="timerStartParticipant">
+                  Joueur de départ
+                  <select id="timerStartParticipant">
+                    <option value="1">Joueur 1</option>
+                    <option value="2">Joueur 2</option>
+                  </select>
+                </label>
+              </div>
+
               <div class="timer-controls">
                 <button id="timerStartBtn" type="button">Démarrer</button>
                 <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
                 <button id="timerSwitchBtn" type="button" class="secondary">Changer</button>
               </div>
-              <button id="generateBracketBtn" class="secondary">Créer le tournoi</button>
-              <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
-              <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
-            </div>
+            </article>
+
+            <article class="card panel section-card">
+              <header class="section-head">
+                <p class="eyebrow">Overlay / Apparence</p>
+                <h3>Style global du duel</h3>
+              </header>
+
+              <div class="settings-grid two-cols">
+                <label class="setting-field" for="duelImageHeightPx">
+                  Hauteur image duel (px)
+                  <input id="duelImageHeightPx" type="number" step="10" value="760" />
+                </label>
+                <label class="setting-field" for="duelTextColor">
+                  Couleur de texte
+                  <input id="duelTextColor" type="color" value="#f5f8ff" />
+                </label>
+                <label class="setting-field" for="duelImageOffsetXPx">
+                  Décalage horizontal image (px)
+                  <input id="duelImageOffsetXPx" type="number" step="2" value="18" />
+                </label>
+                <label class="setting-field" for="duelImageOffsetYPx">
+                  Décalage vertical image (px)
+                  <input id="duelImageOffsetYPx" type="number" step="2" value="0" />
+                </label>
+              </div>
+            </article>
+
+            <article class="card panel section-card">
+              <header class="section-head">
+                <p class="eyebrow">Profil / Mode d'affichage</p>
+                <h3>Réglages avancés Fighting / Barres de vie</h3>
+              </header>
+
+              <div class="settings-grid three-cols">
+                <label class="setting-field inline-toggle" for="duelHealthBarsEnabled">
+                  Activer barres de vie
+                  <input id="duelHealthBarsEnabled" type="checkbox" checked />
+                </label>
+                <label class="setting-field" for="duelHealthBarHeightPx">
+                  Hauteur barre (px)
+                  <input id="duelHealthBarHeightPx" type="number" step="1" value="26" />
+                </label>
+                <label class="setting-field" for="duelHealthBarWidthPercent">
+                  Largeur barre (%)
+                  <input id="duelHealthBarWidthPercent" type="number" step="1" value="40" />
+                </label>
+                <label class="setting-field" for="duelHealthMainColor">
+                  Couleur principale
+                  <input id="duelHealthMainColor" type="color" value="#3ef784" />
+                </label>
+                <label class="setting-field" for="duelHealthWarningColor">
+                  Couleur warning
+                  <input id="duelHealthWarningColor" type="color" value="#ff9f1a" />
+                </label>
+                <label class="setting-field" for="duelHealthDangerColor">
+                  Couleur danger
+                  <input id="duelHealthDangerColor" type="color" value="#ff3a39" />
+                </label>
+                <label class="setting-field" for="duelHealthAnimationIntensity">
+                  Intensité animation (0-100)
+                  <input id="duelHealthAnimationIntensity" type="number" min="0" max="100" step="5" value="80" />
+                </label>
+                <label class="setting-field inline-toggle" for="duelHealthDangerEffects">
+                  Effets danger
+                  <input id="duelHealthDangerEffects" type="checkbox" checked />
+                </label>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section class="card panel section-card bracket-panel">
+          <header class="section-head">
+            <p class="eyebrow">Duel</p>
+            <h3>Arbre de tournoi</h3>
           </header>
           <div id="bracketContainer" class="bracket"></div>
         </section>

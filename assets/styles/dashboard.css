@@ -33,7 +33,7 @@ body {
 }
 
 .container {
-  max-width: 1520px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: clamp(0.9rem, 2.1vw, 2rem);
 }
@@ -67,7 +67,7 @@ body {
   font-weight: 700;
 }
 
-.app-layout {
+.app-shell {
   display: grid;
   gap: 1rem;
 }
@@ -79,6 +79,108 @@ body {
   gap: 1rem;
   background: linear-gradient(130deg, rgba(32, 46, 84, 0.9), rgba(14, 20, 42, 0.94));
   border: 1px solid rgba(132, 158, 255, 0.45);
+}
+
+.top-actions {
+  min-width: min(100%, 460px);
+  justify-content: flex-end;
+}
+
+.workspace-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr 1.2fr;
+  align-items: start;
+}
+
+.stack-col {
+  display: grid;
+  gap: 1rem;
+}
+
+.section-card {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.section-head h3,
+.section-head h4 {
+  margin: 0.15rem 0 0;
+}
+
+.section-head .hint {
+  margin-top: 0.3rem;
+}
+
+.split-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.sub-card {
+  background: linear-gradient(170deg, rgba(21, 31, 59, 0.86), rgba(9, 14, 29, 0.92));
+  border: 1px solid rgba(120, 146, 236, 0.45);
+  border-radius: 14px;
+  padding: 0.85rem;
+}
+
+.sub-card h4 {
+  margin: 0 0 0.2rem;
+}
+
+.participants-block {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 260px;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.settings-grid.two-cols {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.settings-grid.three-cols {
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+}
+
+.setting-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.84rem;
+  color: #d4ddff;
+}
+
+.inline-toggle {
+  justify-content: space-between;
+}
+
+.inline-toggle input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+}
+
+.live-controls {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.duel-nav {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.timer-controls {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
 }
 
 .glass-panel {
@@ -140,7 +242,7 @@ button.secondary {
 }
 
 button.ghost {
-  background: transparent;
+  background: rgba(19, 27, 54, 0.4);
   border-color: var(--line-soft);
 }
 
@@ -161,48 +263,9 @@ button.danger {
   flex-wrap: wrap;
 }
 
-.bracket-header {
-  align-items: flex-end;
-}
-
 .actions {
   display: flex;
   gap: 0.5rem;
-}
-
-.bracket-controls {
-  align-items: center;
-}
-
-.overlay-size-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin: 0;
-  font-size: 0.82rem;
-  color: #d4ddff;
-  min-width: 220px;
-}
-
-.overlay-size-field input {
-  margin: 0;
-}
-
-.overlay-size-field input[type='color'] {
-  min-height: 44px;
-  padding: 0.2rem;
-}
-
-.timer-controls {
-  display: flex;
-  gap: 0.45rem;
-  align-items: flex-end;
-}
-
-.timer-controls button {
-  width: auto;
-  margin: 0;
-  white-space: nowrap;
 }
 
 .grid.two-columns,
@@ -221,6 +284,10 @@ button.danger {
   color: var(--muted);
 }
 
+.no-margin {
+  margin: 0;
+}
+
 .message {
   min-height: 1.1rem;
   color: #9fc7ff;
@@ -230,6 +297,8 @@ button.danger {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .list li {
@@ -237,7 +306,6 @@ button.danger {
   border: 1px solid rgba(116, 141, 231, 0.6);
   border-radius: 12px;
   padding: 0.78rem;
-  margin-bottom: 0.55rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -262,6 +330,10 @@ button.danger {
   object-fit: cover;
   border: 1px solid rgba(145, 168, 255, 0.42);
   background: #111;
+}
+
+.bracket-panel {
+  gap: 0.7rem;
 }
 
 .bracket {
@@ -378,6 +450,12 @@ button.danger {
   font-size: 1.02rem;
 }
 
+@media (max-width: 1200px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .app-header {
     align-items: stretch;
@@ -386,6 +464,11 @@ button.danger {
 
   .actions {
     width: 100%;
+  }
+
+  .duel-nav,
+  .timer-controls {
+    grid-template-columns: 1fr;
   }
 
   .actions.stacked-mobile,
