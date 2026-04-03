@@ -3,15 +3,19 @@ import {
   camGuestVoiceAnswerRef,
   camGuestVoiceCandidatesRef,
   camGuestVoiceOfferRef,
+  camGuestRef,
   camGuestsRef,
   camSignalAnswerRef,
+  camSignalsRef,
   camCandidatesRef,
   clearGuestVoicePair,
   clearSignals,
+  getGuests,
   listenValue,
   patchGuest,
   pushGuestVoiceCandidate,
   pushCandidate,
+  registerOnDisconnectRemove,
   removeGuest,
   writeGuestVoiceAnswer,
   writeGuestVoiceOffer,
@@ -21,6 +25,21 @@ import {
 
 function createId() {
   return `guest-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createOwnerKey() {
+  const storageKey = 'zogtournament-guest-owner-key';
+  try {
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) {
+      return existing;
+    }
+    const generated = `owner-${Math.random().toString(36).slice(2, 12)}`;
+    window.localStorage.setItem(storageKey, generated);
+    return generated;
+  } catch {
+    return `owner-volatile-${Math.random().toString(36).slice(2, 12)}`;
+  }
 }
 
 export class GuestCamPublisher {
@@ -37,6 +56,9 @@ export class GuestCamPublisher {
     this.voiceConnections = new Map();
     this.unsubscribers = [];
     this.selectedAudioInputId = '';
+    this.includeAudioInOverlay = true;
+    this.connectionLossHandled = false;
+    this.ownerKey = createOwnerKey();
   }
 
   createPairKey(guestA, guestB) {
@@ -50,6 +72,10 @@ export class GuestCamPublisher {
 
   setAudioInput(deviceId) {
     this.selectedAudioInputId = deviceId || '';
+  }
+
+  setIncludeOverlayAudio(enabled) {
+    this.includeAudioInOverlay = Boolean(enabled);
   }
 
   async enableCamera() {
@@ -76,17 +102,41 @@ export class GuestCamPublisher {
     if (!this.localStream) {
       throw new Error('Active la caméra et le microphone avant de rejoindre.');
     }
+    if (this.guestId) {
+      throw new Error('Tu es déjà connecté.');
+    }
     this.guestId = createId();
     this.name = String(name || 'Invité').trim() || 'Invité';
+    this.connectionLossHandled = false;
+
+    const guests = await getGuests();
+    const normalizedName = this.name.toLowerCase();
+    const duplicateGuest = Object.entries(guests).find(([, guest]) => {
+      const status = String(guest?.status || '');
+      const isOnline = status === 'connecting' || status === 'connected';
+      if (!isOnline) {
+        return false;
+      }
+      const ownerMatch = guest?.ownerKey && guest.ownerKey === this.ownerKey;
+      const nameMatch = String(guest?.name || '').trim().toLowerCase() === normalizedName;
+      return ownerMatch || nameMatch;
+    });
+    if (duplicateGuest) {
+      this.guestId = null;
+      throw new Error('Connexion refusée: cette personne est déjà connectée.');
+    }
 
     await writeGuest(this.guestId, {
       name: this.name,
       status: 'connecting',
       cameraEnabled: true,
       microphoneEnabled: true,
+      includeOverlayAudio: this.includeAudioInOverlay,
+      ownerKey: this.ownerKey,
       joinedAt: Date.now(),
       updatedAt: Date.now(),
     });
+    this.registerDisconnectCleanup();
 
     await this.startRoleConnection('admin');
     await this.startRoleConnection('overlay');
@@ -98,12 +148,20 @@ export class GuestCamPublisher {
 
   async startRoleConnection(role) {
     const connection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
-    this.localStream.getTracks().forEach((track) => connection.addTrack(track, this.localStream));
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    const audioTrack = this.localStream.getAudioTracks()[0];
+    if (videoTrack) {
+      connection.addTrack(videoTrack, this.localStream);
+    }
+    if (audioTrack && (role !== 'overlay' || this.includeAudioInOverlay)) {
+      connection.addTrack(audioTrack, this.localStream);
+    }
 
     connection.onconnectionstatechange = async () => {
       this.onLog?.(`[guest/${role}] ${connection.connectionState}`);
       if (['failed', 'disconnected', 'closed'].includes(connection.connectionState) && this.guestId) {
         await patchGuest(this.guestId, { status: 'disconnected', updatedAt: Date.now() });
+        this.handleConnectionLoss(`[guest/${role}] Connexion perdue`);
       }
     };
 
@@ -142,6 +200,26 @@ export class GuestCamPublisher {
     });
 
     this.connections.set(role, { connection, unsubscribeAnswer, unsubscribeCandidates });
+  }
+
+  registerDisconnectCleanup() {
+    if (!this.guestId) {
+      return;
+    }
+
+    registerOnDisconnectRemove(camGuestRef(this.guestId));
+    registerOnDisconnectRemove(camSignalsRef('admin', this.guestId));
+    registerOnDisconnectRemove(camSignalsRef('overlay', this.guestId));
+  }
+
+  async handleConnectionLoss(message) {
+    if (this.connectionLossHandled) {
+      return;
+    }
+    this.connectionLossHandled = true;
+    this.onState?.('disconnected');
+    this.onLog?.(message);
+    await this.leave();
   }
 
   startGuestVoiceRoom() {
@@ -311,6 +389,7 @@ export class GuestCamPublisher {
     this.localStream?.getTracks().forEach((track) => track.stop());
     this.localStream = null;
     this.guestId = null;
+    this.connectionLossHandled = false;
     this.onState?.('idle');
     this.onLocalStream?.(null);
     this.onPeersChanged?.([]);

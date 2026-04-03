@@ -355,7 +355,7 @@ onValue(overlayRef, (snapshot) => {
 });
 
 const overlayReceiver = new GuestCamOverlayReceiver({
-  onSlotUpdate: (slotId, stream, isVisible) => {
+  onSlotUpdate: (slotId, stream, isVisible, meta = {}) => {
     const slot = slotNodes[slotId];
     if (!slot?.wrapper || !slot.video || !slot.audio) {
       return;
@@ -365,8 +365,8 @@ const overlayReceiver = new GuestCamOverlayReceiver({
     slot.video.srcObject = stream || null;
     slot.video.muted = true;
     slot.audio.srcObject = stream || null;
-    slot.audio.muted = false;
-    slot.audio.volume = 1;
+    slot.audio.muted = !meta.includeOverlayAudio;
+    slot.audio.volume = meta.includeOverlayAudio ? 1 : 0;
 
     if (!stream) {
       return;

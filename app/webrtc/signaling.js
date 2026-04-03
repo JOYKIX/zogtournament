@@ -1,4 +1,4 @@
-import { db, onValue, push, ref, remove, set, update } from '../shared/firebase.js';
+import { db, get, onDisconnect, onValue, push, ref, remove, set, update } from '../shared/firebase.js';
 
 const CAM_ROOT = 'zogTournament/cam';
 
@@ -62,6 +62,11 @@ export async function patchGuest(guestId, payload) {
   await update(camGuestRef(guestId), payload);
 }
 
+export async function getGuests() {
+  const snapshot = await get(camGuestsRef());
+  return snapshot.val() || {};
+}
+
 export async function removeGuest(guestId) {
   await remove(camGuestRef(guestId));
 }
@@ -96,6 +101,10 @@ export async function pushGuestVoiceCandidate(pairKey, guestId, payload) {
 
 export async function clearGuestVoicePair(pairKey) {
   await remove(camGuestVoicePairRef(pairKey));
+}
+
+export function registerOnDisconnectRemove(targetRef) {
+  return onDisconnect(targetRef).remove();
 }
 
 export async function writeSlots(payload) {

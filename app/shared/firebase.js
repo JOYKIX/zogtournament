@@ -2,6 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.11.0/fireba
 import {
   getDatabase,
   get,
+  onDisconnect,
   onValue,
   push,
   ref,
@@ -36,6 +37,7 @@ export {
   connectedRef,
   get,
   matchesRef,
+  onDisconnect,
   onValue,
   overlayRef,
   profileRef,
