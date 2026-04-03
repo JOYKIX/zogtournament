@@ -12,8 +12,11 @@ const timerP1Label = document.getElementById('timerP1Label');
 const timerP2Label = document.getElementById('timerP2Label');
 const timerP1Value = document.getElementById('timerP1Value');
 const timerP2Value = document.getElementById('timerP2Value');
+const timerCenterValue = document.getElementById('timerCenterValue');
 const timerP1HealthFill = document.getElementById('timerP1HealthFill');
 const timerP2HealthFill = document.getElementById('timerP2HealthFill');
+const timerP1HealthTrail = document.getElementById('timerP1HealthTrail');
+const timerP2HealthTrail = document.getElementById('timerP2HealthTrail');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
@@ -32,6 +35,16 @@ const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
 const DEFAULT_TIMER_LABEL_2 = 'Joueur 2';
 const DEFAULT_TIMER_PROFILE = 'classic';
+const DEFAULT_TIMER_HEALTH_CONFIG = {
+  enabled: true,
+  barHeightPx: 26,
+  barWidthPercent: 40,
+  mainColor: '#3ef784',
+  warningColor: '#ff9f1a',
+  dangerColor: '#ff3a39',
+  animationIntensity: 80,
+  dangerEffects: true,
+};
 const TIMER_SECOND_MS = 1000;
 
 let tournamentCache = null;
@@ -92,7 +105,40 @@ function sanitizeTimerLabel(value, fallback) {
 
 function sanitizeTimerProfile(value) {
   const normalized = String(value || '').trim().toLowerCase();
-  return normalized === 'healthbar' ? 'healthbar' : DEFAULT_TIMER_PROFILE;
+  return normalized === 'healthbar' || normalized === 'fighting' || normalized === 'healthbars'
+    ? 'healthbar'
+    : DEFAULT_TIMER_PROFILE;
+}
+
+function sanitizeBoolean(value, fallback) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function sanitizeRange(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
+function sanitizeColor(value, fallback) {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : fallback;
+}
+
+function normalizeTimerHealthConfig(value = {}) {
+  return {
+    enabled: sanitizeBoolean(value.enabled, DEFAULT_TIMER_HEALTH_CONFIG.enabled),
+    barHeightPx: sanitizeRange(value.barHeightPx, DEFAULT_TIMER_HEALTH_CONFIG.barHeightPx, 12, 56),
+    barWidthPercent: sanitizeRange(value.barWidthPercent, DEFAULT_TIMER_HEALTH_CONFIG.barWidthPercent, 28, 48),
+    mainColor: sanitizeColor(value.mainColor, DEFAULT_TIMER_HEALTH_CONFIG.mainColor),
+    warningColor: sanitizeColor(value.warningColor, DEFAULT_TIMER_HEALTH_CONFIG.warningColor),
+    dangerColor: sanitizeColor(value.dangerColor, DEFAULT_TIMER_HEALTH_CONFIG.dangerColor),
+    animationIntensity: sanitizeRange(value.animationIntensity, DEFAULT_TIMER_HEALTH_CONFIG.animationIntensity, 0, 100),
+    dangerEffects: sanitizeBoolean(value.dangerEffects, DEFAULT_TIMER_HEALTH_CONFIG.dangerEffects),
+  };
 }
 
 function normalizeTimerState(timerValue = {}) {
@@ -108,6 +154,7 @@ function normalizeTimerState(timerValue = {}) {
   const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
   const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
   const profile = sanitizeTimerProfile(timerValue.profile);
+  const healthConfig = normalizeTimerHealthConfig(timerValue.healthConfig);
 
   return {
     initialSeconds: safeInitialSeconds,
@@ -116,6 +163,7 @@ function normalizeTimerState(timerValue = {}) {
     participant1Label,
     participant2Label,
     profile,
+    healthConfig,
     activeParticipant: isRunning ? activeParticipant : null,
     isRunning,
     lastUpdatedAt,
@@ -146,24 +194,24 @@ function fighterMarkup(player) {
   `;
 }
 
-function getHealthColor(remainingRatio) {
+function getHealthColor(remainingRatio, healthConfig = DEFAULT_TIMER_HEALTH_CONFIG) {
   if (remainingRatio <= 0.25) {
-    return '#dd2a2a';
+    return healthConfig.dangerColor;
   }
   if (remainingRatio <= 0.55) {
-    return '#ff9f1a';
+    return healthConfig.warningColor;
   }
-  return '#1fcf66';
+  return healthConfig.mainColor;
 }
 
-function applyHealthBar(fillNode, remainingMs, initialMs) {
+function applyHealthBar(fillNode, remainingMs, initialMs, healthConfig) {
   if (!fillNode) {
     return;
   }
 
   const ratio = initialMs > 0 ? Math.max(0, Math.min(1, remainingMs / initialMs)) : 0;
-  fillNode.style.setProperty('--timer-health-pct', `${Math.round(ratio * 100)}%`);
-  fillNode.style.setProperty('--timer-health-color', getHealthColor(ratio));
+  fillNode.style.setProperty('--timer-health-ratio', ratio.toFixed(4));
+  fillNode.style.setProperty('--timer-health-color', getHealthColor(ratio, healthConfig));
 }
 
 function render() {
@@ -186,7 +234,14 @@ function render() {
   }
   if (duelTimers) {
     duelTimers.style.setProperty('--duel-timer-offset-y', `${currentTimerOffsetYPx}px`);
-    duelTimers.classList.toggle('timer-profile-health', resolvedTimer.profile === 'healthbar');
+    const useHealthProfile = resolvedTimer.profile === 'healthbar' && resolvedTimer.healthConfig.enabled;
+    duelTimers.classList.toggle('timer-profile-health', useHealthProfile);
+    duelTimers.style.setProperty('--health-bar-height', `${resolvedTimer.healthConfig.barHeightPx}px`);
+    duelTimers.style.setProperty('--health-bar-width', `${resolvedTimer.healthConfig.barWidthPercent}%`);
+    duelTimers.style.setProperty('--health-bar-color-main', resolvedTimer.healthConfig.mainColor);
+    duelTimers.style.setProperty('--health-bar-color-warning', resolvedTimer.healthConfig.warningColor);
+    duelTimers.style.setProperty('--health-bar-color-danger', resolvedTimer.healthConfig.dangerColor);
+    duelTimers.style.setProperty('--health-anim-intensity', `${resolvedTimer.healthConfig.animationIntensity / 100}`);
   }
   if (timerP1Value) {
     timerP1Value.textContent = formatTimer(resolvedTimer.participant1Ms);
@@ -207,8 +262,21 @@ function render() {
   }
 
   const initialMs = resolvedTimer.initialSeconds * TIMER_SECOND_MS;
-  applyHealthBar(timerP1HealthFill, resolvedTimer.participant1Ms, initialMs);
-  applyHealthBar(timerP2HealthFill, resolvedTimer.participant2Ms, initialMs);
+  const sharedRemainingMs = Math.min(resolvedTimer.participant1Ms, resolvedTimer.participant2Ms);
+  const sharedRatio = initialMs > 0 ? Math.max(0, Math.min(1, sharedRemainingMs / initialMs)) : 0;
+  const dangerMode = resolvedTimer.healthConfig.dangerEffects && sharedRatio <= 0.2;
+
+  applyHealthBar(timerP1HealthFill, sharedRemainingMs, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP2HealthFill, sharedRemainingMs, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP1HealthTrail, sharedRemainingMs, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP2HealthTrail, sharedRemainingMs, initialMs, resolvedTimer.healthConfig);
+
+  if (timerCenterValue) {
+    timerCenterValue.textContent = formatTimer(sharedRemainingMs);
+  }
+  if (duelTimers) {
+    duelTimers.dataset.danger = dangerMode ? 'true' : 'false';
+  }
 }
 
 onValue(matchesRef, (snapshot) => {

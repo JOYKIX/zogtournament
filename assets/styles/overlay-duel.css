@@ -29,6 +29,12 @@ body {
 
 .duel-timers {
   --duel-timer-offset-y: 0px;
+  --health-bar-height: 26px;
+  --health-bar-width: 40%;
+  --health-bar-color-main: #3ef784;
+  --health-bar-color-warning: #ff9f1a;
+  --health-bar-color-danger: #ff3a39;
+  --health-anim-intensity: 0.8;
   width: min(100%, calc(100dvh * 16 / 9));
   margin: 0 auto clamp(8px, 1.2vh, 16px);
   display: grid;
@@ -150,19 +156,118 @@ body {
 
 .duel-timers.timer-profile-health .timer-health-shell {
   display: block;
-  margin-top: 0.45rem;
+  position: relative;
+  margin-top: 0.4rem;
   width: 100%;
-  height: 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  height: var(--health-bar-height);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(7, 11, 20, 0.95), rgba(12, 18, 30, 0.92));
+  border: 2px solid rgba(216, 227, 255, 0.4);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.65), 0 8px 20px rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
 
-.duel-timers.timer-profile-health .timer-health-fill {
-  width: var(--timer-health-pct, 100%);
+.duel-timers.timer-profile-health .timer-health-fill,
+.duel-timers.timer-profile-health .timer-health-trail {
+  position: absolute;
+  inset: 0;
   height: 100%;
-  border-radius: inherit;
-  background: var(--timer-health-color, #1fcf66);
-  transition: width 0.2s linear, background-color 0.25s ease;
+  transform: scaleX(var(--timer-health-ratio, 1));
+}
+
+.duel-timers.timer-profile-health .timer-health-fill {
+  transform-origin: left center;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--timer-health-color, var(--health-bar-color-main)) 70%, #ffffff 30%), var(--timer-health-color, var(--health-bar-color-main)));
+  box-shadow: 0 0 calc(26px * var(--health-anim-intensity)) color-mix(in srgb, var(--timer-health-color, var(--health-bar-color-main)) 78%, transparent 22%);
+  transition: transform 0.16s linear, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.duel-timers.timer-profile-health .timer-health-trail {
+  transform-origin: left center;
+  background: rgba(248, 252, 255, 0.42);
+  mix-blend-mode: screen;
+  transition: transform calc(0.45s + (0.45s * var(--health-anim-intensity))) ease-out;
+}
+
+.duel-timers.timer-profile-health #timerParticipant1 .timer-health-fill,
+.duel-timers.timer-profile-health #timerParticipant1 .timer-health-trail {
+  transform-origin: right center;
+}
+
+.duel-timers.timer-profile-health {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: clamp(0.55rem, 1.4vw, 1.6rem);
+  align-items: start;
+}
+
+.duel-timers.timer-profile-health .timer-box {
+  width: 100%;
+  max-width: var(--health-bar-width);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.duel-timers.timer-profile-health #timerParticipant1 {
+  justify-self: start;
+}
+
+.duel-timers.timer-profile-health #timerParticipant2 {
+  justify-self: end;
+  text-align: right;
+}
+
+.duel-timers.timer-profile-health .timer-value {
+  display: none;
+}
+
+.duel-timers.timer-profile-health .timer-label {
+  margin-top: 0.42rem;
+  font-size: clamp(0.9rem, 1.4vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.timer-center {
+  display: none;
+}
+
+.duel-timers.timer-profile-health .timer-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: clamp(130px, 15vw, 220px);
+  margin-top: 0.04rem;
+}
+
+.timer-center-value {
+  margin: 0;
+  padding: 0.38rem 0.72rem;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 9px;
+  font-size: clamp(1.2rem, 2.4vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  color: #fff8dd;
+  background: linear-gradient(180deg, rgba(6, 10, 20, 0.92), rgba(20, 26, 44, 0.85));
+  box-shadow: 0 0 20px rgba(255, 206, 90, 0.33), inset 0 0 20px rgba(255, 255, 255, 0.08);
+}
+
+.duel-timers.timer-profile-health[data-danger='true'] .timer-center-value,
+.duel-timers.timer-profile-health[data-danger='true'] .timer-health-fill {
+  animation: timer-danger-pulse 0.7s ease-in-out infinite;
+}
+
+@keyframes timer-danger-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.28);
+  }
 }
