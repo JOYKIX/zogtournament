@@ -16,13 +16,12 @@ import {
 } from '../shared/firebase.js';
 import {
   BRACKET_SIZE,
-  cloneMatch,
   computeWinner,
   createTournament,
   getOverlayMatches,
   getRoundTitle,
   normalizeTournament,
-  rebuildTournament,
+  updateMatchWinner,
 } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 
@@ -283,18 +282,11 @@ async function setWinner(roundIndex, matchIndex, side) {
     return;
   }
 
-  const tournament = {
-    ...tournamentCache,
-    rounds: tournamentCache.rounds.map((round) => round.map(cloneMatch)),
-  };
-
-  const targetMatch = tournament.rounds[roundIndex][matchIndex];
-  if (!targetMatch.left || !targetMatch.right) {
+  const rebuilt = updateMatchWinner(tournamentCache, roundIndex, matchIndex, side);
+  if (!rebuilt) {
     return;
   }
 
-  targetMatch.winnerSide = side;
-  const rebuilt = rebuildTournament(tournament);
   await set(matchesRef, rebuilt);
 }
 
