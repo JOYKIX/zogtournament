@@ -41,6 +41,7 @@ let currentImageOffsetXPx = DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
 let currentImageOffsetYPx = DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
 let currentTextColor = DEFAULT_DUEL_TEXT_COLOR;
 let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
+let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
 
 function sanitizeDuelImageHeight(value) {
@@ -172,7 +173,10 @@ function render() {
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
-  const resolvedTimer = normalizeTimerState(currentTimer);
+  const resolvedTimer = normalizeTimerState({
+    ...currentTimer,
+    profile: currentTimerProfile,
+  });
 
   if (duelView) {
     duelView.style.setProperty('--fighter-image-height', `${currentImageHeightPx}px`);
@@ -220,6 +224,7 @@ onValue(overlayRef, (snapshot) => {
   currentImageOffsetYPx = sanitizeDuelImageOffsetY(value.imageOffsetYPx);
   currentTextColor = sanitizeTextColor(value.textColor);
   currentTimerOffsetYPx = sanitizeDuelTimerOffsetY(value.timerOffsetYPx);
+  currentTimerProfile = sanitizeTimerProfile(value.timerProfile ?? value.timer?.profile);
   currentTimer = normalizeTimerState(value.timer);
   render();
 });
