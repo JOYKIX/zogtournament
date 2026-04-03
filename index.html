@@ -42,13 +42,17 @@
 
       <section id="appSection" class="card hidden">
         <header class="toolbar">
-          <h2>Créateur d'arbre de tournoi</h2>
+          <div>
+            <h2>Créateur d'arbre de tournoi</h2>
+            <p class="hint">Gère les participants, modifie-les puis diffuse l'overlay en mode duel ou arbre.</p>
+          </div>
           <button id="logoutBtn" class="secondary">Déconnexion</button>
         </header>
 
         <div class="grid two-columns">
           <form id="participantForm" class="panel">
-            <h3>Ajouter un participant</h3>
+            <h3 id="participantFormTitle">Ajouter un participant</h3>
+            <input id="editParticipantId" name="editParticipantId" type="hidden" />
 
             <label for="pseudo">Pseudo</label>
             <input id="pseudo" name="pseudo" type="text" required />
@@ -59,20 +63,30 @@
             <label for="image">Image (URL)</label>
             <input id="image" name="image" type="url" placeholder="https://..." />
 
-            <button type="submit">Ajouter</button>
+            <div class="actions stacked-mobile">
+              <button id="participantSubmitBtn" type="submit">Ajouter</button>
+              <button id="cancelEditBtn" type="button" class="secondary hidden">Annuler modification</button>
+            </div>
+            <p id="participantMessage" class="message"></p>
           </form>
 
           <section class="panel">
-            <h3>Participants</h3>
+            <header class="toolbar compact">
+              <h3>Participants</h3>
+              <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider</button>
+            </header>
             <ul id="participantsList" class="list"></ul>
           </section>
         </div>
 
         <section class="panel">
-          <header class="toolbar">
+          <header class="toolbar wrap">
             <h3>Arbre de tournoi</h3>
-            <div class="actions">
+            <div class="actions wrap">
               <button id="generateBracketBtn" class="secondary">Générer les matchs</button>
+              <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
+              <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
+              <button id="toggleOverlayModeBtn" class="secondary">Mode overlay: Duel</button>
               <button id="openOverlayBtn">Ouvrir l'overlay</button>
             </div>
           </header>

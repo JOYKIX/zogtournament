@@ -26,15 +26,26 @@ const loginMessage = document.getElementById('loginMessage');
 const logoutBtn = document.getElementById('logoutBtn');
 
 const participantForm = document.getElementById('participantForm');
+const participantFormTitle = document.getElementById('participantFormTitle');
 const participantsList = document.getElementById('participantsList');
+const participantMessage = document.getElementById('participantMessage');
+const editParticipantIdField = document.getElementById('editParticipantId');
+const participantSubmitBtn = document.getElementById('participantSubmitBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
+
 const generateBracketBtn = document.getElementById('generateBracketBtn');
 const bracketContainer = document.getElementById('bracketContainer');
 const openOverlayBtn = document.getElementById('openOverlayBtn');
+const overlayPrevBtn = document.getElementById('overlayPrevBtn');
+const overlayNextBtn = document.getElementById('overlayNextBtn');
+const toggleOverlayModeBtn = document.getElementById('toggleOverlayModeBtn');
 
 let usersCache = [];
 let participantsCache = [];
 let matchesCache = [];
 let currentProfile = null;
+let currentOverlay = { matchIndex: 0, mode: 'duel' };
 
 function escapeHtml(value) {
   return String(value)
@@ -76,6 +87,22 @@ function findUserByUsername(username) {
   return usersCache.find((user) => String(user.username || '').toLowerCase() === normalized);
 }
 
+function buildRounds(matches) {
+  if (!Array.isArray(matches) || !matches.length) {
+    return [];
+  }
+
+  const rounds = [matches];
+  let cursor = matches.length;
+
+  while (cursor > 1) {
+    cursor = Math.ceil(cursor / 2);
+    rounds.push(Array.from({ length: cursor }, () => ({ left: null, right: null })));
+  }
+
+  return rounds;
+}
+
 async function ensureDatabaseShape() {
   const snapshot = await get(rootRef);
   const value = snapshot.val() || {};
@@ -95,8 +122,11 @@ async function ensureDatabaseShape() {
   if (!value.overlay || typeof value.overlay !== 'object') {
     await set(overlayRef, {
       matchIndex: 0,
+      mode: 'duel',
       updatedAt: Date.now(),
     });
+  } else if (value.overlay.mode !== 'duel' && value.overlay.mode !== 'tree') {
+    await update(overlayRef, { mode: 'duel' });
   }
 
   if (value.profile === undefined) {
@@ -129,6 +159,24 @@ function normalizeMatches(snapshotValue) {
   return snapshotValue.filter((match) => match?.left?.pseudo && match?.right?.pseudo);
 }
 
+function toggleEditMode(participant = null) {
+  const editing = Boolean(participant);
+  participantFormTitle.textContent = editing ? 'Modifier un participant' : 'Ajouter un participant';
+  participantSubmitBtn.textContent = editing ? 'Mettre à jour' : 'Ajouter';
+  cancelEditBtn.classList.toggle('hidden', !editing);
+
+  if (!editing) {
+    participantForm.reset();
+    editParticipantIdField.value = '';
+    return;
+  }
+
+  editParticipantIdField.value = participant.id;
+  participantForm.pseudo.value = participant.pseudo || '';
+  participantForm.character.value = participant.character || '';
+  participantForm.image.value = participant.image || '';
+}
+
 function renderParticipants() {
   participantsList.innerHTML = '';
 
@@ -150,7 +198,10 @@ function renderParticipants() {
           <span>${safeCharacter}</span>
         </div>
       </div>
-      <button class="danger" type="button" data-delete-id="${participant.id}">Supprimer</button>
+      <div class="actions row-inline">
+        <button class="secondary ghost" type="button" data-edit-id="${participant.id}">Modifier</button>
+        <button class="danger" type="button" data-delete-id="${participant.id}">Supprimer</button>
+      </div>
     `;
     participantsList.appendChild(li);
   });
@@ -164,22 +215,72 @@ function renderBracket() {
     return;
   }
 
-  matchesCache.forEach((match, index) => {
-    const node = document.createElement('article');
-    node.className = 'match';
-    node.innerHTML = `
-      <div>${escapeHtml(match.left.pseudo)} (${escapeHtml(match.left.character)})</div>
-      <div class="vs">VS</div>
-      <div>${escapeHtml(match.right.pseudo)} (${escapeHtml(match.right.character)})</div>
-    `;
-    node.addEventListener('click', () => setOverlayMatch(index));
-    bracketContainer.appendChild(node);
+  const rounds = buildRounds(matchesCache);
+
+  rounds.forEach((round, roundIndex) => {
+    const roundCol = document.createElement('section');
+    roundCol.className = 'round';
+
+    const title = roundIndex === rounds.length - 1 ? 'Finale' : `Tour ${roundIndex + 1}`;
+    roundCol.innerHTML = `<h4>${title}</h4>`;
+
+    round.forEach((match, matchIndex) => {
+      const node = document.createElement('article');
+      node.className = 'match';
+
+      if (roundIndex === 0) {
+        const absoluteIndex = matchIndex;
+        node.classList.toggle('active', absoluteIndex === currentOverlay.matchIndex);
+        node.innerHTML = `
+          <div>${escapeHtml(match.left?.pseudo || 'TBD')} (${escapeHtml(match.left?.character || '...')})</div>
+          <div class="vs">VS</div>
+          <div>${escapeHtml(match.right?.pseudo || 'TBD')} (${escapeHtml(match.right?.character || '...')})</div>
+        `;
+        node.addEventListener('click', () => setOverlayMatch(absoluteIndex));
+      } else {
+        node.innerHTML = `
+          <div>TBD</div>
+          <div class="vs">VS</div>
+          <div>TBD</div>
+        `;
+      }
+
+      roundCol.appendChild(node);
+    });
+
+    bracketContainer.appendChild(roundCol);
   });
 }
 
+function updateOverlayModeButton() {
+  const modeLabel = currentOverlay.mode === 'tree' ? 'Arbre' : 'Duel';
+  toggleOverlayModeBtn.textContent = `Mode overlay: ${modeLabel}`;
+}
+
 async function setOverlayMatch(index) {
+  if (!matchesCache.length) {
+    return;
+  }
+
+  const clamped = Math.max(0, Math.min(index, matchesCache.length - 1));
   await update(overlayRef, {
-    matchIndex: index,
+    matchIndex: clamped,
+    updatedAt: Date.now(),
+  });
+}
+
+async function shiftOverlayMatch(delta) {
+  if (!matchesCache.length) {
+    return;
+  }
+
+  await setOverlayMatch((currentOverlay.matchIndex || 0) + delta);
+}
+
+async function toggleOverlayMode() {
+  const mode = currentOverlay.mode === 'tree' ? 'duel' : 'tree';
+  await update(overlayRef, {
+    mode,
     updatedAt: Date.now(),
   });
 }
@@ -209,7 +310,7 @@ async function generateMatches() {
 }
 
 function openOverlayWindow() {
-  window.open('overlay.html', '_blank', 'width=1280,height=720');
+  window.open('overlay.html', '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
@@ -277,6 +378,7 @@ async function logout() {
   await set(profileRef, null);
   await update(overlayRef, {
     matchIndex: 0,
+    mode: 'duel',
     updatedAt: Date.now(),
   });
 }
@@ -291,6 +393,7 @@ function showApp() {
   appSection.classList.remove('hidden');
   renderParticipants();
   renderBracket();
+  updateOverlayModeButton();
 }
 
 function bindRealtimeSubscriptions() {
@@ -322,6 +425,16 @@ function bindRealtimeSubscriptions() {
   onValue(matchesRef, (snapshot) => {
     matchesCache = normalizeMatches(snapshot.val());
     renderBracket();
+  });
+
+  onValue(overlayRef, (snapshot) => {
+    const value = snapshot.val() || {};
+    currentOverlay = {
+      matchIndex: Number(value.matchIndex || 0),
+      mode: value.mode === 'tree' ? 'tree' : 'duel',
+    };
+    renderBracket();
+    updateOverlayModeButton();
   });
 }
 
@@ -364,17 +477,45 @@ participantForm.addEventListener('submit', async (event) => {
   };
 
   if (!participant.pseudo || !participant.character) {
+    participantMessage.textContent = 'Le pseudo et le personnage sont obligatoires.';
+    return;
+  }
+
+  const editId = String(formData.get('editParticipantId') || '').trim();
+
+  if (editId) {
+    await update(ref(participantsRef, editId), participant);
+    participantMessage.textContent = 'Participant modifié ✅';
+    toggleEditMode();
     return;
   }
 
   const newParticipantRef = push(participantsRef);
   await set(newParticipantRef, participant);
 
-  participantForm.reset();
+  participantMessage.textContent = 'Participant ajouté ✅';
+  toggleEditMode();
 });
 
 participantsList.addEventListener('click', async (event) => {
-  const deleteButton = event.target.closest('[data-delete-id]');
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  const deleteButton = target.closest('[data-delete-id]');
+  const editButton = target.closest('[data-edit-id]');
+
+  if (editButton) {
+    const participantId = editButton.dataset.editId;
+    const participant = participantsCache.find((item) => item.id === participantId);
+    if (participant) {
+      toggleEditMode(participant);
+      participantMessage.textContent = `Modification de ${participant.pseudo}`;
+    }
+    return;
+  }
+
   if (!deleteButton) {
     return;
   }
@@ -384,13 +525,50 @@ participantsList.addEventListener('click', async (event) => {
     return;
   }
 
+  const participant = participantsCache.find((item) => item.id === participantId);
+  if (!participant) {
+    return;
+  }
+
+  const confirmed = window.confirm(`Supprimer ${participant.pseudo} ?`);
+  if (!confirmed) {
+    return;
+  }
+
   const participantRef = ref(participantsRef, participantId);
   await remove(participantRef);
+
+  participantMessage.textContent = `${participant.pseudo} supprimé ✅`;
+});
+
+cancelEditBtn.addEventListener('click', () => {
+  toggleEditMode();
+  participantMessage.textContent = 'Modification annulée.';
+});
+
+clearParticipantsBtn.addEventListener('click', async () => {
+  if (!participantsCache.length) {
+    return;
+  }
+
+  const confirmed = window.confirm('Vider tous les participants et l\'arbre ?');
+  if (!confirmed) {
+    return;
+  }
+
+  await set(participantsRef, {});
+  await set(matchesRef, []);
+  await setOverlayMatch(0);
+  participantMessage.textContent = 'Participants vidés.';
 });
 
 generateBracketBtn.addEventListener('click', () => {
   generateMatches();
 });
+
+overlayPrevBtn.addEventListener('click', () => shiftOverlayMatch(-1));
+overlayNextBtn.addEventListener('click', () => shiftOverlayMatch(1));
+toggleOverlayModeBtn.addEventListener('click', () => toggleOverlayMode());
 openOverlayBtn.addEventListener('click', openOverlayWindow);
 logoutBtn.addEventListener('click', () => {
   logout();
