@@ -118,8 +118,40 @@
                 Profil timer
                 <select id="duelTimerProfile">
                   <option value="classic">Classique (actuel)</option>
-                  <option value="healthbar">Barre de vie (Tekken)</option>
+                  <option value="healthbar">Fighting / barres de vie</option>
                 </select>
+              </label>
+              <label class="overlay-size-field" for="duelHealthBarsEnabled">
+                Activer barres de vie
+                <input id="duelHealthBarsEnabled" type="checkbox" checked />
+              </label>
+              <label class="overlay-size-field" for="duelHealthBarHeightPx">
+                Hauteur barre (px)
+                <input id="duelHealthBarHeightPx" type="number" min="12" max="56" step="1" value="26" />
+              </label>
+              <label class="overlay-size-field" for="duelHealthBarWidthPercent">
+                Largeur barre (%)
+                <input id="duelHealthBarWidthPercent" type="number" min="28" max="48" step="1" value="40" />
+              </label>
+              <label class="overlay-size-field" for="duelHealthMainColor">
+                Couleur principale
+                <input id="duelHealthMainColor" type="color" value="#3ef784" />
+              </label>
+              <label class="overlay-size-field" for="duelHealthWarningColor">
+                Couleur warning
+                <input id="duelHealthWarningColor" type="color" value="#ff9f1a" />
+              </label>
+              <label class="overlay-size-field" for="duelHealthDangerColor">
+                Couleur danger
+                <input id="duelHealthDangerColor" type="color" value="#ff3a39" />
+              </label>
+              <label class="overlay-size-field" for="duelHealthAnimationIntensity">
+                Intensité animation (0-100)
+                <input id="duelHealthAnimationIntensity" type="number" min="0" max="100" step="5" value="80" />
+              </label>
+              <label class="overlay-size-field" for="duelHealthDangerEffects">
+                Effets danger
+                <input id="duelHealthDangerEffects" type="checkbox" checked />
               </label>
               <label class="overlay-size-field" for="duelTimerOffsetYPx">
                 Position verticale timer (px)
