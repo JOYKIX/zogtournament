@@ -306,7 +306,15 @@ async function login(username, password) {
     return false;
   }
 
-  const user = findUserByUsername(username);
+  let user = findUserByUsername(username);
+
+  // Le cache peut être en retard juste après la création d'un compte.
+  // On force un refresh pour éviter les faux "Identifiants invalides".
+  if (!user) {
+    await refreshUsersCache();
+    user = findUserByUsername(username);
+  }
+
   if (!user || user.password !== password) {
     return false;
   }
@@ -358,6 +366,17 @@ async function createProfile(username, password) {
     password,
     createdAt: now,
   });
+
+  usersCache = [
+    ...usersCache,
+    {
+      id: uid,
+      username,
+      password,
+      createdAt: now,
+    },
+  ];
+  usersLoaded = true;
 
   return { ok: true, message: 'Compte créé. Tu peux te connecter.' };
 }
