@@ -75,8 +75,8 @@ const timerStartParticipantSelect = document.getElementById('timerStartParticipa
 const timerStartBtn = document.getElementById('timerStartBtn');
 const timerStopBtn = document.getElementById('timerStopBtn');
 const timerSwitchBtn = document.getElementById('timerSwitchBtn');
-const liveWinnerSideSelect = document.getElementById('liveWinnerSide');
-const liveSetWinnerBtn = document.getElementById('liveSetWinnerBtn');
+const liveWinnerParticipant1Btn = document.getElementById('liveWinnerParticipant1Btn');
+const liveWinnerParticipant2Btn = document.getElementById('liveWinnerParticipant2Btn');
 const liveTimerStatus = document.getElementById('liveTimerStatus');
 const liveCountdownP1 = document.getElementById('liveCountdownP1');
 const liveCountdownP2 = document.getElementById('liveCountdownP2');
@@ -84,9 +84,15 @@ const keybindingStatus = document.getElementById('keybindingStatus');
 const bindStartBtn = document.getElementById('bindStartBtn');
 const bindStopBtn = document.getElementById('bindStopBtn');
 const bindSwitchBtn = document.getElementById('bindSwitchBtn');
+const bindNextMatchBtn = document.getElementById('bindNextMatchBtn');
+const bindWinParticipant1Btn = document.getElementById('bindWinParticipant1Btn');
+const bindWinParticipant2Btn = document.getElementById('bindWinParticipant2Btn');
 const bindingDisplayStart = document.getElementById('bindingDisplayStart');
 const bindingDisplayStop = document.getElementById('bindingDisplayStop');
 const bindingDisplaySwitch = document.getElementById('bindingDisplaySwitch');
+const bindingDisplayNextMatch = document.getElementById('bindingDisplayNextMatch');
+const bindingDisplayWinParticipant1 = document.getElementById('bindingDisplayWinParticipant1');
+const bindingDisplayWinParticipant2 = document.getElementById('bindingDisplayWinParticipant2');
 const resetBindingsBtn = document.getElementById('resetBindingsBtn');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
@@ -135,7 +141,10 @@ let keybindingManager = null;
 const KEYBINDING_ACTION_LABELS = {
   start: 'Démarrer',
   stop: 'Arrêter',
-  switch: 'Changer',
+  switch: 'Basculer le timer',
+  nextMatch: 'Passer au duel suivant',
+  winParticipant1: 'Victoire participant 1',
+  winParticipant2: 'Victoire participant 2',
 };
 
 const KEYBINDING_UI = {
@@ -150,6 +159,18 @@ const KEYBINDING_UI = {
   switch: {
     display: bindingDisplaySwitch,
     button: bindSwitchBtn,
+  },
+  nextMatch: {
+    display: bindingDisplayNextMatch,
+    button: bindNextMatchBtn,
+  },
+  winParticipant1: {
+    display: bindingDisplayWinParticipant1,
+    button: bindWinParticipant1Btn,
+  },
+  winParticipant2: {
+    display: bindingDisplayWinParticipant2,
+    button: bindWinParticipant2Btn,
   },
 };
 
@@ -404,33 +425,25 @@ function renderLiveTimerPanel() {
 }
 
 function renderLiveWinnerControls() {
-  if (!liveWinnerSideSelect) {
+  if (!liveWinnerParticipant1Btn || !liveWinnerParticipant2Btn) {
     return;
   }
 
   const { current } = getCurrentOverlayMeta();
   if (!current) {
-    liveWinnerSideSelect.disabled = true;
-    if (liveSetWinnerBtn) {
-      liveSetWinnerBtn.disabled = true;
-    }
+    liveWinnerParticipant1Btn.disabled = true;
+    liveWinnerParticipant2Btn.disabled = true;
     return;
   }
 
   const leftLabel = sanitizeTimerLabel(current.left?.pseudo, DEFAULT_TIMER_LABEL_1);
   const rightLabel = sanitizeTimerLabel(current.right?.pseudo, DEFAULT_TIMER_LABEL_2);
-  if (liveWinnerSideSelect.options?.[0]) {
-    liveWinnerSideSelect.options[0].textContent = leftLabel;
-  }
-  if (liveWinnerSideSelect.options?.[1]) {
-    liveWinnerSideSelect.options[1].textContent = rightLabel;
-  }
+  liveWinnerParticipant1Btn.textContent = leftLabel;
+  liveWinnerParticipant2Btn.textContent = rightLabel;
 
   const isPlayable = canPlayMatch(current, current.roundIndex);
-  liveWinnerSideSelect.disabled = !isPlayable;
-  if (liveSetWinnerBtn) {
-    liveSetWinnerBtn.disabled = !isPlayable;
-  }
+  liveWinnerParticipant1Btn.disabled = !isPlayable;
+  liveWinnerParticipant2Btn.disabled = !isPlayable;
 }
 
 function setKeybindingStatus(message, tone = 'info') {
@@ -471,6 +484,15 @@ function handleTimerKeybindingAction(action) {
   }
   if (action === 'switch') {
     return switchTimer();
+  }
+  if (action === 'nextMatch') {
+    return shiftOverlayMatch(1);
+  }
+  if (action === 'winParticipant1') {
+    return setCurrentMatchWinner('left');
+  }
+  if (action === 'winParticipant2') {
+    return setCurrentMatchWinner('right');
   }
   return Promise.resolve();
 }
@@ -899,6 +921,15 @@ async function setWinner(roundIndex, matchIndex, side) {
   }
 
   await set(matchesRef, rebuilt);
+}
+
+async function setCurrentMatchWinner(side) {
+  const { current } = getCurrentOverlayMeta();
+  if (!current) {
+    return;
+  }
+
+  await setWinner(current.roundIndex, current.matchIndex, side);
 }
 
 function openDuelOverlayWindow() {
@@ -1573,8 +1604,11 @@ keybindingManager = createKeybindingManager({
 bindCaptureButton('start');
 bindCaptureButton('stop');
 bindCaptureButton('switch');
+bindCaptureButton('nextMatch');
+bindCaptureButton('winParticipant1');
+bindCaptureButton('winParticipant2');
 renderKeybindingsUi();
-setKeybindingStatus('Raccourcis actifs. Compatible clavier, souris et Stream Deck.');
+setKeybindingStatus('Raccourcis actifs.');
 
 window.addEventListener('zog:keybindings-updated', (event) => {
   const action = event.detail?.action;
@@ -1602,7 +1636,7 @@ resetBindingsBtn?.addEventListener('click', () => {
   keybindingManager.resetBindings();
   keybindingManager.cancelCapture();
   renderKeybindingsUi();
-  setKeybindingStatus('Bindings réinitialisés par défaut (S / A / D).');
+  setKeybindingStatus('Bindings réinitialisés par défaut (S / A / D / F / Q / E).');
 });
 
 timerStartBtn?.addEventListener('click', async () => {
@@ -1618,14 +1652,12 @@ timerSwitchBtn?.addEventListener('click', async () => {
   await switchTimer();
 });
 
-liveSetWinnerBtn?.addEventListener('click', async () => {
-  const { current } = getCurrentOverlayMeta();
-  if (!current) {
-    return;
-  }
+liveWinnerParticipant1Btn?.addEventListener('click', async () => {
+  await setCurrentMatchWinner('left');
+});
 
-  const selectedSide = liveWinnerSideSelect?.value === 'right' ? 'right' : 'left';
-  await setWinner(current.roundIndex, current.matchIndex, selectedSide);
+liveWinnerParticipant2Btn?.addEventListener('click', async () => {
+  await setCurrentMatchWinner('right');
 });
 
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);

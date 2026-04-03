@@ -228,6 +228,23 @@ body {
   grid-template-columns: repeat(3, minmax(130px, 1fr));
 }
 
+.winner-controls {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.winner-controls-label {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #d4ddff;
+}
+
+.winner-controls-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
 .live-countdown-grid {
   display: grid;
   gap: 0.6rem;
@@ -543,7 +560,8 @@ button.danger {
   }
 
   .duel-nav,
-  .timer-controls {
+  .timer-controls,
+  .winner-controls-grid {
     grid-template-columns: 1fr;
   }
 
