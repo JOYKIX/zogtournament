@@ -1,5 +1,5 @@
 import React from 'react';
-import { computeWinner, getRoundTitle } from '../app/shared/tournament.js';
+import { canPlayMatch, computeWinner, getRoundTitle } from '../app/shared/tournament.js';
 
 /**
  * Exemple d'affichage propre :
@@ -21,13 +21,14 @@ export function TournamentBracket({ tournament, onSelectWinner }) {
           <h3>{getRoundTitle(roundIndex, totalRounds)}</h3>
 
           {round.map((match, matchIndex) => {
-            const winner = computeWinner(match);
+            const winner = computeWinner(match, roundIndex);
+            const playable = canPlayMatch(match, roundIndex);
 
             return (
               <article key={`${roundIndex}-${matchIndex}`} className="match-card">
                 <button
                   type="button"
-                  disabled={!match.left}
+                  disabled={!playable || !match.left}
                   onClick={() => onSelectWinner(roundIndex, matchIndex, 'left')}
                   className={winner.side === 'left' ? 'winner' : ''}
                 >
@@ -36,12 +37,14 @@ export function TournamentBracket({ tournament, onSelectWinner }) {
 
                 <button
                   type="button"
-                  disabled={!match.right}
+                  disabled={!playable || !match.right}
                   onClick={() => onSelectWinner(roundIndex, matchIndex, 'right')}
                   className={winner.side === 'right' ? 'winner' : ''}
                 >
                   {match.right?.pseudo || 'En attente'}
                 </button>
+
+                <span>{playable ? 'Duel' : 'Pas prêt'}</span>
               </article>
             );
           })}

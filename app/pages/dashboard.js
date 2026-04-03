@@ -22,6 +22,7 @@ import {
   getRoundTitle,
   normalizeTournament,
   updateMatchWinner,
+  canPlayMatch,
 } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 
@@ -171,6 +172,7 @@ function renderBracket() {
       const node = document.createElement('article');
       node.className = 'match';
 
+      const isPlayable = canPlayMatch(match, roundIndex);
       const overlayIndex = flatMatches.findIndex(
         (entry) => entry.roundIndex === roundIndex && entry.matchIndex === matchIndex,
       );
@@ -201,7 +203,7 @@ function renderBracket() {
       const [leftBtn, rightBtn] = node.querySelectorAll('.slot');
       const overlayBtn = node.querySelector('.select-overlay');
 
-      if (!match.left || !match.right) {
+      if (!isPlayable) {
         leftBtn.disabled = true;
         rightBtn.disabled = true;
       }
@@ -210,10 +212,11 @@ function renderBracket() {
       rightBtn.addEventListener('click', () => setWinner(roundIndex, matchIndex, 'right'));
 
       if (overlayBtn) {
-        if (overlayIndex === -1) {
+        if (!isPlayable || overlayIndex === -1) {
           overlayBtn.disabled = true;
           overlayBtn.textContent = 'Pas prêt';
         } else {
+          overlayBtn.textContent = 'Duel';
           overlayBtn.addEventListener('click', () => setOverlayMatch(overlayIndex));
         }
       }
