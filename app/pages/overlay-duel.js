@@ -25,6 +25,9 @@ const guestSlot3 = document.getElementById('guestSlot3');
 const guestVideo1 = document.getElementById('guestVideo1');
 const guestVideo2 = document.getElementById('guestVideo2');
 const guestVideo3 = document.getElementById('guestVideo3');
+const guestAudio1 = document.getElementById('guestAudio1');
+const guestAudio2 = document.getElementById('guestAudio2');
+const guestAudio3 = document.getElementById('guestAudio3');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
@@ -63,9 +66,9 @@ let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
 const slotNodes = {
-  slot1: { wrapper: guestSlot1, video: guestVideo1 },
-  slot2: { wrapper: guestSlot2, video: guestVideo2 },
-  slot3: { wrapper: guestSlot3, video: guestVideo3 },
+  slot1: { wrapper: guestSlot1, video: guestVideo1, audio: guestAudio1 },
+  slot2: { wrapper: guestSlot2, video: guestVideo2, audio: guestAudio2 },
+  slot3: { wrapper: guestSlot3, video: guestVideo3, audio: guestAudio3 },
 };
 
 function sanitizeDuelImageHeight(value) {
@@ -354,17 +357,27 @@ onValue(overlayRef, (snapshot) => {
 const overlayReceiver = new GuestCamOverlayReceiver({
   onSlotUpdate: (slotId, stream, isVisible) => {
     const slot = slotNodes[slotId];
-    if (!slot?.wrapper || !slot.video) {
+    if (!slot?.wrapper || !slot.video || !slot.audio) {
       return;
     }
+
     slot.wrapper.classList.toggle('is-visible', Boolean(isVisible));
     slot.video.srcObject = stream || null;
-    slot.video.muted = false;
-    slot.video
-      .play()
-      .catch(() => {
-        // Certains navigateurs bloquent l'autoplay audio sans interaction utilisateur.
-      });
+    slot.video.muted = true;
+    slot.audio.srcObject = stream || null;
+    slot.audio.muted = false;
+    slot.audio.volume = 1;
+
+    if (!stream) {
+      return;
+    }
+
+    slot.video.play().catch(() => {
+      // Certains navigateurs bloquent l'autoplay vidéo sans interaction utilisateur.
+    });
+    slot.audio.play().catch(() => {
+      // Certains navigateurs bloquent l'autoplay audio sans interaction utilisateur.
+    });
   },
   onLog: (message) => {
     console.log('[OverlayCam]', message);
