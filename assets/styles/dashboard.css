@@ -174,6 +174,20 @@ button.danger {
   align-items: center;
 }
 
+.overlay-size-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: #d4ddff;
+  min-width: 220px;
+}
+
+.overlay-size-field input {
+  margin: 0;
+}
+
 .grid.two-columns,
 .dashboard-grid {
   display: grid;

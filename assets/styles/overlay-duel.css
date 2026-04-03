@@ -17,6 +17,7 @@ body {
 }
 
 .duel-view {
+  --fighter-image-height: 760px;
   width: 100%;
   height: 100%;
   display: grid;
@@ -32,7 +33,8 @@ body {
 }
 
 .fighter-card {
-  width: min(42vw, 760px);
+  width: fit-content;
+  max-width: min(44vw, 760px);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -41,8 +43,10 @@ body {
 }
 
 .fighter img {
-  width: min(38vw, 560px);
-  max-height: min(72vh, 760px);
+  display: block;
+  width: auto;
+  height: min(var(--fighter-image-height), 86vh);
+  max-width: min(40vw, 620px);
   object-fit: cover;
   border-radius: 18px;
   background: transparent;
