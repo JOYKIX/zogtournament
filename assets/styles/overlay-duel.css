@@ -189,8 +189,8 @@ body {
   transition: transform calc(0.45s + (0.45s * var(--health-anim-intensity))) ease-out;
 }
 
-.duel-timers.timer-profile-health #timerParticipant1 .timer-health-fill,
-.duel-timers.timer-profile-health #timerParticipant1 .timer-health-trail {
+.duel-timers.timer-profile-health #timerParticipant2 .timer-health-fill,
+.duel-timers.timer-profile-health #timerParticipant2 .timer-health-trail {
   transform-origin: right center;
 }
 
@@ -208,6 +208,8 @@ body {
   border-radius: 0;
   padding: 0;
   text-align: left;
+  display: flex;
+  flex-direction: column;
 }
 
 .duel-timers.timer-profile-health #timerParticipant1 {
@@ -220,11 +222,20 @@ body {
 }
 
 .duel-timers.timer-profile-health .timer-value {
-  display: none;
+  display: block;
+  order: 1;
+  font-size: clamp(1.1rem, 2.1vw, 1.9rem);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.duel-timers.timer-profile-health .timer-health-shell {
+  order: 2;
 }
 
 .duel-timers.timer-profile-health .timer-label {
+  order: 3;
   margin-top: 0.42rem;
+  margin-bottom: 0;
   font-size: clamp(0.9rem, 1.4vw, 1.25rem);
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -255,6 +266,7 @@ body {
   color: #fff8dd;
   background: linear-gradient(180deg, rgba(6, 10, 20, 0.92), rgba(20, 26, 44, 0.85));
   box-shadow: 0 0 20px rgba(255, 206, 90, 0.33), inset 0 0 20px rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.12em;
 }
 
 .duel-timers.timer-profile-health[data-danger='true'] .timer-center-value,
