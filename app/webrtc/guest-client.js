@@ -56,9 +56,11 @@ export class GuestCamPublisher {
     this.voiceConnections = new Map();
     this.unsubscribers = [];
     this.selectedAudioInputId = '';
-    this.includeAudioInOverlay = true;
     this.connectionLossHandled = false;
     this.ownerKey = createOwnerKey();
+    this.streamConnected = false;
+    this.voiceGroupConnected = false;
+    this.voiceRoomStarted = false;
   }
 
   createPairKey(guestA, guestB) {
@@ -72,10 +74,6 @@ export class GuestCamPublisher {
 
   setAudioInput(deviceId) {
     this.selectedAudioInputId = deviceId || '';
-  }
-
-  setIncludeOverlayAudio(enabled) {
-    this.includeAudioInOverlay = Boolean(enabled);
   }
 
   async enableCamera() {
@@ -98,12 +96,29 @@ export class GuestCamPublisher {
     this.onState?.('camera-ready');
   }
 
-  async join(name) {
+  emitConnectionState() {
+    if (this.streamConnected && this.voiceGroupConnected) {
+      this.onState?.('connected');
+      return;
+    }
+    if (this.streamConnected) {
+      this.onState?.('stream-connected');
+      return;
+    }
+    if (this.voiceGroupConnected) {
+      this.onState?.('voice-connected');
+      return;
+    }
+    this.onState?.('camera-ready');
+  }
+
+  async ensureGuestSession(name) {
+    if (this.guestId) {
+      return;
+    }
+
     if (!this.localStream) {
       throw new Error('Active la caméra et le microphone avant de rejoindre.');
-    }
-    if (this.guestId) {
-      throw new Error('Tu es déjà connecté.');
     }
     this.guestId = createId();
     this.name = String(name || 'Invité').trim() || 'Invité';
@@ -131,19 +146,52 @@ export class GuestCamPublisher {
       status: 'connecting',
       cameraEnabled: true,
       microphoneEnabled: true,
-      includeOverlayAudio: this.includeAudioInOverlay,
+      includeOverlayAudio: true,
+      streamConnected: false,
+      voiceGroupConnected: false,
       ownerKey: this.ownerKey,
       joinedAt: Date.now(),
       updatedAt: Date.now(),
     });
     this.registerDisconnectCleanup();
+  }
 
+  async updateGuestConnectionFlags() {
+    if (!this.guestId) {
+      return;
+    }
+
+    await patchGuest(this.guestId, {
+      status: this.streamConnected || this.voiceGroupConnected ? 'connected' : 'connecting',
+      streamConnected: this.streamConnected,
+      voiceGroupConnected: this.voiceGroupConnected,
+      cameraEnabled: Boolean(this.localStream?.getVideoTracks()?.length),
+      microphoneEnabled: Boolean(this.localStream?.getAudioTracks()?.length),
+      updatedAt: Date.now(),
+    });
+  }
+
+  async connectStream(name) {
+    await this.ensureGuestSession(name);
+    if (this.connections.has('admin') || this.connections.has('overlay')) {
+      throw new Error('Flux déjà connecté.');
+    }
     await this.startRoleConnection('admin');
     await this.startRoleConnection('overlay');
-    this.startGuestVoiceRoom();
+    this.streamConnected = true;
+    await this.updateGuestConnectionFlags();
+    this.emitConnectionState();
+  }
 
-    await patchGuest(this.guestId, { status: 'connected', updatedAt: Date.now() });
-    this.onState?.('connected');
+  async connectVoiceGroup(name) {
+    await this.ensureGuestSession(name);
+    if (this.voiceRoomStarted) {
+      throw new Error('Groupe vocal déjà connecté.');
+    }
+    this.startGuestVoiceRoom();
+    this.voiceGroupConnected = true;
+    await this.updateGuestConnectionFlags();
+    this.emitConnectionState();
   }
 
   async startRoleConnection(role) {
@@ -153,7 +201,7 @@ export class GuestCamPublisher {
     if (videoTrack) {
       connection.addTrack(videoTrack, this.localStream);
     }
-    if (audioTrack && (role !== 'overlay' || this.includeAudioInOverlay)) {
+    if (audioTrack) {
       connection.addTrack(audioTrack, this.localStream);
     }
 
@@ -223,9 +271,10 @@ export class GuestCamPublisher {
   }
 
   startGuestVoiceRoom() {
-    if (!this.guestId) {
+    if (!this.guestId || this.voiceRoomStarted) {
       return;
     }
+    this.voiceRoomStarted = true;
 
     const unsubscribeGuests = listenValue(camGuestsRef(), (snapshot) => {
       const guests = snapshot.val() || {};
@@ -390,6 +439,9 @@ export class GuestCamPublisher {
     this.localStream = null;
     this.guestId = null;
     this.connectionLossHandled = false;
+    this.streamConnected = false;
+    this.voiceGroupConnected = false;
+    this.voiceRoomStarted = false;
     this.onState?.('idle');
     this.onLocalStream?.(null);
     this.onPeersChanged?.([]);

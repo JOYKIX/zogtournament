@@ -2,7 +2,8 @@ import { GuestCamPublisher } from '../webrtc/guest-client.js';
 
 const guestNameInput = document.getElementById('guestName');
 const enableCameraBtn = document.getElementById('enableCameraBtn');
-const joinGuestBtn = document.getElementById('joinGuestBtn');
+const joinStreamBtn = document.getElementById('joinStreamBtn');
+const joinVoiceBtn = document.getElementById('joinVoiceBtn');
 const leaveGuestBtn = document.getElementById('leaveGuestBtn');
 const guestStatus = document.getElementById('guestStatus');
 const guestPreview = document.getElementById('guestPreview');
@@ -10,7 +11,6 @@ const guestVoicePeers = document.getElementById('guestVoicePeers');
 const microphoneSelect = document.getElementById('microphoneSelect');
 const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
 const guestPeerList = document.getElementById('guestPeerList');
-const overlayAudioEnabled = document.getElementById('overlayAudioEnabled');
 const peerAudioEls = new Map();
 let peersCache = [];
 
@@ -46,7 +46,9 @@ const publisher = new GuestCamPublisher({
     const labelMap = {
       idle: 'Déconnecté',
       'camera-ready': 'Caméra + micro actifs, prêt à rejoindre',
-      connected: 'Connecté à la régie',
+      'stream-connected': 'Connecté au flux vidéo de la régie',
+      'voice-connected': 'Connecté au groupe vocal',
+      connected: 'Connecté au flux + groupe vocal',
       disconnected: 'Connexion perdue, flux coupé automatiquement',
     };
     guestStatus.textContent = labelMap[state] || state;
@@ -86,7 +88,6 @@ const publisher = new GuestCamPublisher({
     renderPeerList();
   },
 });
-publisher.setIncludeOverlayAudio(Boolean(overlayAudioEnabled?.checked ?? true));
 
 async function refreshMicrophones() {
   const devices = await publisher.listAudioInputs();
@@ -111,10 +112,6 @@ microphoneSelect?.addEventListener('change', () => {
   publisher.setAudioInput(microphoneSelect.value);
 });
 
-overlayAudioEnabled?.addEventListener('change', () => {
-  publisher.setIncludeOverlayAudio(overlayAudioEnabled.checked);
-});
-
 refreshMicrophonesBtn?.addEventListener('click', async () => {
   try {
     await refreshMicrophones();
@@ -135,12 +132,21 @@ enableCameraBtn?.addEventListener('click', async () => {
   }
 });
 
-joinGuestBtn?.addEventListener('click', async () => {
+joinStreamBtn?.addEventListener('click', async () => {
   try {
-    await publisher.join(guestNameInput?.value || 'Invité');
+    await publisher.connectStream(guestNameInput?.value || 'Invité');
   } catch (error) {
     console.error(error);
-    guestStatus.textContent = `Erreur connexion: ${error.message}`;
+    guestStatus.textContent = `Erreur connexion flux: ${error.message}`;
+  }
+});
+
+joinVoiceBtn?.addEventListener('click', async () => {
+  try {
+    await publisher.connectVoiceGroup(guestNameInput?.value || 'Invité');
+  } catch (error) {
+    console.error(error);
+    guestStatus.textContent = `Erreur connexion vocal: ${error.message}`;
   }
 });
 
