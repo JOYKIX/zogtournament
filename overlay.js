@@ -1,13 +1,10 @@
+import { matchesRef, onValue, overlayRef } from './firebase.js';
+
 const leftFighter = document.getElementById('leftFighter');
 const rightFighter = document.getElementById('rightFighter');
 
-function getMatches() {
-  return JSON.parse(localStorage.getItem('zog.matches') || '[]');
-}
-
-function getCurrentMatchIndex() {
-  return Number(localStorage.getItem('zog.overlay.matchIndex') || 0);
-}
+let matchesCache = [];
+let currentMatchIndex = 0;
 
 function fighterMarkup(player) {
   if (!player) {
@@ -22,17 +19,18 @@ function fighterMarkup(player) {
 }
 
 function render() {
-  const matches = getMatches();
-  const match = matches[getCurrentMatchIndex()];
+  const match = matchesCache[currentMatchIndex];
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
 }
 
-window.addEventListener('storage', (event) => {
-  if (event.key === 'zog.overlay.updatedAt' || event.key === 'zog.matches') {
-    render();
-  }
+onValue(matchesRef, (snapshot) => {
+  matchesCache = snapshot.val() || [];
+  render();
 });
 
-render();
+onValue(overlayRef, (snapshot) => {
+  currentMatchIndex = Number(snapshot.val()?.matchIndex || 0);
+  render();
+});

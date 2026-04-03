@@ -1,8 +1,17 @@
+import {
+  matchesRef,
+  onValue,
+  overlayRef,
+  participantsRef,
+  push,
+  remove,
+  set,
+  update,
+  usersRef,
+} from './firebase.js';
+
 const STORAGE_KEYS = {
-  users: 'zog.users',
   session: 'zog.session',
-  participants: 'zog.participants',
-  matches: 'zog.matches',
 };
 
 const defaultUser = {
@@ -22,44 +31,27 @@ const generateBracketBtn = document.getElementById('generateBracketBtn');
 const bracketContainer = document.getElementById('bracketContainer');
 const openOverlayBtn = document.getElementById('openOverlayBtn');
 
-function initUsers() {
-  const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
-  if (!users.some((user) => user.username === defaultUser.username)) {
-    users.push(defaultUser);
-    localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users));
+let usersCache = [];
+let participantsCache = [];
+let matchesCache = [];
+
+function normalizeList(snapshotValue) {
+  if (!snapshotValue) {
+    return [];
   }
-}
 
-function getUsers() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.users) || '[]');
-}
-
-function getParticipants() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.participants) || '[]');
-}
-
-function saveParticipants(participants) {
-  localStorage.setItem(STORAGE_KEYS.participants, JSON.stringify(participants));
-}
-
-function getMatches() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.matches) || '[]');
-}
-
-function saveMatches(matches) {
-  localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+  return Object.values(snapshotValue);
 }
 
 function renderParticipants() {
-  const participants = getParticipants();
   participantsList.innerHTML = '';
 
-  if (!participants.length) {
+  if (!participantsCache.length) {
     participantsList.innerHTML = '<li>Aucun participant pour le moment.</li>';
     return;
   }
 
-  participants.forEach((participant, index) => {
+  participantsCache.forEach((participant, index) => {
     const li = document.createElement('li');
     li.innerHTML = `
       <div class="participant-inline">
@@ -75,15 +67,14 @@ function renderParticipants() {
 }
 
 function renderBracket() {
-  const matches = getMatches();
   bracketContainer.innerHTML = '';
 
-  if (!matches.length) {
+  if (!matchesCache.length) {
     bracketContainer.innerHTML = '<p>Pas de match généré.</p>';
     return;
   }
 
-  matches.forEach((match, index) => {
+  matchesCache.forEach((match, index) => {
     const node = document.createElement('article');
     node.className = 'match';
     node.innerHTML = `
@@ -96,13 +87,15 @@ function renderBracket() {
   });
 }
 
-function setOverlayMatch(index) {
-  localStorage.setItem('zog.overlay.matchIndex', String(index));
-  localStorage.setItem('zog.overlay.updatedAt', String(Date.now()));
+async function setOverlayMatch(index) {
+  await update(overlayRef, {
+    matchIndex: index,
+    updatedAt: Date.now(),
+  });
 }
 
-function generateMatches() {
-  const participants = [...getParticipants()];
+async function generateMatches() {
+  const participants = [...participantsCache];
 
   if (participants.length < 2) {
     alert('Ajoute au moins 2 participants.');
@@ -121,9 +114,8 @@ function generateMatches() {
     }
   }
 
-  saveMatches(matches);
-  setOverlayMatch(0);
-  renderBracket();
+  await set(matchesRef, matches);
+  await setOverlayMatch(0);
 }
 
 function openOverlayWindow() {
@@ -131,7 +123,7 @@ function openOverlayWindow() {
 }
 
 function login(username, password) {
-  const user = getUsers().find((entry) => entry.username === username && entry.password === password);
+  const user = usersCache.find((entry) => entry.username === username && entry.password === password);
   if (!user) {
     return false;
   }
@@ -157,6 +149,31 @@ function showApp() {
   renderBracket();
 }
 
+function bindRealtimeSubscriptions() {
+  onValue(usersRef, async (snapshot) => {
+    usersCache = normalizeList(snapshot.val());
+    if (!usersCache.some((user) => user.username === defaultUser.username)) {
+      const newUserRef = push(usersRef);
+      await set(newUserRef, defaultUser);
+      return;
+    }
+
+    if (localStorage.getItem(STORAGE_KEYS.session) && !usersCache.length) {
+      logout();
+    }
+  });
+
+  onValue(participantsRef, (snapshot) => {
+    participantsCache = normalizeList(snapshot.val());
+    renderParticipants();
+  });
+
+  onValue(matchesRef, (snapshot) => {
+    matchesCache = normalizeList(snapshot.val());
+    renderBracket();
+  });
+}
+
 loginForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(loginForm);
@@ -171,7 +188,7 @@ loginForm.addEventListener('submit', (event) => {
   }
 });
 
-participantForm.addEventListener('submit', (event) => {
+participantForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(participantForm);
 
@@ -185,22 +202,28 @@ participantForm.addEventListener('submit', (event) => {
     return;
   }
 
-  const participants = getParticipants();
-  participants.push(participant);
-  saveParticipants(participants);
+  const newParticipantRef = push(participantsRef);
+  await set(newParticipantRef, participant);
 
   participantForm.reset();
-  renderParticipants();
 });
 
-generateBracketBtn.addEventListener('click', generateMatches);
+generateBracketBtn.addEventListener('click', () => {
+  generateMatches();
+});
 openOverlayBtn.addEventListener('click', openOverlayWindow);
 logoutBtn.addEventListener('click', logout);
 
-initUsers();
+bindRealtimeSubscriptions();
 
 if (localStorage.getItem(STORAGE_KEYS.session)) {
   showApp();
 } else {
   showLogin();
 }
+
+window.addEventListener('beforeunload', () => {
+  if (!localStorage.getItem(STORAGE_KEYS.session)) {
+    remove(overlayRef);
+  }
+});
