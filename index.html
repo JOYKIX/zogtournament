@@ -49,12 +49,11 @@
         <header class="card app-header">
           <div>
             <p class="eyebrow">Dashboard tournoi</p>
-            <h2>Pilote ton bracket de A à Z</h2>
-            <p class="hint">Un vrai arbre: 8 en quarts, 4 en demies, 2 en finale. Le gagnant passe automatiquement au tour suivant.</p>
+            <h2>Dashboard tournoi</h2>
           </div>
           <div class="actions wrap">
-            <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
-            <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
+            <button id="openDuelOverlayBtn">Overlay duel</button>
+            <button id="openTreeOverlayBtn" class="secondary">Overlay arbre</button>
             <button id="logoutBtn" class="secondary">Déconnexion</button>
           </div>
         </header>
@@ -93,24 +92,13 @@
           <header class="toolbar wrap bracket-header">
             <div>
               <h3>Arbre de tournoi</h3>
-              <p class="hint" id="bracketSummaryText">Configure le format puis génère les matchs.</p>
             </div>
             <div class="actions wrap bracket-controls">
-              <label for="bracketSizeSelect" class="size-label">Format</label>
-              <select id="bracketSizeSelect" class="size-select" aria-label="Taille du bracket">
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="8" selected>8</option>
-                <option value="16">16</option>
-                <option value="32">32</option>
-                <option value="64">64</option>
-              </select>
-              <button id="generateBracketBtn" class="secondary">Générer les matchs</button>
+              <button id="generateBracketBtn" class="secondary">Créer le tournoi</button>
               <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
               <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
             </div>
           </header>
-          <div id="roundBreakdown" class="round-breakdown"></div>
           <div id="bracketContainer" class="bracket"></div>
         </section>
       </section>

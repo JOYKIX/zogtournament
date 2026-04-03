@@ -32,6 +32,14 @@ function cloneMatch(match) {
   };
 }
 
+function emptyMatch() {
+  return {
+    left: null,
+    right: null,
+    winnerSide: null,
+  };
+}
+
 function computeWinner(match) {
   if (match.left && !match.right) return { side: 'left', player: match.left };
   if (!match.left && match.right) return { side: 'right', player: match.right };
@@ -94,7 +102,7 @@ function normalizeTournament(snapshotValue) {
       return null;
     }
 
-    return rebuildTournament({ rounds: [legacyRound] });
+    return rebuildTournament({ rounds: [legacyRound, [emptyMatch(), emptyMatch()], [emptyMatch()]] });
   }
 
   return rebuildTournament(snapshotValue);
