@@ -16,22 +16,26 @@ const timerP2Value = document.getElementById('timerP2Value');
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
 const MAX_DUEL_IMAGE_HEIGHT_PX = 1400;
-const DEFAULT_DUEL_IMAGE_GAP_PX = 36;
-const MIN_DUEL_IMAGE_GAP_PX = 0;
-const MAX_DUEL_IMAGE_GAP_PX = 600;
+const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
+const MIN_DUEL_IMAGE_OFFSET_X_PX = -300;
+const MAX_DUEL_IMAGE_OFFSET_X_PX = 300;
+const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
+const MIN_DUEL_IMAGE_OFFSET_Y_PX = -400;
+const MAX_DUEL_IMAGE_OFFSET_Y_PX = 400;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
 const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
 const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
-const DEFAULT_TIMER_LABEL_1 = 'Participant 1';
-const DEFAULT_TIMER_LABEL_2 = 'Participant 2';
+const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
+const DEFAULT_TIMER_LABEL_2 = 'Joueur 2';
 const TIMER_SECOND_MS = 1000;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
 let currentImageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
-let currentImageGapPx = DEFAULT_DUEL_IMAGE_GAP_PX;
+let currentImageOffsetXPx = DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
+let currentImageOffsetYPx = DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
 let currentTextColor = DEFAULT_DUEL_TEXT_COLOR;
 let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimer = null;
@@ -45,13 +49,22 @@ function sanitizeDuelImageHeight(value) {
   return Math.max(MIN_DUEL_IMAGE_HEIGHT_PX, Math.min(MAX_DUEL_IMAGE_HEIGHT_PX, Math.round(parsed)));
 }
 
-function sanitizeDuelImageGap(value) {
+function sanitizeDuelImageOffsetX(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
-    return DEFAULT_DUEL_IMAGE_GAP_PX;
+    return DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
   }
 
-  return Math.max(MIN_DUEL_IMAGE_GAP_PX, Math.min(MAX_DUEL_IMAGE_GAP_PX, Math.round(parsed)));
+  return Math.max(MIN_DUEL_IMAGE_OFFSET_X_PX, Math.min(MAX_DUEL_IMAGE_OFFSET_X_PX, Math.round(parsed)));
+}
+
+function sanitizeDuelImageOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
+  }
+
+  return Math.max(MIN_DUEL_IMAGE_OFFSET_Y_PX, Math.min(MAX_DUEL_IMAGE_OFFSET_Y_PX, Math.round(parsed)));
 }
 
 function sanitizeTextColor(value) {
@@ -132,7 +145,8 @@ function render() {
 
   if (duelView) {
     duelView.style.setProperty('--fighter-image-height', `${currentImageHeightPx}px`);
-    duelView.style.setProperty('--fighter-gap', `${currentImageGapPx}px`);
+    duelView.style.setProperty('--fighter-offset-x', `${currentImageOffsetXPx}px`);
+    duelView.style.setProperty('--fighter-offset-y', `${currentImageOffsetYPx}px`);
     duelView.style.setProperty('--fighter-text-color', currentTextColor);
   }
   if (duelTimers) {
@@ -168,7 +182,8 @@ onValue(overlayRef, (snapshot) => {
   const value = snapshot.val() || {};
   currentMatchIndex = Number(value.matchIndex || 0);
   currentImageHeightPx = sanitizeDuelImageHeight(value.imageHeightPx);
-  currentImageGapPx = sanitizeDuelImageGap(value.imageGapPx);
+  currentImageOffsetXPx = sanitizeDuelImageOffsetX(value.imageOffsetXPx);
+  currentImageOffsetYPx = sanitizeDuelImageOffsetY(value.imageOffsetYPx);
   currentTextColor = sanitizeTextColor(value.textColor);
   currentTimerOffsetYPx = sanitizeDuelTimerOffsetY(value.timerOffsetYPx);
   currentTimer = normalizeTimerState(value.timer);

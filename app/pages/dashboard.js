@@ -53,7 +53,8 @@ const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
 const overlayNextBtn = document.getElementById('overlayNextBtn');
 const duelImageHeightInput = document.getElementById('duelImageHeightPx');
-const duelImageGapInput = document.getElementById('duelImageGapPx');
+const duelImageOffsetXInput = document.getElementById('duelImageOffsetXPx');
+const duelImageOffsetYInput = document.getElementById('duelImageOffsetYPx');
 const duelTextColorInput = document.getElementById('duelTextColor');
 const duelTimerInitialSecondsInput = document.getElementById('duelTimerInitialSeconds');
 const duelTimerOffsetYInput = document.getElementById('duelTimerOffsetYPx');
@@ -65,16 +66,19 @@ const timerSwitchBtn = document.getElementById('timerSwitchBtn');
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
 const MAX_DUEL_IMAGE_HEIGHT_PX = 1400;
-const DEFAULT_DUEL_IMAGE_GAP_PX = 36;
-const MIN_DUEL_IMAGE_GAP_PX = 0;
-const MAX_DUEL_IMAGE_GAP_PX = 600;
+const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
+const MIN_DUEL_IMAGE_OFFSET_X_PX = -300;
+const MAX_DUEL_IMAGE_OFFSET_X_PX = 300;
+const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
+const MIN_DUEL_IMAGE_OFFSET_Y_PX = -400;
+const MAX_DUEL_IMAGE_OFFSET_Y_PX = 400;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
 const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
 const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
-const DEFAULT_TIMER_LABEL_1 = 'Participant 1';
-const DEFAULT_TIMER_LABEL_2 = 'Participant 2';
+const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
+const DEFAULT_TIMER_LABEL_2 = 'Joueur 2';
 const MIN_TIMER_INITIAL_SECONDS = 10;
 const MAX_TIMER_INITIAL_SECONDS = 7200;
 const TIMER_TICK_INTERVAL_MS = 1000;
@@ -87,7 +91,8 @@ let currentProfile = null;
 let currentOverlay = {
   matchIndex: 0,
   imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
-  imageGapPx: DEFAULT_DUEL_IMAGE_GAP_PX,
+  imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
+  imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
   textColor: DEFAULT_DUEL_TEXT_COLOR,
   timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
   timer: null,
@@ -105,13 +110,22 @@ function sanitizeDuelImageHeight(value) {
   return Math.max(MIN_DUEL_IMAGE_HEIGHT_PX, Math.min(MAX_DUEL_IMAGE_HEIGHT_PX, Math.round(parsed)));
 }
 
-function sanitizeDuelImageGap(value) {
+function sanitizeDuelImageOffsetX(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
-    return DEFAULT_DUEL_IMAGE_GAP_PX;
+    return DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
   }
 
-  return Math.max(MIN_DUEL_IMAGE_GAP_PX, Math.min(MAX_DUEL_IMAGE_GAP_PX, Math.round(parsed)));
+  return Math.max(MIN_DUEL_IMAGE_OFFSET_X_PX, Math.min(MAX_DUEL_IMAGE_OFFSET_X_PX, Math.round(parsed)));
+}
+
+function sanitizeDuelImageOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
+  }
+
+  return Math.max(MIN_DUEL_IMAGE_OFFSET_Y_PX, Math.min(MAX_DUEL_IMAGE_OFFSET_Y_PX, Math.round(parsed)));
 }
 
 function sanitizeTextColor(value) {
@@ -402,11 +416,20 @@ async function setOverlayImageHeight(heightPx) {
   });
 }
 
-async function setOverlayImageGap(gapPx) {
-  const safeGap = sanitizeDuelImageGap(gapPx);
+async function setOverlayImageOffsetX(offsetXPx) {
+  const safeOffset = sanitizeDuelImageOffsetX(offsetXPx);
 
   await update(overlayRef, {
-    imageGapPx: safeGap,
+    imageOffsetXPx: safeOffset,
+    updatedAt: Date.now(),
+  });
+}
+
+async function setOverlayImageOffsetY(offsetYPx) {
+  const safeOffset = sanitizeDuelImageOffsetY(offsetYPx);
+
+  await update(overlayRef, {
+    imageOffsetYPx: safeOffset,
     updatedAt: Date.now(),
   });
 }
@@ -694,7 +717,8 @@ async function ensureDatabaseShape() {
     await set(overlayRef, {
       matchIndex: 0,
       imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
-      imageGapPx: DEFAULT_DUEL_IMAGE_GAP_PX,
+      imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
+      imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
       textColor: DEFAULT_DUEL_TEXT_COLOR,
       timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
       timer: normalizeTimerState({
@@ -709,8 +733,12 @@ async function ensureDatabaseShape() {
       patches.imageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
     }
 
-    if (!Number.isFinite(Number(value.overlay.imageGapPx))) {
-      patches.imageGapPx = DEFAULT_DUEL_IMAGE_GAP_PX;
+    if (!Number.isFinite(Number(value.overlay.imageOffsetXPx))) {
+      patches.imageOffsetXPx = DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
+    }
+
+    if (!Number.isFinite(Number(value.overlay.imageOffsetYPx))) {
+      patches.imageOffsetYPx = DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
     }
 
     if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.textColor || '').trim())) {
@@ -783,7 +811,8 @@ function bindRealtimeSubscriptions() {
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
       imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
-      imageGapPx: sanitizeDuelImageGap(value.imageGapPx),
+      imageOffsetXPx: sanitizeDuelImageOffsetX(value.imageOffsetXPx),
+      imageOffsetYPx: sanitizeDuelImageOffsetY(value.imageOffsetYPx),
       textColor: sanitizeTextColor(value.textColor),
       timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
       timer: normalizeTimerState(value.timer),
@@ -792,8 +821,11 @@ function bindRealtimeSubscriptions() {
     if (duelImageHeightInput) {
       duelImageHeightInput.value = String(currentOverlay.imageHeightPx);
     }
-    if (duelImageGapInput) {
-      duelImageGapInput.value = String(currentOverlay.imageGapPx);
+    if (duelImageOffsetXInput) {
+      duelImageOffsetXInput.value = String(currentOverlay.imageOffsetXPx);
+    }
+    if (duelImageOffsetYInput) {
+      duelImageOffsetYInput.value = String(currentOverlay.imageOffsetYPx);
     }
     if (duelTextColorInput) {
       duelTextColorInput.value = currentOverlay.textColor;
@@ -976,15 +1008,26 @@ duelImageHeightInput?.addEventListener('change', async (event) => {
   await setOverlayImageHeight(safeHeight);
 });
 
-duelImageGapInput?.addEventListener('change', async (event) => {
+duelImageOffsetXInput?.addEventListener('change', async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
     return;
   }
 
-  const safeGap = sanitizeDuelImageGap(target.value);
-  target.value = String(safeGap);
-  await setOverlayImageGap(safeGap);
+  const safeOffset = sanitizeDuelImageOffsetX(target.value);
+  target.value = String(safeOffset);
+  await setOverlayImageOffsetX(safeOffset);
+});
+
+duelImageOffsetYInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeOffset = sanitizeDuelImageOffsetY(target.value);
+  target.value = String(safeOffset);
+  await setOverlayImageOffsetY(safeOffset);
 });
 
 duelTextColorInput?.addEventListener('change', async (event) => {
