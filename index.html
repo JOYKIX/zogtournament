@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zog Tournament Builder</title>
+    <title>Gestionnaire de tournoi Zog</title>
     <link rel="stylesheet" href="assets/styles/dashboard.css" />
   </head>
   <body>
@@ -98,9 +98,13 @@
                 Hauteur image duel (px)
                 <input id="duelImageHeightPx" type="number" min="200" max="1400" step="10" value="760" />
               </label>
-              <label class="overlay-size-field" for="duelImageGapPx">
-                Écart entre images (px)
-                <input id="duelImageGapPx" type="number" min="0" max="600" step="2" value="36" />
+              <label class="overlay-size-field" for="duelImageOffsetXPx">
+                Décalage horizontal image (px)
+                <input id="duelImageOffsetXPx" type="number" min="-300" max="300" step="2" value="18" />
+              </label>
+              <label class="overlay-size-field" for="duelImageOffsetYPx">
+                Décalage vertical image (px)
+                <input id="duelImageOffsetYPx" type="number" min="-400" max="400" step="2" value="0" />
               </label>
               <label class="overlay-size-field" for="duelTextColor">
                 Couleur texte
@@ -115,16 +119,16 @@
                 <input id="duelTimerOffsetYPx" type="number" min="-400" max="400" step="2" value="0" />
               </label>
               <label class="overlay-size-field" for="timerStartParticipant">
-                Participant de départ
+                Joueur de départ
                 <select id="timerStartParticipant">
-                  <option value="1">Participant 1</option>
-                  <option value="2">Participant 2</option>
+                  <option value="1">Joueur 1</option>
+                  <option value="2">Joueur 2</option>
                 </select>
               </label>
               <div class="timer-controls">
-                <button id="timerStartBtn" type="button">Start</button>
-                <button id="timerStopBtn" type="button" class="secondary">Stop</button>
-                <button id="timerSwitchBtn" type="button" class="secondary">Switch</button>
+                <button id="timerStartBtn" type="button">Démarrer</button>
+                <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
+                <button id="timerSwitchBtn" type="button" class="secondary">Changer</button>
               </div>
               <button id="generateBracketBtn" class="secondary">Créer le tournoi</button>
               <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>

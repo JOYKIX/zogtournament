@@ -70,7 +70,8 @@ body {
 
 .duel-view {
   --fighter-image-height: 760px;
-  --fighter-gap: 36px;
+  --fighter-offset-x: 18px;
+  --fighter-offset-y: 0px;
   --fighter-text-color: #f5f8ff;
   width: min(100%, calc(100dvh * 16 / 9));
   max-width: 100%;
@@ -79,7 +80,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: end;
-  gap: var(--fighter-gap);
+  gap: 0;
   padding-bottom: clamp(8px, 1.6vh, 22px);
 }
 
@@ -116,6 +117,14 @@ body {
   object-fit: cover;
   border-radius: 18px;
   background: transparent;
+}
+
+.fighter-left img {
+  transform: translate(var(--fighter-offset-x), var(--fighter-offset-y));
+}
+
+.fighter-right img {
+  transform: translate(calc(var(--fighter-offset-x) * -1), var(--fighter-offset-y));
 }
 
 .fighter .character {
