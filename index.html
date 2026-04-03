@@ -83,7 +83,16 @@
         <section class="panel">
           <header class="toolbar wrap">
             <h3>Arbre de tournoi</h3>
-            <div class="actions wrap">
+            <div class="actions wrap bracket-controls">
+              <label for="bracketSizeSelect" class="size-label">Format</label>
+              <select id="bracketSizeSelect" class="size-select" aria-label="Taille du bracket">
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8" selected>8</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+                <option value="64">64</option>
+              </select>
               <button id="generateBracketBtn" class="secondary">Générer les matchs</button>
               <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
               <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>

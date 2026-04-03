@@ -17,6 +17,7 @@ import {
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
+const ALLOWED_BRACKET_SIZES = [2, 4, 8, 16, 32, 64];
 
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
@@ -37,6 +38,7 @@ const cancelEditBtn = document.getElementById('cancelEditBtn');
 const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
 
 const generateBracketBtn = document.getElementById('generateBracketBtn');
+const bracketSizeSelect = document.getElementById('bracketSizeSelect');
 const bracketContainer = document.getElementById('bracketContainer');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
@@ -127,6 +129,10 @@ function getRoundTitle(roundIndex, totalRounds) {
     return 'Seizièmes de finale';
   }
 
+  if (roundsUntilFinal === 6) {
+    return 'Trente-deuxièmes de finale';
+  }
+
   return `Tour ${roundIndex + 1}`;
 }
 
@@ -146,12 +152,14 @@ function cloneMatch(match) {
   };
 }
 
-function nextPowerOfTwo(value) {
-  let power = 1;
-  while (power < value) {
-    power *= 2;
+
+function sanitizeBracketSize(rawSize, fallback = 8) {
+  const parsed = Number(rawSize);
+  if (ALLOWED_BRACKET_SIZES.includes(parsed)) {
+    return parsed;
   }
-  return power;
+
+  return ALLOWED_BRACKET_SIZES.includes(fallback) ? fallback : 8;
 }
 
 function shuffleParticipants(participants) {
@@ -232,10 +240,13 @@ function rebuildTournament(rawTournament) {
   const championMatch = rounds[rounds.length - 1][0] || emptyMatch();
   const champion = computeWinner(championMatch).player;
 
+  const storedBracketSize = sanitizeBracketSize(rawTournament.bracketSize, rounds[0]?.length * 2 || 8);
+
   return {
     rounds,
     generatedAt: rawTournament.generatedAt || Date.now(),
     champion,
+    bracketSize: storedBracketSize,
   };
 }
 
@@ -362,6 +373,7 @@ function renderBracket() {
   tournamentCache.rounds.forEach((round, roundIndex) => {
     const roundCol = document.createElement('section');
     roundCol.className = 'round';
+    roundCol.style.setProperty('--round-index', String(roundIndex));
 
     const title = getRoundTitle(roundIndex, tournamentCache.rounds.length);
     roundCol.innerHTML = `<h4>${title}</h4>`;
@@ -423,6 +435,10 @@ function renderBracket() {
     bracketContainer.appendChild(roundCol);
   });
 
+  if (bracketSizeSelect && tournamentCache.bracketSize) {
+    bracketSizeSelect.value = String(tournamentCache.bracketSize);
+  }
+
   if (tournamentCache.champion?.pseudo) {
     const championNode = document.createElement('div');
     championNode.className = 'champion-banner';
@@ -460,7 +476,7 @@ async function shiftOverlayMatch(delta) {
   await setOverlayMatch(safeIndex + delta);
 }
 
-function createTournament(participants) {
+function createTournament(participants, desiredBracketSize) {
   const sanitized = shuffleParticipants(
     participants.map(({ id, ...participant }) => ({
       pseudo: participant.pseudo,
@@ -469,7 +485,7 @@ function createTournament(participants) {
     })),
   );
 
-  const bracketSize = nextPowerOfTwo(sanitized.length);
+  const bracketSize = sanitizeBracketSize(desiredBracketSize);
   const roundsCount = Math.log2(bracketSize);
 
   const rounds = Array.from({ length: roundsCount }, (_, roundIndex) => {
@@ -484,7 +500,11 @@ function createTournament(participants) {
     firstRound[matchIndex].right = sanitized[i + 1] || null;
   }
 
-  return rebuildTournament({ rounds, generatedAt: Date.now() });
+  return rebuildTournament({
+    rounds,
+    generatedAt: Date.now(),
+    bracketSize,
+  });
 }
 
 async function generateMatches() {
@@ -493,7 +513,14 @@ async function generateMatches() {
     return;
   }
 
-  const tournament = createTournament(participantsCache);
+  const selectedSize = sanitizeBracketSize(bracketSizeSelect?.value, 8);
+
+  if (participantsCache.length > selectedSize) {
+    alert(`Il y a ${participantsCache.length} participants. Choisis un format de ${participantsCache.length} ou plus.`);
+    return;
+  }
+
+  const tournament = createTournament(participantsCache, selectedSize);
   await set(matchesRef, tournament);
   await setOverlayMatch(0);
 }
