@@ -1,0 +1,127 @@
+:root {
+  color-scheme: dark;
+  font-family: Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #101019;
+  color: #f2f2f2;
+}
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.card,
+.panel {
+  background: #1a1a29;
+  border: 1px solid #2a2a3d;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hidden {
+  display: none;
+}
+
+label {
+  display: block;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+input,
+button {
+  width: 100%;
+  border: 1px solid #3a3a56;
+  border-radius: 8px;
+  background: #25253a;
+  color: #f2f2f2;
+  padding: 0.6rem 0.8rem;
+}
+
+button {
+  margin-top: 0.75rem;
+  cursor: pointer;
+  background: #3b52e3;
+}
+
+button.secondary {
+  background: #303048;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.grid.two-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list li {
+  background: #232338;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.bracket {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.match {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  background: #232338;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.match .vs {
+  opacity: 0.8;
+}
+
+.message {
+  min-height: 1.25rem;
+}
+
+.participant-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.participant-inline img {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #111;
+}
