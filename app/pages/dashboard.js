@@ -63,6 +63,9 @@ const duelImageHeightInput = document.getElementById('duelImageHeightPx');
 const duelImageOffsetXInput = document.getElementById('duelImageOffsetXPx');
 const duelImageOffsetYInput = document.getElementById('duelImageOffsetYPx');
 const duelTextColorInput = document.getElementById('duelTextColor');
+const guestCamWidthInput = document.getElementById('guestCamWidthPx');
+const guestCamHeightInput = document.getElementById('guestCamHeightPx');
+const guestCamOffsetYInput = document.getElementById('guestCamOffsetYPx');
 const duelTimerProfileSelect = document.getElementById('duelTimerProfile');
 const duelHealthBarsEnabledInput = document.getElementById('duelHealthBarsEnabled');
 const duelHealthBarHeightInput = document.getElementById('duelHealthBarHeightPx');
@@ -104,6 +107,9 @@ const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
 const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_GUEST_CAM_WIDTH_PX = 320;
+const DEFAULT_GUEST_CAM_HEIGHT_PX = 180;
+const DEFAULT_GUEST_CAM_OFFSET_Y_PX = 0;
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
@@ -134,6 +140,9 @@ let currentOverlay = {
   imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
   imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
   textColor: DEFAULT_DUEL_TEXT_COLOR,
+  guestCamWidthPx: DEFAULT_GUEST_CAM_WIDTH_PX,
+  guestCamHeightPx: DEFAULT_GUEST_CAM_HEIGHT_PX,
+  guestCamOffsetYPx: DEFAULT_GUEST_CAM_OFFSET_Y_PX,
   timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
   timerProfile: DEFAULT_TIMER_PROFILE,
   timer: null,
@@ -213,6 +222,33 @@ function sanitizeDuelImageOffsetY(value) {
 function sanitizeTextColor(value) {
   const normalized = String(value || '').trim();
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
+}
+
+function sanitizeGuestCamWidth(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_WIDTH_PX;
+  }
+
+  return Math.max(120, Math.min(920, Math.round(parsed)));
+}
+
+function sanitizeGuestCamHeight(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_HEIGHT_PX;
+  }
+
+  return Math.max(80, Math.min(520, Math.round(parsed)));
+}
+
+function sanitizeGuestCamOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_OFFSET_Y_PX;
+  }
+
+  return Math.round(parsed);
 }
 
 function sanitizeTimerInitialSeconds(value) {
@@ -787,6 +823,33 @@ async function setOverlayTextColor(textColor) {
   });
 }
 
+async function setOverlayGuestCamWidth(widthPx) {
+  const safeWidth = sanitizeGuestCamWidth(widthPx);
+
+  await update(overlayRef, {
+    guestCamWidthPx: safeWidth,
+    updatedAt: Date.now(),
+  });
+}
+
+async function setOverlayGuestCamHeight(heightPx) {
+  const safeHeight = sanitizeGuestCamHeight(heightPx);
+
+  await update(overlayRef, {
+    guestCamHeightPx: safeHeight,
+    updatedAt: Date.now(),
+  });
+}
+
+async function setOverlayGuestCamOffsetY(offsetYPx) {
+  const safeOffset = sanitizeGuestCamOffsetY(offsetYPx);
+
+  await update(overlayRef, {
+    guestCamOffsetYPx: safeOffset,
+    updatedAt: Date.now(),
+  });
+}
+
 async function setOverlayTimerOffsetY(timerOffsetYPx) {
   const safeOffset = sanitizeDuelTimerOffsetY(timerOffsetYPx);
 
@@ -1169,6 +1232,9 @@ async function ensureDatabaseShape() {
       imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
       imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
       textColor: DEFAULT_DUEL_TEXT_COLOR,
+      guestCamWidthPx: DEFAULT_GUEST_CAM_WIDTH_PX,
+      guestCamHeightPx: DEFAULT_GUEST_CAM_HEIGHT_PX,
+      guestCamOffsetYPx: DEFAULT_GUEST_CAM_OFFSET_Y_PX,
       timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
       timerProfile: DEFAULT_TIMER_PROFILE,
       timer: normalizeTimerState({
@@ -1195,6 +1261,15 @@ async function ensureDatabaseShape() {
 
     if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.textColor || '').trim())) {
       patches.textColor = DEFAULT_DUEL_TEXT_COLOR;
+    }
+    if (!Number.isFinite(Number(value.overlay.guestCamWidthPx))) {
+      patches.guestCamWidthPx = DEFAULT_GUEST_CAM_WIDTH_PX;
+    }
+    if (!Number.isFinite(Number(value.overlay.guestCamHeightPx))) {
+      patches.guestCamHeightPx = DEFAULT_GUEST_CAM_HEIGHT_PX;
+    }
+    if (!Number.isFinite(Number(value.overlay.guestCamOffsetYPx))) {
+      patches.guestCamOffsetYPx = DEFAULT_GUEST_CAM_OFFSET_Y_PX;
     }
 
     if (!Number.isFinite(Number(value.overlay.timerOffsetYPx))) {
@@ -1310,6 +1385,9 @@ function bindRealtimeSubscriptions() {
       imageOffsetXPx: sanitizeDuelImageOffsetX(value.imageOffsetXPx),
       imageOffsetYPx: sanitizeDuelImageOffsetY(value.imageOffsetYPx),
       textColor: sanitizeTextColor(value.textColor),
+      guestCamWidthPx: sanitizeGuestCamWidth(value.guestCamWidthPx),
+      guestCamHeightPx: sanitizeGuestCamHeight(value.guestCamHeightPx),
+      guestCamOffsetYPx: sanitizeGuestCamOffsetY(value.guestCamOffsetYPx),
       timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
       timerProfile: normalizedTimer.profile,
       timer: normalizedTimer,
@@ -1326,6 +1404,15 @@ function bindRealtimeSubscriptions() {
     }
     if (duelTextColorInput) {
       duelTextColorInput.value = currentOverlay.textColor;
+    }
+    if (guestCamWidthInput) {
+      guestCamWidthInput.value = String(currentOverlay.guestCamWidthPx);
+    }
+    if (guestCamHeightInput) {
+      guestCamHeightInput.value = String(currentOverlay.guestCamHeightPx);
+    }
+    if (guestCamOffsetYInput) {
+      guestCamOffsetYInput.value = String(currentOverlay.guestCamOffsetYPx);
     }
     if (liveTimerInitialSecondsInput) {
       liveTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
@@ -1605,6 +1692,39 @@ duelTextColorInput?.addEventListener('change', async (event) => {
   const safeColor = sanitizeTextColor(target.value);
   target.value = safeColor;
   await setOverlayTextColor(safeColor);
+});
+
+guestCamWidthInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeWidth = sanitizeGuestCamWidth(target.value);
+  target.value = String(safeWidth);
+  await setOverlayGuestCamWidth(safeWidth);
+});
+
+guestCamHeightInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeHeight = sanitizeGuestCamHeight(target.value);
+  target.value = String(safeHeight);
+  await setOverlayGuestCamHeight(safeHeight);
+});
+
+guestCamOffsetYInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeOffset = sanitizeGuestCamOffsetY(target.value);
+  target.value = String(safeOffset);
+  await setOverlayGuestCamOffsetY(safeOffset);
 });
 
 liveTimerInitialSecondsInput?.addEventListener('change', async (event) => {
