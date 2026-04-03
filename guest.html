@@ -9,30 +9,40 @@
   </head>
   <body>
     <main class="guest-shell">
-      <section class="voice-stage card panel" aria-label="Salon vocal principal">
+      <section class="voice-stage card panel glass-panel" aria-label="Salon vocal principal">
         <header class="section-head stage-head">
           <div>
             <p class="eyebrow">Espace invité</p>
             <h3>Vocal groupe unique</h3>
+            <p class="section-subtitle">Activez votre micro et ajustez la sensibilité en temps réel.</p>
           </div>
-          <p id="guestStatus" class="message">En attente</p>
+          <p id="guestStatus" class="message status-chip">En attente</p>
         </header>
 
         <div class="stage-video-wrap">
           <video id="guestPreview" autoplay playsinline muted class="stage-video"></video>
           <div class="video-badge">Vous êtes en direct</div>
+          <div class="video-gradient" aria-hidden="true"></div>
         </div>
 
-        <div class="settings-grid two-cols compact-grid">
-          <div>
+        <div class="settings-grid two-cols compact-grid decorated-grid">
+          <div class="setting-block">
             <label class="setting-field" for="guestName">Pseudo</label>
             <input id="guestName" type="text" placeholder="Votre pseudo" maxlength="24" />
           </div>
-          <div>
+          <div class="setting-block">
             <label class="setting-field" for="microphoneSelect">Microphone</label>
             <select id="microphoneSelect">
               <option value="">Micro par défaut</option>
             </select>
+          </div>
+          <div class="setting-block deadzone-block">
+            <div class="deadzone-head">
+              <label class="setting-field" for="microDeadzoneRange">Zone morte micro</label>
+              <strong id="microDeadzoneValue">6%</strong>
+            </div>
+            <input id="microDeadzoneRange" type="range" min="0" max="30" step="1" value="6" />
+            <p class="micro-hint">Ignore les sons trop faibles (souffle, clavier, ambiance).</p>
           </div>
         </div>
         <div class="actions wrap stage-controls">
@@ -47,7 +57,7 @@
         <div id="guestVoicePeers" aria-hidden="true"></div>
       </section>
 
-      <aside class="online-panel card" aria-label="Membres en ligne">
+      <aside class="online-panel card glass-panel" aria-label="Membres en ligne">
         <header class="panel-head">
           <p class="eyebrow">Groupe vocal</p>
           <h2>Membres en ligne</h2>
