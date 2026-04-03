@@ -73,19 +73,11 @@ const timerStopBtn = document.getElementById('timerStopBtn');
 const timerSwitchBtn = document.getElementById('timerSwitchBtn');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
-const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
-const MAX_DUEL_IMAGE_HEIGHT_PX = 1400;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
-const MIN_DUEL_IMAGE_OFFSET_X_PX = -300;
-const MAX_DUEL_IMAGE_OFFSET_X_PX = 300;
 const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
-const MIN_DUEL_IMAGE_OFFSET_Y_PX = -400;
-const MAX_DUEL_IMAGE_OFFSET_Y_PX = 400;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
-const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
-const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
 const DEFAULT_TIMER_LABEL_2 = 'Joueur 2';
 const DEFAULT_TIMER_PROFILE = 'classic';
@@ -128,7 +120,7 @@ function sanitizeDuelImageHeight(value) {
     return DEFAULT_DUEL_IMAGE_HEIGHT_PX;
   }
 
-  return Math.max(MIN_DUEL_IMAGE_HEIGHT_PX, Math.min(MAX_DUEL_IMAGE_HEIGHT_PX, Math.round(parsed)));
+  return Math.round(parsed);
 }
 
 function sanitizeDuelImageOffsetX(value) {
@@ -137,7 +129,7 @@ function sanitizeDuelImageOffsetX(value) {
     return DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
   }
 
-  return Math.max(MIN_DUEL_IMAGE_OFFSET_X_PX, Math.min(MAX_DUEL_IMAGE_OFFSET_X_PX, Math.round(parsed)));
+  return Math.round(parsed);
 }
 
 function sanitizeDuelImageOffsetY(value) {
@@ -146,7 +138,7 @@ function sanitizeDuelImageOffsetY(value) {
     return DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
   }
 
-  return Math.max(MIN_DUEL_IMAGE_OFFSET_Y_PX, Math.min(MAX_DUEL_IMAGE_OFFSET_Y_PX, Math.round(parsed)));
+  return Math.round(parsed);
 }
 
 function sanitizeTextColor(value) {
@@ -169,7 +161,7 @@ function sanitizeDuelTimerOffsetY(value) {
     return DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
   }
 
-  return Math.max(MIN_DUEL_TIMER_OFFSET_Y_PX, Math.min(MAX_DUEL_TIMER_OFFSET_Y_PX, Math.round(parsed)));
+  return Math.round(parsed);
 }
 
 function sanitizeTimerLabel(value, fallback) {
@@ -197,6 +189,14 @@ function sanitizeRange(value, fallback, min, max) {
   return Math.max(min, Math.min(max, Math.round(parsed)));
 }
 
+function sanitizeInteger(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.round(parsed);
+}
+
 function sanitizeHealthColor(value, fallback) {
   const normalized = String(value || '').trim();
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : fallback;
@@ -205,8 +205,8 @@ function sanitizeHealthColor(value, fallback) {
 function normalizeTimerHealthConfig(value = {}) {
   return {
     enabled: sanitizeBoolean(value.enabled, DEFAULT_TIMER_HEALTH_CONFIG.enabled),
-    barHeightPx: sanitizeRange(value.barHeightPx, DEFAULT_TIMER_HEALTH_CONFIG.barHeightPx, 12, 56),
-    barWidthPercent: sanitizeRange(value.barWidthPercent, DEFAULT_TIMER_HEALTH_CONFIG.barWidthPercent, 28, 48),
+    barHeightPx: sanitizeInteger(value.barHeightPx, DEFAULT_TIMER_HEALTH_CONFIG.barHeightPx),
+    barWidthPercent: sanitizeInteger(value.barWidthPercent, DEFAULT_TIMER_HEALTH_CONFIG.barWidthPercent),
     mainColor: sanitizeHealthColor(value.mainColor, DEFAULT_TIMER_HEALTH_CONFIG.mainColor),
     warningColor: sanitizeHealthColor(value.warningColor, DEFAULT_TIMER_HEALTH_CONFIG.warningColor),
     dangerColor: sanitizeHealthColor(value.dangerColor, DEFAULT_TIMER_HEALTH_CONFIG.dangerColor),
@@ -1213,7 +1213,7 @@ duelHealthBarHeightInput?.addEventListener('change', async (event) => {
     return;
   }
 
-  const safeValue = sanitizeRange(target.value, DEFAULT_TIMER_HEALTH_CONFIG.barHeightPx, 12, 56);
+  const safeValue = sanitizeInteger(target.value, DEFAULT_TIMER_HEALTH_CONFIG.barHeightPx);
   target.value = String(safeValue);
   await setTimerHealthConfig({ barHeightPx: safeValue });
 });
@@ -1224,7 +1224,7 @@ duelHealthBarWidthInput?.addEventListener('change', async (event) => {
     return;
   }
 
-  const safeValue = sanitizeRange(target.value, DEFAULT_TIMER_HEALTH_CONFIG.barWidthPercent, 28, 48);
+  const safeValue = sanitizeInteger(target.value, DEFAULT_TIMER_HEALTH_CONFIG.barWidthPercent);
   target.value = String(safeValue);
   await setTimerHealthConfig({ barWidthPercent: safeValue });
 });
