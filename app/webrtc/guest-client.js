@@ -28,14 +28,14 @@ export class GuestCamPublisher {
   }
 
   async enableCamera() {
-    this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     this.onLocalStream?.(this.localStream);
     this.onState?.('camera-ready');
   }
 
   async join(name) {
     if (!this.localStream) {
-      throw new Error('Active la caméra avant de rejoindre.');
+      throw new Error('Active la caméra et le microphone avant de rejoindre.');
     }
     this.guestId = createId();
     this.name = String(name || 'Invité').trim() || 'Invité';
@@ -44,6 +44,7 @@ export class GuestCamPublisher {
       name: this.name,
       status: 'connecting',
       cameraEnabled: true,
+      microphoneEnabled: true,
       joinedAt: Date.now(),
       updatedAt: Date.now(),
     });
