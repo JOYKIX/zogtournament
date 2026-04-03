@@ -8,8 +8,15 @@
   </head>
   <body>
     <main class="overlay-root">
-      <section class="fighter fighter-left" id="leftFighter"></section>
-      <section class="fighter fighter-right" id="rightFighter"></section>
+      <section id="duelView" class="duel-view">
+        <section class="fighter fighter-left" id="leftFighter"></section>
+        <section class="fighter fighter-right" id="rightFighter"></section>
+      </section>
+
+      <section id="treeView" class="tree-view hidden">
+        <h2>Arbre du tournoi</h2>
+        <div id="overlayTreeContainer" class="overlay-bracket"></div>
+      </section>
     </main>
 
     <script type="module" src="overlay.js"></script>
