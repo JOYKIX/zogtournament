@@ -149,10 +149,6 @@
                 </header>
 
                 <div class="settings-grid two-cols">
-                  <label class="setting-field" for="duelTimerInitialSeconds">
-                    Temps initial (secondes)
-                    <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
-                  </label>
                   <label class="setting-field" for="duelTimerOffsetYPx">
                     Position verticale timer (px)
                     <input id="duelTimerOffsetYPx" type="number" step="2" value="0" />
@@ -293,6 +289,18 @@
                   <button id="timerStartBtn" type="button">Démarrer</button>
                   <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
                   <button id="timerSwitchBtn" type="button" class="secondary">Changer</button>
+                </div>
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="liveWinnerSide">
+                    Vainqueur du match en cours
+                    <select id="liveWinnerSide">
+                      <option value="left">Joueur 1</option>
+                      <option value="right">Joueur 2</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="liveSetWinnerBtn" type="button" class="secondary">Valider le vainqueur</button>
                 </div>
               </article>
             </section>

@@ -60,7 +60,6 @@ const duelImageHeightInput = document.getElementById('duelImageHeightPx');
 const duelImageOffsetXInput = document.getElementById('duelImageOffsetXPx');
 const duelImageOffsetYInput = document.getElementById('duelImageOffsetYPx');
 const duelTextColorInput = document.getElementById('duelTextColor');
-const duelTimerInitialSecondsInput = document.getElementById('duelTimerInitialSeconds');
 const duelTimerProfileSelect = document.getElementById('duelTimerProfile');
 const duelHealthBarsEnabledInput = document.getElementById('duelHealthBarsEnabled');
 const duelHealthBarHeightInput = document.getElementById('duelHealthBarHeightPx');
@@ -76,6 +75,8 @@ const timerStartParticipantSelect = document.getElementById('timerStartParticipa
 const timerStartBtn = document.getElementById('timerStartBtn');
 const timerStopBtn = document.getElementById('timerStopBtn');
 const timerSwitchBtn = document.getElementById('timerSwitchBtn');
+const liveWinnerSideSelect = document.getElementById('liveWinnerSide');
+const liveSetWinnerBtn = document.getElementById('liveSetWinnerBtn');
 const liveTimerStatus = document.getElementById('liveTimerStatus');
 const liveCountdownP1 = document.getElementById('liveCountdownP1');
 const liveCountdownP2 = document.getElementById('liveCountdownP2');
@@ -380,6 +381,36 @@ function renderLiveTimerPanel() {
 
   const activeLabel = activeParticipant === 1 ? timer.participant1Label : timer.participant2Label;
   liveTimerStatus.textContent = `Timer en cours · ${activeLabel} actif`;
+}
+
+function renderLiveWinnerControls() {
+  if (!liveWinnerSideSelect) {
+    return;
+  }
+
+  const { current } = getCurrentOverlayMeta();
+  if (!current) {
+    liveWinnerSideSelect.disabled = true;
+    if (liveSetWinnerBtn) {
+      liveSetWinnerBtn.disabled = true;
+    }
+    return;
+  }
+
+  const leftLabel = sanitizeTimerLabel(current.left?.pseudo, DEFAULT_TIMER_LABEL_1);
+  const rightLabel = sanitizeTimerLabel(current.right?.pseudo, DEFAULT_TIMER_LABEL_2);
+  if (liveWinnerSideSelect.options?.[0]) {
+    liveWinnerSideSelect.options[0].textContent = leftLabel;
+  }
+  if (liveWinnerSideSelect.options?.[1]) {
+    liveWinnerSideSelect.options[1].textContent = rightLabel;
+  }
+
+  const isPlayable = canPlayMatch(current, current.roundIndex);
+  liveWinnerSideSelect.disabled = !isPlayable;
+  if (liveSetWinnerBtn) {
+    liveSetWinnerBtn.disabled = !isPlayable;
+  }
 }
 
 function setKeybindingStatus(message, tone = 'info') {
@@ -1089,6 +1120,7 @@ function bindRealtimeSubscriptions() {
   onValue(matchesRef, (snapshot) => {
     tournamentCache = normalizeTournament(snapshot.val());
     renderBracket();
+    renderLiveWinnerControls();
     syncTimerParticipantLabels();
   });
 
@@ -1120,9 +1152,6 @@ function bindRealtimeSubscriptions() {
     }
     if (duelTextColorInput) {
       duelTextColorInput.value = currentOverlay.textColor;
-    }
-    if (duelTimerInitialSecondsInput) {
-      duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
     }
     if (liveTimerInitialSecondsInput) {
       liveTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
@@ -1166,6 +1195,7 @@ function bindRealtimeSubscriptions() {
 
     renderBracket();
     renderLiveTimerPanel();
+    renderLiveWinnerControls();
     syncTimerParticipantLabels();
   });
 }
@@ -1379,17 +1409,6 @@ duelTextColorInput?.addEventListener('change', async (event) => {
   await setOverlayTextColor(safeColor);
 });
 
-duelTimerInitialSecondsInput?.addEventListener('change', async (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) {
-    return;
-  }
-
-  const safeSeconds = sanitizeTimerInitialSeconds(target.value);
-  target.value = String(safeSeconds);
-  await setTimerInitialSeconds(safeSeconds);
-});
-
 liveTimerInitialSecondsInput?.addEventListener('change', async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
@@ -1572,6 +1591,16 @@ timerSwitchBtn?.addEventListener('click', async () => {
   await switchTimer();
 });
 
+liveSetWinnerBtn?.addEventListener('click', async () => {
+  const { current } = getCurrentOverlayMeta();
+  if (!current) {
+    return;
+  }
+
+  const selectedSide = liveWinnerSideSelect?.value === 'right' ? 'right' : 'left';
+  await setWinner(current.roundIndex, current.matchIndex, selectedSide);
+});
+
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
 openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
 logoutBtn.addEventListener('click', () => {
@@ -1586,6 +1615,7 @@ try {
 bindRealtimeSubscriptions();
 renderConnectionStatus();
 showLogin();
+renderLiveWinnerControls();
 
 timerTickHandle = window.setInterval(async () => {
   renderLiveTimerPanel();
