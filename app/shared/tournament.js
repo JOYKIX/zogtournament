@@ -35,11 +35,50 @@ export function sanitizeBracketSize(value, fallback = BRACKET_SIZE) {
   }
 
   const rounded = Math.trunc(normalized);
-  if (rounded < 2 || rounded % 2 !== 0) {
+  const isPowerOfTwo = rounded > 0 && (rounded & (rounded - 1)) === 0;
+
+  if (rounded < 2 || !isPowerOfTwo) {
     return fallback;
   }
 
   return rounded;
+}
+
+function expectedRoundCountFromFirstRound(firstRound) {
+  if (!Array.isArray(firstRound) || firstRound.length < 1) {
+    return 0;
+  }
+
+  const participantSlots = firstRound.length * 2;
+  const rounds = Math.log2(participantSlots);
+  if (!Number.isInteger(rounds) || rounds < 1) {
+    return 0;
+  }
+
+  return rounds;
+}
+
+function ensureRoundShape(rounds) {
+  if (!Array.isArray(rounds) || !rounds.length) {
+    return [];
+  }
+
+  const expectedRounds = expectedRoundCountFromFirstRound(rounds[0]);
+  if (!expectedRounds) {
+    return rounds;
+  }
+
+  for (let roundIndex = 0; roundIndex < expectedRounds; roundIndex += 1) {
+    const expectedMatches = rounds[0].length / 2 ** roundIndex;
+    const existing = Array.isArray(rounds[roundIndex]) ? rounds[roundIndex] : [];
+
+    rounds[roundIndex] = Array.from({ length: expectedMatches }, (_, matchIndex) =>
+      cloneMatch(existing[matchIndex] || emptyMatch()),
+    );
+  }
+
+  rounds.length = expectedRounds;
+  return rounds;
 }
 
 export function shuffleParticipants(participants) {
@@ -85,7 +124,11 @@ export function rebuildTournament(rawTournament) {
     return null;
   }
 
-  const rounds = rawTournament.rounds.map((round) => (Array.isArray(round) ? round.map(cloneMatch) : []));
+  const rounds = ensureRoundShape(rawTournament.rounds.map((round) => (Array.isArray(round) ? round.map(cloneMatch) : [])));
+
+  if (!rounds.length) {
+    return null;
+  }
 
   for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex += 1) {
     const currentRound = rounds[roundIndex];
