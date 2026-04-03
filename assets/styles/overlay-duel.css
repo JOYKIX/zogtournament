@@ -13,6 +13,7 @@ body {
   height: 100%;
   pointer-events: none;
   padding: 2vh 2vw;
+  background: transparent;
 }
 
 .duel-view {
@@ -36,13 +37,15 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.25rem;
+  background: transparent;
 }
 
 .fighter img {
   width: min(38vw, 560px);
-  max-height: 68vh;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.55));
+  max-height: min(72vh, 760px);
+  object-fit: cover;
+  border-radius: 18px;
+  background: transparent;
 }
 
 .fighter .character {
