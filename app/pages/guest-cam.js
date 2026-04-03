@@ -11,18 +11,32 @@ const microphoneSelect = document.getElementById('microphoneSelect');
 const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
 const guestPeerList = document.getElementById('guestPeerList');
 const peerAudioEls = new Map();
+let peersCache = [];
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
 function renderPeerList() {
   if (!guestPeerList) return;
 
-  const peerIds = [...peerAudioEls.keys()];
-  if (!peerIds.length) {
+  if (!peersCache.length) {
     guestPeerList.innerHTML = '<li class="member-empty">Personne connecté pour le moment</li>';
     return;
   }
 
-  guestPeerList.innerHTML = peerIds
-    .map((peerId, index) => `<li>🎧 Membre ${index + 1} · ${peerId.slice(0, 8)}</li>`)
+  guestPeerList.innerHTML = peersCache
+    .map((peer) => {
+      const isAudioActive = peerAudioEls.has(peer.id);
+      const stateLabel = isAudioActive ? 'Audio actif' : peer.status === 'connected' ? 'En ligne' : 'Connexion...';
+      const icon = isAudioActive ? '🟢' : '⚪';
+      return `<li><div class="peer-item-row"><strong>${escapeHtml(peer.name)}</strong><span>${icon} ${stateLabel}</span></div></li>`;
+    })
     .join('');
 }
 
@@ -63,6 +77,10 @@ const publisher = new GuestCamPublisher({
     audio.srcObject = stream;
     peerAudioEls.set(peerId, audio);
     guestVoicePeers?.appendChild(audio);
+    renderPeerList();
+  },
+  onPeersChanged: (peers) => {
+    peersCache = peers;
     renderPeerList();
   },
 });
