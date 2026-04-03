@@ -40,6 +40,8 @@ const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
 const generateBracketBtn = document.getElementById('generateBracketBtn');
 const bracketSizeSelect = document.getElementById('bracketSizeSelect');
 const bracketContainer = document.getElementById('bracketContainer');
+const bracketSummaryText = document.getElementById('bracketSummaryText');
+const roundBreakdown = document.getElementById('roundBreakdown');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
@@ -134,6 +136,31 @@ function getRoundTitle(roundIndex, totalRounds) {
   }
 
   return `Tour ${roundIndex + 1}`;
+}
+
+
+function describeBracketStructure(bracketSize) {
+  const roundsCount = Math.log2(bracketSize);
+  return Array.from({ length: roundsCount }, (_, index) => {
+    const participantsInRound = bracketSize / 2 ** index;
+    const matches = participantsInRound / 2;
+    return {
+      label: getRoundTitle(index, roundsCount),
+      participants: participantsInRound,
+      matches,
+    };
+  });
+}
+
+function renderRoundBreakdown(bracketSize) {
+  if (!roundBreakdown) {
+    return;
+  }
+
+  const structure = describeBracketStructure(bracketSize);
+  roundBreakdown.innerHTML = structure
+    .map((item) => `<span class="round-chip">${escapeHtml(item.label)} : ${item.participants} joueurs (${item.matches} match${item.matches > 1 ? 's' : ''})</span>`)
+    .join('');
 }
 
 function emptyMatch() {
@@ -365,10 +392,21 @@ function renderBracket() {
 
   if (!tournamentCache?.rounds?.length) {
     bracketContainer.innerHTML = '<p>Pas de bracket généré.</p>';
+    if (bracketSummaryText) {
+      bracketSummaryText.textContent = 'Configure le format puis génère les matchs.';
+    }
+    renderRoundBreakdown(sanitizeBracketSize(bracketSizeSelect?.value, 8));
     return;
   }
 
   const { flatMatches, safeIndex, current } = getCurrentOverlayMeta();
+  const bracketSize = sanitizeBracketSize(tournamentCache.bracketSize, 8);
+  renderRoundBreakdown(bracketSize);
+
+  if (bracketSummaryText) {
+    const readyMatches = flatMatches.filter((match) => match.left && match.right).length;
+    bracketSummaryText.textContent = `Format ${bracketSize}: ${readyMatches} duels prêts. Progression automatique vers les demi-finales puis la finale.`;
+  }
 
   tournamentCache.rounds.forEach((round, roundIndex) => {
     const roundCol = document.createElement('section');
@@ -436,7 +474,7 @@ function renderBracket() {
   });
 
   if (bracketSizeSelect && tournamentCache.bracketSize) {
-    bracketSizeSelect.value = String(tournamentCache.bracketSize);
+    bracketSizeSelect.value = String(bracketSize);
   }
 
   if (tournamentCache.champion?.pseudo) {
@@ -877,6 +915,10 @@ generateBracketBtn.addEventListener('click', () => {
   generateMatches();
 });
 
+bracketSizeSelect?.addEventListener('change', () => {
+  renderRoundBreakdown(sanitizeBracketSize(bracketSizeSelect.value, 8));
+});
+
 overlayPrevBtn.addEventListener('click', () => shiftOverlayMatch(-1));
 overlayNextBtn.addEventListener('click', () => shiftOverlayMatch(1));
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
@@ -892,4 +934,5 @@ try {
 }
 bindRealtimeSubscriptions();
 renderConnectionStatus();
+renderRoundBreakdown(sanitizeBracketSize(bracketSizeSelect?.value, 8));
 showLogin();

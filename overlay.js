@@ -121,16 +121,18 @@ function getOverlayMatches() {
 
 function fighterMarkup(player) {
   if (!player) {
-    return '<div class="name">En attente</div>';
+    return '<div class="fighter-card"><div class="name">En attente</div></div>';
   }
 
   const safePseudo = escapeHtml(player.pseudo || 'Inconnu');
   const safeCharacter = escapeHtml(player.character || 'Personnage inconnu');
 
   return `
-    <img src="${normalizeImageUrl(player.image)}" alt="${safePseudo}" />
-    <div class="name">${safePseudo}</div>
-    <div class="character">${safeCharacter}</div>
+    <div class="fighter-card">
+      <img src="${normalizeImageUrl(player.image)}" alt="${safePseudo}" />
+      <div class="name">${safePseudo}</div>
+      <div class="character">${safeCharacter}</div>
+    </div>
   `;
 }
 
