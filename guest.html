@@ -5,30 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invité caméra + micro</title>
     <link rel="stylesheet" href="assets/styles/dashboard.css" />
+    <link rel="stylesheet" href="assets/styles/guest.css" />
   </head>
   <body>
-    <main class="container">
-      <section class="card panel section-card" style="max-width:720px;margin:2rem auto;">
-        <header class="section-head">
+    <main class="discord-shell">
+      <aside class="server-rail card" aria-label="Serveurs">
+        <div class="server-dot is-active" title="Zog Tournament">ZT</div>
+        <div class="server-dot" title="Warmup">WU</div>
+        <div class="server-dot" title="Custom">+</div>
+      </aside>
+
+      <aside class="channel-panel card" aria-label="Canaux vocaux">
+        <header class="panel-head">
           <p class="eyebrow">Invité</p>
-          <h3>Rejoindre la régie caméra + micro</h3>
+          <h2>Régie Live</h2>
         </header>
-        <label class="setting-field" for="guestName">Pseudo</label>
-        <input id="guestName" type="text" placeholder="Votre pseudo" maxlength="24" />
-        <label class="setting-field" for="microphoneSelect">Microphone</label>
-        <div class="actions wrap">
-          <select id="microphoneSelect" style="flex:1;min-width:240px;">
-            <option value="">Micro par défaut</option>
-          </select>
-          <button id="refreshMicrophonesBtn" type="button" class="ghost">Rafraîchir les micros</button>
+
+        <div class="channel-group">
+          <p class="channel-group-title">SALONS VOCAUX</p>
+          <button class="channel-item is-active" type="button">🔊 Vocal Groupe</button>
+          <button class="channel-item" type="button">🎤 Check micro</button>
         </div>
-        <div class="actions wrap">
+
+        <div class="member-section">
+          <p class="channel-group-title">EN LIGNE</p>
+          <ul id="guestPeerList" class="member-list">
+            <li class="member-empty">Personne connecté pour le moment</li>
+          </ul>
+        </div>
+      </aside>
+
+      <section class="voice-stage card panel" aria-label="Salon vocal principal">
+        <header class="section-head stage-head">
+          <div>
+            <p class="eyebrow">Vocal groupe</p>
+            <h3>Interface type Discord</h3>
+          </div>
+          <p id="guestStatus" class="message">En attente</p>
+        </header>
+
+        <div class="stage-video-wrap">
+          <video id="guestPreview" autoplay playsinline muted class="stage-video"></video>
+          <div class="video-badge">Vous êtes en direct</div>
+        </div>
+
+        <div class="settings-grid two-cols compact-grid">
+          <div>
+            <label class="setting-field" for="guestName">Pseudo</label>
+            <input id="guestName" type="text" placeholder="Votre pseudo" maxlength="24" />
+          </div>
+          <div>
+            <label class="setting-field" for="microphoneSelect">Microphone</label>
+            <select id="microphoneSelect">
+              <option value="">Micro par défaut</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions wrap stage-controls">
           <button id="enableCameraBtn" type="button">Activer caméra + micro</button>
-          <button id="joinGuestBtn" type="button" class="secondary">Rejoindre</button>
+          <button id="joinGuestBtn" type="button" class="secondary">Rejoindre le vocal</button>
+          <button id="refreshMicrophonesBtn" type="button" class="ghost">Rafraîchir les micros</button>
           <button id="leaveGuestBtn" type="button" class="ghost">Quitter</button>
         </div>
-        <p id="guestStatus" class="message">En attente</p>
-        <video id="guestPreview" autoplay playsinline muted style="width:100%;border-radius:12px;background:#060a16;min-height:240px;"></video>
+
         <div id="guestVoicePeers" aria-hidden="true"></div>
       </section>
     </main>
