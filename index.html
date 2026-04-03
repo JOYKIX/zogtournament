@@ -243,6 +243,14 @@
             </section>
 
             <section class="app-view" data-view="live" aria-hidden="true">
+              <article class="card panel section-card bracket-panel">
+                <header class="section-head">
+                  <p class="eyebrow">Live</p>
+                  <h3>Duel - Arbre de tournoi</h3>
+                </header>
+                <div id="liveBracketContainer" class="bracket"></div>
+              </article>
+
               <article class="card panel section-card">
                 <header class="section-head">
                   <p class="eyebrow">Contrôles live</p>
@@ -269,6 +277,10 @@
                   <p id="liveCountdownP2" class="countdown-pill">Joueur 2: 05:00</p>
                 </div>
                 <div class="settings-grid two-cols">
+                  <label class="setting-field" for="liveTimerInitialSeconds">
+                    Durée timer (secondes)
+                    <input id="liveTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
+                  </label>
                   <label class="setting-field" for="timerStartParticipant">
                     Joueur de départ
                     <select id="timerStartParticipant">
