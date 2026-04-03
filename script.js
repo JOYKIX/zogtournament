@@ -4,6 +4,7 @@ import {
   overlayRef,
   participantsRef,
   push,
+  ref,
   remove,
   set,
   update,
@@ -151,14 +152,22 @@ function showApp() {
 
 function bindRealtimeSubscriptions() {
   onValue(usersRef, async (snapshot) => {
-    usersCache = normalizeList(snapshot.val());
-    if (!usersCache.some((user) => user.username === defaultUser.username)) {
-      const newUserRef = push(usersRef);
-      await set(newUserRef, defaultUser);
+    const usersMap = snapshot.val() || {};
+    usersCache = Object.values(usersMap);
+
+    if (!usersMap[defaultUser.username]) {
+      const defaultUserRef = ref(usersRef, defaultUser.username);
+      await set(defaultUserRef, defaultUser);
       return;
     }
 
-    if (localStorage.getItem(STORAGE_KEYS.session) && !usersCache.length) {
+    const session = localStorage.getItem(STORAGE_KEYS.session);
+    if (!session) {
+      return;
+    }
+
+    const { username } = JSON.parse(session);
+    if (!usersMap[username]) {
       logout();
     }
   });
