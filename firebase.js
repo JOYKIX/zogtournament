@@ -1,6 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
 import {
   getDatabase,
+  get,
   onValue,
   push,
   ref,
@@ -31,6 +32,7 @@ const profileRef = ref(db, 'zogTournament/profile');
 
 export {
   db,
+  get,
   matchesRef,
   onValue,
   overlayRef,

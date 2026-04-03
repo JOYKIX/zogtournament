@@ -1,4 +1,5 @@
 import {
+  get,
   matchesRef,
   onValue,
   overlayRef,
@@ -7,6 +8,7 @@ import {
   push,
   ref,
   remove,
+  rootRef,
   set,
   update,
   usersRef,
@@ -33,23 +35,68 @@ let participantsCache = [];
 let matchesCache = [];
 let currentProfile = null;
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+async function ensureDatabaseShape() {
+  const snapshot = await get(rootRef);
+  const value = snapshot.val() || {};
+
+  const initialPatch = {};
+
+  if (!value.users || typeof value.users !== 'object') {
+    initialPatch.users = {};
+  }
+
+  if (!value.participants || typeof value.participants !== 'object') {
+    initialPatch.participants = {};
+  }
+
+  if (!Array.isArray(value.matches)) {
+    initialPatch.matches = [];
+  }
+
+  if (!value.overlay || typeof value.overlay !== 'object') {
+    initialPatch.overlay = {
+      matchIndex: 0,
+      updatedAt: Date.now(),
+    };
+  }
+
+  if (value.profile === undefined) {
+    initialPatch.profile = null;
+  }
+
+  if (Object.keys(initialPatch).length) {
+    await update(rootRef, initialPatch);
+  }
+}
+
 function normalizeParticipants(snapshotValue) {
-  if (!snapshotValue) {
+  if (!snapshotValue || typeof snapshotValue !== 'object') {
     return [];
   }
 
-  return Object.entries(snapshotValue).map(([id, participant]) => ({
-    id,
-    ...participant,
-  }));
+  return Object.entries(snapshotValue)
+    .filter(([, participant]) => participant && typeof participant === 'object')
+    .map(([id, participant]) => ({
+      id,
+      ...participant,
+    }));
 }
 
 function normalizeMatches(snapshotValue) {
-  if (!snapshotValue) {
+  if (!Array.isArray(snapshotValue)) {
     return [];
   }
 
-  return Object.values(snapshotValue);
+  return snapshotValue.filter((match) => match?.left?.pseudo && match?.right?.pseudo);
 }
 
 function renderParticipants() {
@@ -62,12 +109,15 @@ function renderParticipants() {
 
   participantsCache.forEach((participant, index) => {
     const li = document.createElement('li');
+    const safePseudo = escapeHtml(participant.pseudo || '');
+    const safeCharacter = escapeHtml(participant.character || '');
+
     li.innerHTML = `
       <div class="participant-inline">
-        <img src="${participant.image || 'https://placehold.co/72x72?text=?'}" alt="${participant.pseudo}" />
+        <img src="${participant.image || 'https://placehold.co/72x72?text=?'}" alt="${safePseudo}" />
         <div>
-          <strong>${index + 1}. ${participant.pseudo}</strong><br />
-          <span>${participant.character}</span>
+          <strong>${index + 1}. ${safePseudo}</strong><br />
+          <span>${safeCharacter}</span>
         </div>
       </div>
       <button class="danger" type="button" data-delete-id="${participant.id}">Supprimer</button>
@@ -88,9 +138,9 @@ function renderBracket() {
     const node = document.createElement('article');
     node.className = 'match';
     node.innerHTML = `
-      <div>${match.left.pseudo} (${match.left.character})</div>
+      <div>${escapeHtml(match.left.pseudo)} (${escapeHtml(match.left.character)})</div>
       <div class="vs">VS</div>
-      <div>${match.right.pseudo} (${match.right.character})</div>
+      <div>${escapeHtml(match.right.pseudo)} (${escapeHtml(match.right.character)})</div>
     `;
     node.addEventListener('click', () => setOverlayMatch(index));
     bracketContainer.appendChild(node);
@@ -290,5 +340,6 @@ logoutBtn.addEventListener('click', () => {
   logout();
 });
 
+await ensureDatabaseShape();
 bindRealtimeSubscriptions();
 showLogin();
