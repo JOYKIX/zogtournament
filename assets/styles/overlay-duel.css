@@ -27,6 +27,46 @@ body {
   background: transparent;
 }
 
+.guest-cams-layer {
+  position: absolute;
+  inset: auto 0 18px 0;
+  width: min(100%, calc(100dvh * 16 / 9));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 16px;
+}
+
+.guest-slot {
+  display: none;
+  min-height: 120px;
+  border: 1px solid rgba(170, 194, 255, 0.45);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(6, 11, 24, 0.72);
+}
+
+.guest-slot.is-visible {
+  display: block;
+}
+
+.guest-slot video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+  background: rgba(4, 8, 16, 0.95);
+}
+
+.guest-slot p {
+  margin: 0;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
 .duel-timers {
   --duel-timer-offset-y: 0px;
   --health-bar-height: 26px;

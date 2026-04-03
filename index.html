@@ -64,6 +64,7 @@
             <a href="#config" class="app-nav-item" data-target-view="config">Config</a>
             <a href="#keybinds" class="app-nav-item" data-target-view="keybinds">Keybinds</a>
             <a href="#live" class="app-nav-item" data-target-view="live">Live</a>
+            <a href="#cam" class="app-nav-item" data-target-view="cam">Cam</a>
           </nav>
 
           <section class="app-content">
@@ -311,6 +312,18 @@
                     <button id="liveWinnerParticipant2Btn" type="button" class="secondary">Joueur 2</button>
                   </div>
                 </div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="cam" aria-hidden="true">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Caméras invitées</p>
+                  <h3>Régie WebRTC</h3>
+                  <p class="hint">Lien invité: <a id="guestPageLink" href="guest.html" target="_blank" rel="noopener">ouvrir page invité</a></p>
+                </header>
+                <p id="camStatus" class="message no-margin">En attente d'invités.</p>
+                <div id="camGuestsList" class="split-grid"></div>
               </article>
             </section>
           </section>
