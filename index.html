@@ -50,7 +50,6 @@
           <div>
             <p class="eyebrow">Dashboard tournoi</p>
             <h2>Contrôle tournoi & overlay</h2>
-            <p class="hint no-margin">Navigation SPA optimisée pour le direct.</p>
           </div>
           <div class="actions wrap top-actions">
             <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
@@ -145,7 +144,7 @@
               <article class="card panel section-card">
                 <header class="section-head">
                   <p class="eyebrow">Timer</p>
-                  <h3>Réglages du chrono</h3>
+                  <h3>Réglages du timer</h3>
                 </header>
 
                 <div class="settings-grid two-cols">
@@ -226,9 +225,24 @@
                     <button id="bindStopBtn" type="button" class="ghost">Binder</button>
                   </div>
                   <div class="keybinding-row" data-action="switch">
-                    <p class="keybinding-label">Changer le duel</p>
+                    <p class="keybinding-label">Basculer le timer</p>
                     <p id="bindingDisplaySwitch" class="keybinding-value">D</p>
                     <button id="bindSwitchBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="nextMatch">
+                    <p class="keybinding-label">Passer au duel suivant</p>
+                    <p id="bindingDisplayNextMatch" class="keybinding-value">F</p>
+                    <button id="bindNextMatchBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="winParticipant1">
+                    <p class="keybinding-label">Victoire participant 1</p>
+                    <p id="bindingDisplayWinParticipant1" class="keybinding-value">Q</p>
+                    <button id="bindWinParticipant1Btn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="winParticipant2">
+                    <p class="keybinding-label">Victoire participant 2</p>
+                    <p id="bindingDisplayWinParticipant2" class="keybinding-value">E</p>
+                    <button id="bindWinParticipant2Btn" type="button" class="ghost">Binder</button>
                   </div>
                 </div>
 
@@ -264,8 +278,8 @@
 
               <article class="card panel section-card live-countdown-card">
                 <header class="section-head">
-                  <p class="eyebrow">Compte à rebours</p>
-                  <h3>Timer en temps réel</h3>
+                  <p class="eyebrow">Timer</p>
+                  <h3>Timer</h3>
                 </header>
                 <p id="liveTimerStatus" class="message no-margin">Timer en pause.</p>
                 <div class="live-countdown-grid">
@@ -288,19 +302,14 @@
                 <div class="timer-controls">
                   <button id="timerStartBtn" type="button">Démarrer</button>
                   <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
-                  <button id="timerSwitchBtn" type="button" class="secondary">Changer</button>
+                  <button id="timerSwitchBtn" type="button" class="secondary">Basculer le timer</button>
                 </div>
-                <div class="settings-grid two-cols">
-                  <label class="setting-field" for="liveWinnerSide">
-                    Vainqueur du match en cours
-                    <select id="liveWinnerSide">
-                      <option value="left">Joueur 1</option>
-                      <option value="right">Joueur 2</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="actions">
-                  <button id="liveSetWinnerBtn" type="button" class="secondary">Valider le vainqueur</button>
+                <div class="winner-controls">
+                  <p class="winner-controls-label">Vainqueur du match en cours</p>
+                  <div class="winner-controls-grid">
+                    <button id="liveWinnerParticipant1Btn" type="button" class="secondary">Joueur 1</button>
+                    <button id="liveWinnerParticipant2Btn" type="button" class="secondary">Joueur 2</button>
+                  </div>
                 </div>
               </article>
             </section>

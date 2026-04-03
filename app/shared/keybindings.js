@@ -1,11 +1,14 @@
 const STORAGE_KEY = 'zog.liveKeybindings.v1';
 
-const ACTIONS = ['start', 'stop', 'switch'];
+const ACTIONS = ['start', 'stop', 'switch', 'nextMatch', 'winParticipant1', 'winParticipant2'];
 
 export const DEFAULT_KEYBINDINGS = {
   start: { type: 'keyboard', key: 'KeyS', ctrl: false, shift: false, alt: false, meta: false },
   stop: { type: 'keyboard', key: 'KeyA', ctrl: false, shift: false, alt: false, meta: false },
   switch: { type: 'keyboard', key: 'KeyD', ctrl: false, shift: false, alt: false, meta: false },
+  nextMatch: { type: 'keyboard', key: 'KeyF', ctrl: false, shift: false, alt: false, meta: false },
+  winParticipant1: { type: 'keyboard', key: 'KeyQ', ctrl: false, shift: false, alt: false, meta: false },
+  winParticipant2: { type: 'keyboard', key: 'KeyE', ctrl: false, shift: false, alt: false, meta: false },
 };
 
 function normalizeKeyboardBinding(binding = {}) {
