@@ -15,6 +15,13 @@
         </header>
         <label class="setting-field" for="guestName">Pseudo</label>
         <input id="guestName" type="text" placeholder="Votre pseudo" maxlength="24" />
+        <label class="setting-field" for="microphoneSelect">Microphone</label>
+        <div class="actions wrap">
+          <select id="microphoneSelect" style="flex:1;min-width:240px;">
+            <option value="">Micro par défaut</option>
+          </select>
+          <button id="refreshMicrophonesBtn" type="button" class="ghost">Rafraîchir les micros</button>
+        </div>
         <div class="actions wrap">
           <button id="enableCameraBtn" type="button">Activer caméra + micro</button>
           <button id="joinGuestBtn" type="button" class="secondary">Rejoindre</button>

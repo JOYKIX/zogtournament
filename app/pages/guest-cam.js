@@ -6,6 +6,8 @@ const joinGuestBtn = document.getElementById('joinGuestBtn');
 const leaveGuestBtn = document.getElementById('leaveGuestBtn');
 const guestStatus = document.getElementById('guestStatus');
 const guestPreview = document.getElementById('guestPreview');
+const microphoneSelect = document.getElementById('microphoneSelect');
+const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
 
 const publisher = new GuestCamPublisher({
   onState: (state) => {
@@ -24,9 +26,41 @@ const publisher = new GuestCamPublisher({
   },
 });
 
+async function refreshMicrophones() {
+  const devices = await publisher.listAudioInputs();
+  const options = ['<option value="">Micro par défaut</option>'];
+  for (const [index, device] of devices.entries()) {
+    const safeLabel = (device.label || `Microphone ${index + 1}`).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const selected = device.deviceId === microphoneSelect?.value ? ' selected' : '';
+    options.push(`<option value="${device.deviceId}"${selected}>${safeLabel}</option>`);
+  }
+  if (microphoneSelect) {
+    microphoneSelect.innerHTML = options.join('');
+  }
+}
+
+refreshMicrophones().catch(() => {
+  // Les labels de périphériques peuvent être vides avant la permission micro.
+});
+
+microphoneSelect?.addEventListener('change', () => {
+  publisher.setAudioInput(microphoneSelect.value);
+});
+
+refreshMicrophonesBtn?.addEventListener('click', async () => {
+  try {
+    await refreshMicrophones();
+    guestStatus.textContent = 'Liste des microphones mise à jour.';
+  } catch (error) {
+    console.error(error);
+    guestStatus.textContent = `Erreur microphones: ${error.message}`;
+  }
+});
+
 enableCameraBtn?.addEventListener('click', async () => {
   try {
     await publisher.enableCamera();
+    await refreshMicrophones();
   } catch (error) {
     console.error(error);
     guestStatus.textContent = `Erreur caméra/micro: ${error.message}`;
