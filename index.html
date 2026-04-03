@@ -9,18 +9,35 @@
   <body>
     <main class="container">
       <section id="loginSection" class="card">
-        <h1>Connexion</h1>
-        <p>Compte par défaut (créé automatiquement dans la base) : <strong>zogadmin1</strong> / <strong>zogadmin1mdp</strong></p>
-        <form id="loginForm">
-          <label for="username">Identifiant</label>
-          <input id="username" name="username" type="text" required />
+        <h1>Compte</h1>
+        <div class="grid two-columns auth-grid">
+          <form id="createProfileForm" class="panel">
+            <h2>Créer un profil</h2>
+            <p class="hint">Maximum 2 comptes sur le site.</p>
 
-          <label for="password">Mot de passe</label>
-          <input id="password" name="password" type="password" required />
+            <label for="newUsername">Identifiant</label>
+            <input id="newUsername" name="newUsername" type="text" required />
 
-          <button type="submit">Se connecter</button>
-        </form>
-        <p id="loginMessage" class="message"></p>
+            <label for="newPassword">Mot de passe</label>
+            <input id="newPassword" name="newPassword" type="password" required />
+
+            <button type="submit">Créer le compte</button>
+            <p id="createProfileMessage" class="message"></p>
+          </form>
+
+          <form id="loginForm" class="panel">
+            <h2>Connexion</h2>
+
+            <label for="username">Identifiant</label>
+            <input id="username" name="username" type="text" required />
+
+            <label for="password">Mot de passe</label>
+            <input id="password" name="password" type="password" required />
+
+            <button type="submit">Se connecter</button>
+            <p id="loginMessage" class="message"></p>
+          </form>
+        </div>
       </section>
 
       <section id="appSection" class="card hidden">

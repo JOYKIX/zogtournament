@@ -12,13 +12,12 @@ import {
   usersRef,
 } from './firebase.js';
 
-const defaultUser = {
-  username: 'zogadmin1',
-  password: 'zogadmin1mdp',
-};
+const MAX_ACCOUNTS = 2;
 
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
+const createProfileForm = document.getElementById('createProfileForm');
+const createProfileMessage = document.getElementById('createProfileMessage');
 const loginForm = document.getElementById('loginForm');
 const loginMessage = document.getElementById('loginMessage');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -147,6 +146,30 @@ async function login(username, password) {
   return true;
 }
 
+async function createProfile(username, password) {
+  if (!username || !password) {
+    return { ok: false, message: 'Identifiant et mot de passe obligatoires.' };
+  }
+
+  const hasExistingUsername = usersCache.some((entry) => entry.username === username);
+  if (hasExistingUsername) {
+    return { ok: false, message: 'Ce nom de compte existe déjà.' };
+  }
+
+  if (usersCache.length >= MAX_ACCOUNTS) {
+    return { ok: false, message: 'Limite atteinte : 2 comptes maximum.' };
+  }
+
+  const userRef = ref(usersRef, username);
+  await set(userRef, {
+    username,
+    password,
+    createdAt: Date.now(),
+  });
+
+  return { ok: true, message: 'Compte créé. Tu peux te connecter.' };
+}
+
 async function logout() {
   await remove(profileRef);
   await remove(overlayRef);
@@ -168,12 +191,6 @@ function bindRealtimeSubscriptions() {
   onValue(usersRef, async (snapshot) => {
     const usersMap = snapshot.val() || {};
     usersCache = Object.values(usersMap);
-
-    if (!usersMap[defaultUser.username]) {
-      const defaultUserRef = ref(usersRef, defaultUser.username);
-      await set(defaultUserRef, defaultUser);
-      return;
-    }
 
     if (currentProfile?.username && !usersMap[currentProfile.username]) {
       await logout();
@@ -201,6 +218,20 @@ function bindRealtimeSubscriptions() {
     renderBracket();
   });
 }
+
+createProfileForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const formData = new FormData(createProfileForm);
+  const username = String(formData.get('newUsername') || '').trim();
+  const password = String(formData.get('newPassword') || '');
+
+  const result = await createProfile(username, password);
+  createProfileMessage.textContent = result.message;
+
+  if (result.ok) {
+    createProfileForm.reset();
+  }
+});
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
