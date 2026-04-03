@@ -5,6 +5,7 @@ const enableCameraBtn = document.getElementById('enableCameraBtn');
 const joinStreamBtn = document.getElementById('joinStreamBtn');
 const joinVoiceBtn = document.getElementById('joinVoiceBtn');
 const leaveGuestBtn = document.getElementById('leaveGuestBtn');
+const muteMicrophoneBtn = document.getElementById('muteMicrophoneBtn');
 const guestStatus = document.getElementById('guestStatus');
 const guestPreview = document.getElementById('guestPreview');
 const guestVoicePeers = document.getElementById('guestVoicePeers');
@@ -13,6 +14,13 @@ const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
 const guestPeerList = document.getElementById('guestPeerList');
 const peerAudioEls = new Map();
 let peersCache = [];
+
+function renderMuteButton(isMuted, hasAudioTrack) {
+  if (!muteMicrophoneBtn) return;
+  muteMicrophoneBtn.disabled = !hasAudioTrack;
+  muteMicrophoneBtn.classList.toggle('is-muted', Boolean(isMuted));
+  muteMicrophoneBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+}
 
 function escapeHtml(value) {
   return String(value || '')
@@ -58,6 +66,10 @@ const publisher = new GuestCamPublisher({
   },
   onLocalStream: (stream) => {
     guestPreview.srcObject = stream;
+    renderMuteButton(publisher.isMuted(), Boolean(stream?.getAudioTracks()?.[0]));
+  },
+  onMuteChanged: (isMuted) => {
+    renderMuteButton(isMuted, publisher.hasAudioTrack());
   },
   onVoicePeerStream: (peerId, stream) => {
     const existing = peerAudioEls.get(peerId);
@@ -103,6 +115,7 @@ async function refreshMicrophones() {
 }
 
 renderPeerList();
+renderMuteButton(false, false);
 
 refreshMicrophones().catch(() => {
   // Les labels de périphériques peuvent être vides avant la permission micro.
@@ -152,6 +165,16 @@ joinVoiceBtn?.addEventListener('click', async () => {
 
 leaveGuestBtn?.addEventListener('click', async () => {
   await publisher.leave();
+});
+
+muteMicrophoneBtn?.addEventListener('click', async () => {
+  try {
+    const isMuted = await publisher.toggleMuted();
+    guestStatus.textContent = isMuted ? 'Micro coupé localement.' : 'Micro réactivé.';
+  } catch (error) {
+    console.error(error);
+    guestStatus.textContent = `Erreur mute: ${error.message}`;
+  }
 });
 
 window.addEventListener('beforeunload', () => {

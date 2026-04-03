@@ -43,12 +43,13 @@ function createOwnerKey() {
 }
 
 export class GuestCamPublisher {
-  constructor({ onState, onLog, onLocalStream, onVoicePeerStream, onPeersChanged }) {
+  constructor({ onState, onLog, onLocalStream, onVoicePeerStream, onPeersChanged, onMuteChanged }) {
     this.onState = onState;
     this.onLog = onLog;
     this.onLocalStream = onLocalStream;
     this.onVoicePeerStream = onVoicePeerStream;
     this.onPeersChanged = onPeersChanged;
+    this.onMuteChanged = onMuteChanged;
     this.guestId = null;
     this.name = '';
     this.localStream = null;
@@ -61,6 +62,9 @@ export class GuestCamPublisher {
     this.streamConnected = false;
     this.voiceGroupConnected = false;
     this.voiceRoomStarted = false;
+    this.muted = false;
+    this.audioProcessingContext = null;
+    this.audioProcessingNodes = null;
   }
 
   createPairKey(guestA, guestB) {
@@ -76,23 +80,160 @@ export class GuestCamPublisher {
     this.selectedAudioInputId = deviceId || '';
   }
 
-  async enableCamera() {
-    this.localStream?.getTracks().forEach((track) => track.stop());
-    const audio = {
+  hasAudioTrack() {
+    return Boolean(this.localStream?.getAudioTracks()?.[0]);
+  }
+
+  isMuted() {
+    return this.muted;
+  }
+
+  async toggleMuted() {
+    await this.setMuted(!this.muted);
+    return this.muted;
+  }
+
+  async setMuted(isMuted) {
+    this.muted = Boolean(isMuted);
+    const audioTrack = this.localStream?.getAudioTracks()?.[0];
+    if (audioTrack) {
+      audioTrack.enabled = !this.muted;
+    }
+    this.onMuteChanged?.(this.muted);
+    await this.updateGuestConnectionFlags();
+  }
+
+  buildAudioConstraints() {
+    const supported = navigator.mediaDevices.getSupportedConstraints?.() || {};
+    const audio = {};
+    const requestedFeatures = {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
-      channelCount: 1,
+      channelCount: { ideal: 1 },
+      sampleRate: { ideal: 48000 },
+      sampleSize: { ideal: 16 },
+      latency: { ideal: 0.02 },
     };
+
+    Object.entries(requestedFeatures).forEach(([key, value]) => {
+      if (supported[key] || ['echoCancellation', 'noiseSuppression', 'autoGainControl'].includes(key)) {
+        audio[key] = value;
+      } else {
+        this.onLog?.(`[audio] Contrainte non supportée: ${key}`);
+      }
+    });
+
     if (this.selectedAudioInputId) {
-      audio.deviceId = { exact: this.selectedAudioInputId };
+      if (supported.deviceId) {
+        audio.deviceId = { exact: this.selectedAudioInputId };
+      } else {
+        this.onLog?.('[audio] Sélection deviceId non supportée, micro par défaut utilisé.');
+      }
     }
 
-    this.localStream = await navigator.mediaDevices.getUserMedia({
+    this.onLog?.(`[audio] Contraintes supportées navigateur: ${JSON.stringify(supported)}`);
+    this.onLog?.(`[audio] Contraintes demandées: ${JSON.stringify(audio)}`);
+    return audio;
+  }
+
+  stopAudioProcessing() {
+    if (!this.audioProcessingNodes) {
+      return;
+    }
+    this.audioProcessingNodes.source?.disconnect();
+    this.audioProcessingNodes.highPass?.disconnect();
+    this.audioProcessingNodes.compressor?.disconnect();
+    this.audioProcessingNodes.outputGain?.disconnect();
+    this.audioProcessingNodes.destination?.disconnect();
+    this.audioProcessingNodes = null;
+
+    if (this.audioProcessingContext?.state !== 'closed') {
+      this.audioProcessingContext?.close().catch(() => {});
+    }
+    this.audioProcessingContext = null;
+  }
+
+  buildProcessedAudioTrack(rawAudioTrack) {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+      this.onLog?.('[audio] Web Audio indisponible: aucune post-prod appliquée.');
+      return rawAudioTrack;
+    }
+
+    try {
+      this.stopAudioProcessing();
+      const sourceStream = new MediaStream([rawAudioTrack]);
+      const context = new AudioContextCtor({ latencyHint: 'interactive' });
+      const source = context.createMediaStreamSource(sourceStream);
+      const highPass = context.createBiquadFilter();
+      highPass.type = 'highpass';
+      highPass.frequency.value = 80;
+      highPass.Q.value = 0.707;
+
+      const compressor = context.createDynamicsCompressor();
+      compressor.threshold.value = -20;
+      compressor.knee.value = 20;
+      compressor.ratio.value = 2.5;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.2;
+
+      const outputGain = context.createGain();
+      outputGain.gain.value = 1;
+
+      const destination = context.createMediaStreamDestination();
+      source.connect(highPass);
+      highPass.connect(compressor);
+      compressor.connect(outputGain);
+      outputGain.connect(destination);
+
+      const processedTrack = destination.stream.getAudioTracks()[0];
+      if (!processedTrack) {
+        context.close().catch(() => {});
+        this.onLog?.('[audio] Pipeline Web Audio indisponible: piste brute conservée.');
+        return rawAudioTrack;
+      }
+
+      this.audioProcessingContext = context;
+      this.audioProcessingNodes = { source, highPass, compressor, outputGain, destination };
+      this.onLog?.('[audio] Pipeline Web Audio active (high-pass + compresseur léger).');
+      return processedTrack;
+    } catch (error) {
+      this.onLog?.(`[audio] Pipeline Web Audio en échec (${error.message}), piste brute conservée.`);
+      this.stopAudioProcessing();
+      return rawAudioTrack;
+    }
+  }
+
+  async enableCamera() {
+    this.localStream?.getTracks().forEach((track) => track.stop());
+    this.stopAudioProcessing();
+    const audio = this.buildAudioConstraints();
+
+    const captureStream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio,
     });
+    const videoTrack = captureStream.getVideoTracks()[0];
+    const rawAudioTrack = captureStream.getAudioTracks()[0];
+    const outputAudioTrack = rawAudioTrack ? this.buildProcessedAudioTrack(rawAudioTrack) : null;
+
+    if (rawAudioTrack) {
+      this.onLog?.(`[audio] Settings micro appliqués: ${JSON.stringify(rawAudioTrack.getSettings?.() || {})}`);
+    }
+    if (outputAudioTrack && outputAudioTrack !== rawAudioTrack) {
+      this.onLog?.(`[audio] Settings piste traitée: ${JSON.stringify(outputAudioTrack.getSettings?.() || {})}`);
+    }
+
+    this.localStream = new MediaStream([videoTrack, ...(outputAudioTrack ? [outputAudioTrack] : [])]);
+    if (rawAudioTrack && outputAudioTrack !== rawAudioTrack) {
+      rawAudioTrack.stop();
+    }
+    this.localStream.getAudioTracks().forEach((track) => {
+      track.enabled = !this.muted;
+    });
     this.onLocalStream?.(this.localStream);
+    this.onMuteChanged?.(this.muted);
     this.onState?.('camera-ready');
   }
 
@@ -145,7 +286,7 @@ export class GuestCamPublisher {
       name: this.name,
       status: 'connecting',
       cameraEnabled: true,
-      microphoneEnabled: true,
+      microphoneEnabled: !this.muted,
       includeOverlayAudio: true,
       streamConnected: false,
       voiceGroupConnected: false,
@@ -166,7 +307,7 @@ export class GuestCamPublisher {
       streamConnected: this.streamConnected,
       voiceGroupConnected: this.voiceGroupConnected,
       cameraEnabled: Boolean(this.localStream?.getVideoTracks()?.length),
-      microphoneEnabled: Boolean(this.localStream?.getAudioTracks()?.length),
+      microphoneEnabled: Boolean(this.localStream?.getAudioTracks()?.length) && !this.muted,
       updatedAt: Date.now(),
     });
   }
@@ -471,14 +612,17 @@ export class GuestCamPublisher {
     }
 
     this.localStream?.getTracks().forEach((track) => track.stop());
+    this.stopAudioProcessing();
     this.localStream = null;
     this.guestId = null;
     this.connectionLossHandled = false;
     this.streamConnected = false;
     this.voiceGroupConnected = false;
     this.voiceRoomStarted = false;
+    this.muted = false;
     this.onState?.('idle');
     this.onLocalStream?.(null);
+    this.onMuteChanged?.(this.muted);
     this.onPeersChanged?.([]);
   }
 }
