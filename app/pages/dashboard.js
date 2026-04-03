@@ -56,6 +56,7 @@ const duelImageHeightInput = document.getElementById('duelImageHeightPx');
 const duelImageGapInput = document.getElementById('duelImageGapPx');
 const duelTextColorInput = document.getElementById('duelTextColor');
 const duelTimerInitialSecondsInput = document.getElementById('duelTimerInitialSeconds');
+const duelTimerOffsetYInput = document.getElementById('duelTimerOffsetYPx');
 const timerStartParticipantSelect = document.getElementById('timerStartParticipant');
 const timerStartBtn = document.getElementById('timerStartBtn');
 const timerStopBtn = document.getElementById('timerStopBtn');
@@ -69,6 +70,9 @@ const MIN_DUEL_IMAGE_GAP_PX = 0;
 const MAX_DUEL_IMAGE_GAP_PX = 600;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
+const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
+const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
+const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
 const DEFAULT_TIMER_LABEL_1 = 'Participant 1';
 const DEFAULT_TIMER_LABEL_2 = 'Participant 2';
 const MIN_TIMER_INITIAL_SECONDS = 10;
@@ -85,6 +89,7 @@ let currentOverlay = {
   imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
   imageGapPx: DEFAULT_DUEL_IMAGE_GAP_PX,
   textColor: DEFAULT_DUEL_TEXT_COLOR,
+  timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
   timer: null,
 };
 let isConnected = false;
@@ -121,6 +126,15 @@ function sanitizeTimerInitialSeconds(value) {
   }
 
   return Math.max(MIN_TIMER_INITIAL_SECONDS, Math.min(MAX_TIMER_INITIAL_SECONDS, Math.round(parsed)));
+}
+
+function sanitizeDuelTimerOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
+  }
+
+  return Math.max(MIN_DUEL_TIMER_OFFSET_Y_PX, Math.min(MAX_DUEL_TIMER_OFFSET_Y_PX, Math.round(parsed)));
 }
 
 function sanitizeTimerLabel(value, fallback) {
@@ -406,6 +420,15 @@ async function setOverlayTextColor(textColor) {
   });
 }
 
+async function setOverlayTimerOffsetY(timerOffsetYPx) {
+  const safeOffset = sanitizeDuelTimerOffsetY(timerOffsetYPx);
+
+  await update(overlayRef, {
+    timerOffsetYPx: safeOffset,
+    updatedAt: Date.now(),
+  });
+}
+
 async function setOverlayTimer(timer) {
   await update(overlayRef, {
     timer: normalizeTimerState(timer),
@@ -673,6 +696,7 @@ async function ensureDatabaseShape() {
       imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
       imageGapPx: DEFAULT_DUEL_IMAGE_GAP_PX,
       textColor: DEFAULT_DUEL_TEXT_COLOR,
+      timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
       timer: normalizeTimerState({
         initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS,
       }),
@@ -691,6 +715,10 @@ async function ensureDatabaseShape() {
 
     if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.textColor || '').trim())) {
       patches.textColor = DEFAULT_DUEL_TEXT_COLOR;
+    }
+
+    if (!Number.isFinite(Number(value.overlay.timerOffsetYPx))) {
+      patches.timerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
     }
 
     if (!value.overlay.timer || typeof value.overlay.timer !== 'object') {
@@ -757,6 +785,7 @@ function bindRealtimeSubscriptions() {
       imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
       imageGapPx: sanitizeDuelImageGap(value.imageGapPx),
       textColor: sanitizeTextColor(value.textColor),
+      timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
       timer: normalizeTimerState(value.timer),
     };
 
@@ -771,6 +800,9 @@ function bindRealtimeSubscriptions() {
     }
     if (duelTimerInitialSecondsInput) {
       duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
+    }
+    if (duelTimerOffsetYInput) {
+      duelTimerOffsetYInput.value = String(currentOverlay.timerOffsetYPx);
     }
     if (timerStartParticipantSelect?.options?.[0]) {
       timerStartParticipantSelect.options[0].textContent = currentOverlay.timer.participant1Label;
@@ -975,6 +1007,17 @@ duelTimerInitialSecondsInput?.addEventListener('change', async (event) => {
   const safeSeconds = sanitizeTimerInitialSeconds(target.value);
   target.value = String(safeSeconds);
   await setTimerInitialSeconds(safeSeconds);
+});
+
+duelTimerOffsetYInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeOffset = sanitizeDuelTimerOffsetY(target.value);
+  target.value = String(safeOffset);
+  await setOverlayTimerOffsetY(safeOffset);
 });
 
 timerStartBtn?.addEventListener('click', async () => {
