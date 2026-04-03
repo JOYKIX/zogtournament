@@ -5,6 +5,7 @@ import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 const leftFighter = document.getElementById('leftFighter');
 const rightFighter = document.getElementById('rightFighter');
 const duelView = document.querySelector('.duel-view');
+const duelTimers = document.querySelector('.duel-timers');
 const timerParticipant1 = document.getElementById('timerParticipant1');
 const timerParticipant2 = document.getElementById('timerParticipant2');
 const timerP1Label = document.getElementById('timerP1Label');
@@ -20,6 +21,9 @@ const MIN_DUEL_IMAGE_GAP_PX = 0;
 const MAX_DUEL_IMAGE_GAP_PX = 600;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
+const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
+const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
+const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
 const DEFAULT_TIMER_LABEL_1 = 'Participant 1';
 const DEFAULT_TIMER_LABEL_2 = 'Participant 2';
 const TIMER_SECOND_MS = 1000;
@@ -29,6 +33,7 @@ let currentMatchIndex = 0;
 let currentImageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
 let currentImageGapPx = DEFAULT_DUEL_IMAGE_GAP_PX;
 let currentTextColor = DEFAULT_DUEL_TEXT_COLOR;
+let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimer = null;
 
 function sanitizeDuelImageHeight(value) {
@@ -52,6 +57,15 @@ function sanitizeDuelImageGap(value) {
 function sanitizeTextColor(value) {
   const normalized = String(value || '').trim();
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
+}
+
+function sanitizeDuelTimerOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
+  }
+
+  return Math.max(MIN_DUEL_TIMER_OFFSET_Y_PX, Math.min(MAX_DUEL_TIMER_OFFSET_Y_PX, Math.round(parsed)));
 }
 
 function sanitizeTimerLabel(value, fallback) {
@@ -121,6 +135,9 @@ function render() {
     duelView.style.setProperty('--fighter-gap', `${currentImageGapPx}px`);
     duelView.style.setProperty('--fighter-text-color', currentTextColor);
   }
+  if (duelTimers) {
+    duelTimers.style.setProperty('--duel-timer-offset-y', `${currentTimerOffsetYPx}px`);
+  }
 
   const resolvedTimer = normalizeTimerState(currentTimer);
   if (timerP1Value) {
@@ -153,6 +170,7 @@ onValue(overlayRef, (snapshot) => {
   currentImageHeightPx = sanitizeDuelImageHeight(value.imageHeightPx);
   currentImageGapPx = sanitizeDuelImageGap(value.imageGapPx);
   currentTextColor = sanitizeTextColor(value.textColor);
+  currentTimerOffsetYPx = sanitizeDuelTimerOffsetY(value.timerOffsetYPx);
   currentTimer = normalizeTimerState(value.timer);
   render();
 });
