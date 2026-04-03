@@ -7,6 +7,7 @@ const leftFighter = document.getElementById('leftFighter');
 const rightFighter = document.getElementById('rightFighter');
 const duelView = document.querySelector('.duel-view');
 const duelTimers = document.querySelector('.duel-timers');
+const guestCamsLayer = document.querySelector('.guest-cams-layer');
 const timerParticipant1 = document.getElementById('timerParticipant1');
 const timerParticipant2 = document.getElementById('timerParticipant2');
 const timerP1Label = document.getElementById('timerP1Label');
@@ -29,6 +30,9 @@ const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
 const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_GUEST_CAM_OFFSET_Y_PX = 0;
+const DEFAULT_GUEST_CAM_WIDTH_PX = 320;
+const DEFAULT_GUEST_CAM_HEIGHT_PX = 180;
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
@@ -52,6 +56,9 @@ let currentImageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
 let currentImageOffsetXPx = DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
 let currentImageOffsetYPx = DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
 let currentTextColor = DEFAULT_DUEL_TEXT_COLOR;
+let currentGuestCamOffsetYPx = DEFAULT_GUEST_CAM_OFFSET_Y_PX;
+let currentGuestCamWidthPx = DEFAULT_GUEST_CAM_WIDTH_PX;
+let currentGuestCamHeightPx = DEFAULT_GUEST_CAM_HEIGHT_PX;
 let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
@@ -91,6 +98,33 @@ function sanitizeDuelImageOffsetY(value) {
 function sanitizeTextColor(value) {
   const normalized = String(value || '').trim();
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
+}
+
+function sanitizeGuestCamOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_OFFSET_Y_PX;
+  }
+
+  return Math.round(parsed);
+}
+
+function sanitizeGuestCamWidth(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_WIDTH_PX;
+  }
+
+  return Math.max(120, Math.min(920, Math.round(parsed)));
+}
+
+function sanitizeGuestCamHeight(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_HEIGHT_PX;
+  }
+
+  return Math.max(80, Math.min(520, Math.round(parsed)));
 }
 
 function sanitizeDuelTimerOffsetY(value) {
@@ -244,6 +278,11 @@ function render() {
     duelView.style.setProperty('--fighter-offset-y', `${currentImageOffsetYPx}px`);
     duelView.style.setProperty('--fighter-text-color', currentTextColor);
   }
+  if (guestCamsLayer) {
+    guestCamsLayer.style.setProperty('--guest-cams-offset-y', `${currentGuestCamOffsetYPx}px`);
+    guestCamsLayer.style.setProperty('--guest-cam-width-px', `${currentGuestCamWidthPx}px`);
+    guestCamsLayer.style.setProperty('--guest-cam-height-px', `${currentGuestCamHeightPx}px`);
+  }
   if (duelTimers) {
     duelTimers.style.setProperty('--duel-timer-offset-y', `${currentTimerOffsetYPx}px`);
     const useHealthProfile = resolvedTimer.profile === 'healthbar' && resolvedTimer.healthConfig.enabled;
@@ -303,6 +342,9 @@ onValue(overlayRef, (snapshot) => {
   currentImageOffsetXPx = sanitizeDuelImageOffsetX(value.imageOffsetXPx);
   currentImageOffsetYPx = sanitizeDuelImageOffsetY(value.imageOffsetYPx);
   currentTextColor = sanitizeTextColor(value.textColor);
+  currentGuestCamOffsetYPx = sanitizeGuestCamOffsetY(value.guestCamOffsetYPx);
+  currentGuestCamWidthPx = sanitizeGuestCamWidth(value.guestCamWidthPx);
+  currentGuestCamHeightPx = sanitizeGuestCamHeight(value.guestCamHeightPx);
   currentTimerOffsetYPx = sanitizeDuelTimerOffsetY(value.timerOffsetYPx);
   currentTimerProfile = sanitizeTimerProfile(value.timerProfile ?? value.timer?.profile);
   currentTimer = normalizeTimerState(value.timer);
