@@ -106,6 +106,11 @@
   margin-top: 0;
 }
 
+.stage-controls button.is-muted {
+  background: linear-gradient(120deg, #8f3553, #71253f);
+  border-color: #b65678;
+}
+
 #guestVoicePeers {
   display: none;
 }
