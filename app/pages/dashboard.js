@@ -282,6 +282,26 @@ function normalizeTimerState(timerValue = {}) {
   };
 }
 
+function resetTimerState(timer, now = Date.now(), labels = null) {
+  const normalized = normalizeTimerState(timer);
+  const initialMs = normalized.initialSeconds * TIMER_SECOND_MS;
+  const nextLabels = labels || {
+    participant1Label: normalized.participant1Label,
+    participant2Label: normalized.participant2Label,
+  };
+
+  return {
+    ...normalized,
+    participant1Ms: initialMs,
+    participant2Ms: initialMs,
+    participant1Label: sanitizeTimerLabel(nextLabels.participant1Label, DEFAULT_TIMER_LABEL_1),
+    participant2Label: sanitizeTimerLabel(nextLabels.participant2Label, DEFAULT_TIMER_LABEL_2),
+    activeParticipant: null,
+    isRunning: false,
+    lastUpdatedAt: now,
+  };
+}
+
 function resolveTimerNow(baseTimer, now = Date.now()) {
   const timer = normalizeTimerState(baseTimer);
   if (!timer.isRunning || !timer.activeParticipant) {
@@ -295,13 +315,13 @@ function resolveTimerNow(baseTimer, now = Date.now()) {
 
   const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
   const remaining = Math.max(0, timer[key] - elapsed);
-  const reachedZero = remaining === 0;
+  if (remaining === 0) {
+    return resetTimerState(timer, now);
+  }
 
   return {
     ...timer,
     [key]: remaining,
-    isRunning: reachedZero ? false : timer.isRunning,
-    activeParticipant: reachedZero ? null : timer.activeParticipant,
     lastUpdatedAt: now,
   };
 }
@@ -678,10 +698,17 @@ async function setOverlayMatch(index) {
   }
 
   const clamped = Math.max(0, Math.min(index, flatMatches.length - 1));
-  await update(overlayRef, {
+  const now = Date.now();
+  const payload = {
     matchIndex: clamped,
-    updatedAt: Date.now(),
-  });
+    updatedAt: now,
+  };
+
+  if (clamped !== Number(currentOverlay.matchIndex || 0)) {
+    payload.timer = resetTimerState(currentOverlay.timer, now, getTimerParticipantLabels());
+  }
+
+  await update(overlayRef, payload);
 }
 
 async function shiftOverlayMatch(delta) {
