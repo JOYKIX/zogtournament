@@ -20,22 +20,64 @@ body {
   inset: 0;
   pointer-events: none;
   display: flex;
-  justify-content: center;
-  align-items: stretch;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
   padding: clamp(8px, 1.4vh, 20px) clamp(12px, 2vw, 30px) clamp(20px, 3vh, 42px);
   background: transparent;
 }
 
+.duel-timers {
+  width: min(100%, calc(100dvh * 16 / 9));
+  margin: 0 auto clamp(8px, 1.2vh, 16px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(0.5rem, 1.2vw, 1.2rem);
+}
+
+.timer-box {
+  padding: 0.55rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(185, 198, 255, 0.5);
+  background: rgba(8, 14, 30, 0.7);
+  color: var(--fighter-text-color, #f5f8ff);
+  text-align: center;
+}
+
+.timer-box.active {
+  border-color: rgba(255, 233, 137, 0.95);
+  box-shadow: 0 0 0 2px rgba(255, 225, 106, 0.26);
+}
+
+.timer-label,
+.timer-value {
+  margin: 0;
+}
+
+.timer-label {
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.timer-value {
+  font-size: clamp(1.35rem, 2.5vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+}
+
 .duel-view {
   --fighter-image-height: 760px;
+  --fighter-gap: 36px;
+  --fighter-text-color: #f5f8ff;
   width: min(100%, calc(100dvh * 16 / 9));
   max-width: 100%;
-  height: 100%;
+  height: calc(100% - clamp(62px, 12vh, 120px));
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: end;
-  gap: clamp(0.75rem, 1.6vw, 2.2rem);
+  gap: var(--fighter-gap);
   padding-bottom: clamp(8px, 1.6vh, 22px);
 }
 
@@ -75,6 +117,7 @@ body {
 }
 
 .fighter .character {
+  color: var(--fighter-text-color);
   font-size: clamp(1.6rem, 3.2vw, 3rem);
   font-weight: 900;
   letter-spacing: 0.01em;
@@ -83,6 +126,7 @@ body {
 }
 
 .fighter .name {
+  color: var(--fighter-text-color);
   font-size: clamp(1rem, 1.7vw, 1.45rem);
   font-weight: 700;
   opacity: 0.98;
