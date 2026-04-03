@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zog Tournament Builder</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section id="loginSection" class="card">
+        <h1>Connexion</h1>
+        <p>Compte par défaut : <strong>zogadmin1</strong> / <strong>zogadmin1mdp</strong></p>
+        <form id="loginForm">
+          <label for="username">Identifiant</label>
+          <input id="username" name="username" type="text" required />
+
+          <label for="password">Mot de passe</label>
+          <input id="password" name="password" type="password" required />
+
+          <button type="submit">Se connecter</button>
+        </form>
+        <p id="loginMessage" class="message"></p>
+      </section>
+
+      <section id="appSection" class="card hidden">
+        <header class="toolbar">
+          <h2>Créateur d'arbre de tournoi</h2>
+          <button id="logoutBtn" class="secondary">Déconnexion</button>
+        </header>
+
+        <div class="grid two-columns">
+          <form id="participantForm" class="panel">
+            <h3>Ajouter un participant</h3>
+
+            <label for="pseudo">Pseudo</label>
+            <input id="pseudo" name="pseudo" type="text" required />
+
+            <label for="character">Perso</label>
+            <input id="character" name="character" type="text" required />
+
+            <label for="image">Image (URL)</label>
+            <input id="image" name="image" type="url" placeholder="https://..." />
+
+            <button type="submit">Ajouter</button>
+          </form>
+
+          <section class="panel">
+            <h3>Participants</h3>
+            <ul id="participantsList" class="list"></ul>
+          </section>
+        </div>
+
+        <section class="panel">
+          <header class="toolbar">
+            <h3>Arbre de tournoi</h3>
+            <div class="actions">
+              <button id="generateBracketBtn" class="secondary">Générer les matchs</button>
+              <button id="openOverlayBtn">Ouvrir l'overlay</button>
+            </div>
+          </header>
+          <div id="bracketContainer" class="bracket"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
