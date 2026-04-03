@@ -25,10 +25,34 @@ export class GuestCamPublisher {
     this.localStream = null;
     this.connections = new Map();
     this.unsubscribers = [];
+    this.selectedAudioInputId = '';
+  }
+
+  async listAudioInputs() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter((device) => device.kind === 'audioinput');
+  }
+
+  setAudioInput(deviceId) {
+    this.selectedAudioInputId = deviceId || '';
   }
 
   async enableCamera() {
-    this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    this.localStream?.getTracks().forEach((track) => track.stop());
+    const audio = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1,
+    };
+    if (this.selectedAudioInputId) {
+      audio.deviceId = { exact: this.selectedAudioInputId };
+    }
+
+    this.localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio,
+    });
     this.onLocalStream?.(this.localStream);
     this.onState?.('camera-ready');
   }
