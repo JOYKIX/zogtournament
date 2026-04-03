@@ -20,6 +20,7 @@ function sanitizeGuests(value) {
     name: String(guest?.name || 'Invité'),
     status: String(guest?.status || 'idle'),
     cameraEnabled: Boolean(guest?.cameraEnabled),
+    microphoneEnabled: Boolean(guest?.microphoneEnabled),
     joinedAt: Number(guest?.joinedAt || 0),
     updatedAt: Number(guest?.updatedAt || 0),
   }));

@@ -11,7 +11,7 @@ const publisher = new GuestCamPublisher({
   onState: (state) => {
     const labelMap = {
       idle: 'Déconnecté',
-      'camera-ready': 'Caméra active, prêt à rejoindre',
+      'camera-ready': 'Caméra + micro actifs, prêt à rejoindre',
       connected: 'Connecté à la régie',
     };
     guestStatus.textContent = labelMap[state] || state;
@@ -29,7 +29,7 @@ enableCameraBtn?.addEventListener('click', async () => {
     await publisher.enableCamera();
   } catch (error) {
     console.error(error);
-    guestStatus.textContent = `Erreur caméra: ${error.message}`;
+    guestStatus.textContent = `Erreur caméra/micro: ${error.message}`;
   }
 });
 

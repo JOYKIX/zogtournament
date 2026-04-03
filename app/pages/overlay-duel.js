@@ -359,6 +359,12 @@ const overlayReceiver = new GuestCamOverlayReceiver({
     }
     slot.wrapper.classList.toggle('is-visible', Boolean(isVisible));
     slot.video.srcObject = stream || null;
+    slot.video.muted = false;
+    slot.video
+      .play()
+      .catch(() => {
+        // Certains navigateurs bloquent l'autoplay audio sans interaction utilisateur.
+      });
   },
   onLog: (message) => {
     console.log('[OverlayCam]', message);

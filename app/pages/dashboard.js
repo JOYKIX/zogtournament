@@ -1134,6 +1134,9 @@ function getCamStatusLabel(guest) {
   if (!guest.cameraEnabled) {
     return 'Caméra absente';
   }
+  if (!guest.microphoneEnabled) {
+    return 'Micro absent';
+  }
   if (guest.status === 'connected') {
     return 'Connecté';
   }
