@@ -50,7 +50,7 @@
           <div>
             <p class="eyebrow">Dashboard tournoi</p>
             <h2>Contrôle tournoi & overlay</h2>
-            <p class="hint no-margin">Configuration, pilotage live et gestion des overlays depuis un seul espace.</p>
+            <p class="hint no-margin">Navigation SPA optimisée pour le direct.</p>
           </div>
           <div class="actions wrap top-actions">
             <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
@@ -59,209 +59,233 @@
           </div>
         </header>
 
-        <section class="workspace-grid">
-          <section class="stack-col">
-            <article class="card panel section-card">
-              <header class="section-head">
-                <p class="eyebrow">Participants / Duel</p>
-                <h3>Roster et préparation des affrontements</h3>
-              </header>
+        <div class="app-layout">
+          <nav class="card app-nav" aria-label="Navigation principale">
+            <a href="#participants" class="app-nav-item is-active" data-target-view="participants">Participants</a>
+            <a href="#config" class="app-nav-item" data-target-view="config">Config</a>
+            <a href="#keybinds" class="app-nav-item" data-target-view="keybinds">Keybinds</a>
+            <a href="#live" class="app-nav-item" data-target-view="live">Live</a>
+          </nav>
 
-              <div class="split-grid">
-                <form id="participantForm" class="sub-card">
-                  <h4 id="participantFormTitle">Ajouter un participant</h4>
-                  <input id="editParticipantId" name="editParticipantId" type="hidden" />
+          <section class="app-content">
+            <section class="app-view is-active" data-view="participants">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Participants / Duel</p>
+                  <h3>Roster et préparation des affrontements</h3>
+                </header>
 
-                  <label for="pseudo">Pseudo</label>
-                  <input id="pseudo" name="pseudo" type="text" required />
+                <div class="split-grid">
+                  <form id="participantForm" class="sub-card">
+                    <h4 id="participantFormTitle">Ajouter un participant</h4>
+                    <input id="editParticipantId" name="editParticipantId" type="hidden" />
 
-                  <label for="character">Personnage</label>
-                  <input id="character" name="character" type="text" required />
+                    <label for="pseudo">Pseudo</label>
+                    <input id="pseudo" name="pseudo" type="text" required />
 
-                  <label for="image">Image (URL)</label>
-                  <input id="image" name="image" type="url" placeholder="https://..." />
+                    <label for="character">Personnage</label>
+                    <input id="character" name="character" type="text" required />
 
-                  <div class="actions stacked-mobile">
-                    <button id="participantSubmitBtn" type="submit">Enregistrer</button>
-                    <button id="cancelEditBtn" type="button" class="secondary hidden">Annuler modification</button>
+                    <label for="image">Image (URL)</label>
+                    <input id="image" name="image" type="url" placeholder="https://..." />
+
+                    <div class="actions stacked-mobile">
+                      <button id="participantSubmitBtn" type="submit">Enregistrer</button>
+                      <button id="cancelEditBtn" type="button" class="secondary hidden">Annuler modification</button>
+                    </div>
+                    <p id="participantMessage" class="message"></p>
+                  </form>
+
+                  <section class="sub-card participants-block">
+                    <header class="toolbar compact">
+                      <h4>Participants</h4>
+                      <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider la liste</button>
+                    </header>
+                    <ul id="participantsList" class="list"></ul>
+                  </section>
+                </div>
+              </article>
+
+              <article class="card panel section-card bracket-panel">
+                <header class="section-head">
+                  <p class="eyebrow">Duel</p>
+                  <h3>Arbre de tournoi</h3>
+                </header>
+                <div id="bracketContainer" class="bracket"></div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="config" aria-hidden="true">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Overlay / Apparence</p>
+                  <h3>Style global du duel</h3>
+                </header>
+
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="duelImageHeightPx">
+                    Hauteur image duel (px)
+                    <input id="duelImageHeightPx" type="number" step="10" value="760" />
+                  </label>
+                  <label class="setting-field" for="duelTextColor">
+                    Couleur de texte
+                    <input id="duelTextColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelImageOffsetXPx">
+                    Décalage horizontal image (px)
+                    <input id="duelImageOffsetXPx" type="number" step="2" value="18" />
+                  </label>
+                  <label class="setting-field" for="duelImageOffsetYPx">
+                    Décalage vertical image (px)
+                    <input id="duelImageOffsetYPx" type="number" step="2" value="0" />
+                  </label>
+                </div>
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Timer</p>
+                  <h3>Réglages du chrono</h3>
+                </header>
+
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="duelTimerInitialSeconds">
+                    Temps initial (secondes)
+                    <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
+                  </label>
+                  <label class="setting-field" for="duelTimerOffsetYPx">
+                    Position verticale timer (px)
+                    <input id="duelTimerOffsetYPx" type="number" step="2" value="0" />
+                  </label>
+                  <label class="setting-field" for="duelTimerProfile">
+                    Profil de timer
+                    <select id="duelTimerProfile">
+                      <option value="classic">Classique (actuel)</option>
+                      <option value="healthbar">Fighting / barres de vie</option>
+                    </select>
+                  </label>
+                </div>
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Profil / Mode d'affichage</p>
+                  <h3>Réglages avancés Fighting / Barres de vie</h3>
+                </header>
+
+                <div class="settings-grid three-cols">
+                  <label class="setting-field inline-toggle" for="duelHealthBarsEnabled">
+                    Activer barres de vie
+                    <input id="duelHealthBarsEnabled" type="checkbox" checked />
+                  </label>
+                  <label class="setting-field" for="duelHealthBarHeightPx">
+                    Hauteur barre (px)
+                    <input id="duelHealthBarHeightPx" type="number" step="1" value="26" />
+                  </label>
+                  <label class="setting-field" for="duelHealthBarWidthPercent">
+                    Largeur barre (%)
+                    <input id="duelHealthBarWidthPercent" type="number" step="1" value="40" />
+                  </label>
+                  <label class="setting-field" for="duelHealthMainColor">
+                    Couleur principale
+                    <input id="duelHealthMainColor" type="color" value="#3ef784" />
+                  </label>
+                  <label class="setting-field" for="duelHealthWarningColor">
+                    Couleur warning
+                    <input id="duelHealthWarningColor" type="color" value="#ff9f1a" />
+                  </label>
+                  <label class="setting-field" for="duelHealthDangerColor">
+                    Couleur danger
+                    <input id="duelHealthDangerColor" type="color" value="#ff3a39" />
+                  </label>
+                  <label class="setting-field" for="duelHealthAnimationIntensity">
+                    Intensité animation (0-100)
+                    <input id="duelHealthAnimationIntensity" type="number" min="0" max="100" step="5" value="80" />
+                  </label>
+                  <label class="setting-field inline-toggle" for="duelHealthDangerEffects">
+                    Effets danger
+                    <input id="duelHealthDangerEffects" type="checkbox" checked />
+                  </label>
+                </div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="keybinds" aria-hidden="true">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Raccourcis / Contrôles</p>
+                  <h3>Keybindings live (clavier, souris, Stream Deck)</h3>
+                </header>
+
+                <div id="keybindingStatus" class="message no-margin"></div>
+                <div class="keybindings-list">
+                  <div class="keybinding-row" data-action="start">
+                    <p class="keybinding-label">Démarrer le timer</p>
+                    <p id="bindingDisplayStart" class="keybinding-value">S</p>
+                    <button id="bindStartBtn" type="button" class="ghost">Binder</button>
                   </div>
-                  <p id="participantMessage" class="message"></p>
-                </form>
-
-                <section class="sub-card participants-block">
-                  <header class="toolbar compact">
-                    <h4>Participants</h4>
-                    <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider la liste</button>
-                  </header>
-                  <ul id="participantsList" class="list"></ul>
-                </section>
-              </div>
-            </article>
-
-            <article class="card panel section-card">
-              <header class="section-head">
-                <p class="eyebrow">Contrôles live</p>
-                <h3>Pilotage du tournoi en direct</h3>
-              </header>
-
-              <div class="live-controls">
-                <button id="generateBracketBtn" class="secondary">Créer / régénérer le tournoi</button>
-                <div class="duel-nav">
-                  <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
-                  <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
+                  <div class="keybinding-row" data-action="stop">
+                    <p class="keybinding-label">Arrêter le timer</p>
+                    <p id="bindingDisplayStop" class="keybinding-value">A</p>
+                    <button id="bindStopBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="switch">
+                    <p class="keybinding-label">Changer le duel</p>
+                    <p id="bindingDisplaySwitch" class="keybinding-value">D</p>
+                    <button id="bindSwitchBtn" type="button" class="ghost">Binder</button>
+                  </div>
                 </div>
-              </div>
-            </article>
+
+                <div class="actions">
+                  <button id="resetBindingsBtn" type="button" class="secondary">Reset bindings</button>
+                </div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="live" aria-hidden="true">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Contrôles live</p>
+                  <h3>Pilotage du tournoi en direct</h3>
+                </header>
+
+                <div class="live-controls">
+                  <button id="generateBracketBtn" class="secondary">Créer / régénérer le tournoi</button>
+                  <div class="duel-nav">
+                    <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
+                    <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card panel section-card live-countdown-card">
+                <header class="section-head">
+                  <p class="eyebrow">Compte à rebours</p>
+                  <h3>Timer en temps réel</h3>
+                </header>
+                <p id="liveTimerStatus" class="message no-margin">Timer en pause.</p>
+                <div class="live-countdown-grid">
+                  <p id="liveCountdownP1" class="countdown-pill">Joueur 1: 05:00</p>
+                  <p id="liveCountdownP2" class="countdown-pill">Joueur 2: 05:00</p>
+                </div>
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="timerStartParticipant">
+                    Joueur de départ
+                    <select id="timerStartParticipant">
+                      <option value="1">Joueur 1</option>
+                      <option value="2">Joueur 2</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="timer-controls">
+                  <button id="timerStartBtn" type="button">Démarrer</button>
+                  <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
+                  <button id="timerSwitchBtn" type="button" class="secondary">Changer</button>
+                </div>
+              </article>
+            </section>
           </section>
-
-          <section class="stack-col">
-            <article class="card panel section-card">
-              <header class="section-head">
-                <p class="eyebrow">Timer</p>
-                <h3>Réglages du chrono & commandes</h3>
-              </header>
-
-              <div class="settings-grid two-cols">
-                <label class="setting-field" for="duelTimerInitialSeconds">
-                  Temps initial (secondes)
-                  <input id="duelTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
-                </label>
-                <label class="setting-field" for="duelTimerOffsetYPx">
-                  Position verticale timer (px)
-                  <input id="duelTimerOffsetYPx" type="number" step="2" value="0" />
-                </label>
-                <label class="setting-field" for="duelTimerProfile">
-                  Profil de timer
-                  <select id="duelTimerProfile">
-                    <option value="classic">Classique (actuel)</option>
-                    <option value="healthbar">Fighting / barres de vie</option>
-                  </select>
-                </label>
-                <label class="setting-field" for="timerStartParticipant">
-                  Joueur de départ
-                  <select id="timerStartParticipant">
-                    <option value="1">Joueur 1</option>
-                    <option value="2">Joueur 2</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="timer-controls">
-                <button id="timerStartBtn" type="button">Démarrer</button>
-                <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
-                <button id="timerSwitchBtn" type="button" class="secondary">Changer</button>
-              </div>
-            </article>
-
-
-
-            <article class="card panel section-card">
-              <header class="section-head">
-                <p class="eyebrow">Raccourcis / Contrôles</p>
-                <h3>Keybindings live (clavier, souris, Stream Deck)</h3>
-              </header>
-
-              <div id="keybindingStatus" class="message no-margin"></div>
-              <div class="keybindings-list">
-                <div class="keybinding-row" data-action="start">
-                  <p class="keybinding-label">Démarrer le timer</p>
-                  <p id="bindingDisplayStart" class="keybinding-value">S</p>
-                  <button id="bindStartBtn" type="button" class="ghost">Binder</button>
-                </div>
-                <div class="keybinding-row" data-action="stop">
-                  <p class="keybinding-label">Arrêter le timer</p>
-                  <p id="bindingDisplayStop" class="keybinding-value">A</p>
-                  <button id="bindStopBtn" type="button" class="ghost">Binder</button>
-                </div>
-                <div class="keybinding-row" data-action="switch">
-                  <p class="keybinding-label">Changer le duel</p>
-                  <p id="bindingDisplaySwitch" class="keybinding-value">D</p>
-                  <button id="bindSwitchBtn" type="button" class="ghost">Binder</button>
-                </div>
-              </div>
-
-              <div class="actions">
-                <button id="resetBindingsBtn" type="button" class="secondary">Reset bindings</button>
-              </div>
-            </article>
-
-            <article class="card panel section-card">
-              <header class="section-head">
-                <p class="eyebrow">Overlay / Apparence</p>
-                <h3>Style global du duel</h3>
-              </header>
-
-              <div class="settings-grid two-cols">
-                <label class="setting-field" for="duelImageHeightPx">
-                  Hauteur image duel (px)
-                  <input id="duelImageHeightPx" type="number" step="10" value="760" />
-                </label>
-                <label class="setting-field" for="duelTextColor">
-                  Couleur de texte
-                  <input id="duelTextColor" type="color" value="#f5f8ff" />
-                </label>
-                <label class="setting-field" for="duelImageOffsetXPx">
-                  Décalage horizontal image (px)
-                  <input id="duelImageOffsetXPx" type="number" step="2" value="18" />
-                </label>
-                <label class="setting-field" for="duelImageOffsetYPx">
-                  Décalage vertical image (px)
-                  <input id="duelImageOffsetYPx" type="number" step="2" value="0" />
-                </label>
-              </div>
-            </article>
-
-            <article class="card panel section-card">
-              <header class="section-head">
-                <p class="eyebrow">Profil / Mode d'affichage</p>
-                <h3>Réglages avancés Fighting / Barres de vie</h3>
-              </header>
-
-              <div class="settings-grid three-cols">
-                <label class="setting-field inline-toggle" for="duelHealthBarsEnabled">
-                  Activer barres de vie
-                  <input id="duelHealthBarsEnabled" type="checkbox" checked />
-                </label>
-                <label class="setting-field" for="duelHealthBarHeightPx">
-                  Hauteur barre (px)
-                  <input id="duelHealthBarHeightPx" type="number" step="1" value="26" />
-                </label>
-                <label class="setting-field" for="duelHealthBarWidthPercent">
-                  Largeur barre (%)
-                  <input id="duelHealthBarWidthPercent" type="number" step="1" value="40" />
-                </label>
-                <label class="setting-field" for="duelHealthMainColor">
-                  Couleur principale
-                  <input id="duelHealthMainColor" type="color" value="#3ef784" />
-                </label>
-                <label class="setting-field" for="duelHealthWarningColor">
-                  Couleur warning
-                  <input id="duelHealthWarningColor" type="color" value="#ff9f1a" />
-                </label>
-                <label class="setting-field" for="duelHealthDangerColor">
-                  Couleur danger
-                  <input id="duelHealthDangerColor" type="color" value="#ff3a39" />
-                </label>
-                <label class="setting-field" for="duelHealthAnimationIntensity">
-                  Intensité animation (0-100)
-                  <input id="duelHealthAnimationIntensity" type="number" min="0" max="100" step="5" value="80" />
-                </label>
-                <label class="setting-field inline-toggle" for="duelHealthDangerEffects">
-                  Effets danger
-                  <input id="duelHealthDangerEffects" type="checkbox" checked />
-                </label>
-              </div>
-            </article>
-          </section>
-        </section>
-
-        <section class="card panel section-card bracket-panel">
-          <header class="section-head">
-            <p class="eyebrow">Duel</p>
-            <h3>Arbre de tournoi</h3>
-          </header>
-          <div id="bracketContainer" class="bracket"></div>
-        </section>
+        </div>
       </section>
     </main>
 
