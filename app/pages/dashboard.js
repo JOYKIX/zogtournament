@@ -51,6 +51,7 @@ const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
 
 const generateBracketBtn = document.getElementById('generateBracketBtn');
 const bracketContainer = document.getElementById('bracketContainer');
+const liveBracketContainer = document.getElementById('liveBracketContainer');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
@@ -70,6 +71,7 @@ const duelHealthDangerColorInput = document.getElementById('duelHealthDangerColo
 const duelHealthAnimationIntensityInput = document.getElementById('duelHealthAnimationIntensity');
 const duelHealthDangerEffectsInput = document.getElementById('duelHealthDangerEffects');
 const duelTimerOffsetYInput = document.getElementById('duelTimerOffsetYPx');
+const liveTimerInitialSecondsInput = document.getElementById('liveTimerInitialSeconds');
 const timerStartParticipantSelect = document.getElementById('timerStartParticipant');
 const timerStartBtn = document.getElementById('timerStartBtn');
 const timerStopBtn = document.getElementById('timerStopBtn');
@@ -537,11 +539,15 @@ function renderParticipants() {
   });
 }
 
-function renderBracket() {
-  bracketContainer.innerHTML = '';
+function renderBracketContent(targetContainer) {
+  if (!targetContainer) {
+    return;
+  }
+
+  targetContainer.innerHTML = '';
 
   if (!tournamentCache?.rounds?.length) {
-    bracketContainer.innerHTML = '<p>Pas de bracket généré.</p>';
+    targetContainer.innerHTML = '<p>Pas de bracket généré.</p>';
     return;
   }
 
@@ -611,7 +617,7 @@ function renderBracket() {
       roundCol.appendChild(node);
     });
 
-    bracketContainer.appendChild(roundCol);
+    targetContainer.appendChild(roundCol);
   });
 
   if (tournamentCache.champion?.pseudo) {
@@ -620,13 +626,18 @@ function renderBracket() {
     championNode.innerHTML = `🏆 Vainqueur: <strong>${escapeHtml(tournamentCache.champion.pseudo)}</strong> (${escapeHtml(
       tournamentCache.champion.character || '—',
     )})`;
-    bracketContainer.appendChild(championNode);
+    targetContainer.appendChild(championNode);
   } else if (current) {
     const helpNode = document.createElement('p');
     helpNode.className = 'hint';
     helpNode.textContent = 'Clique sur un joueur dans chaque match pour le faire avancer.';
-    bracketContainer.appendChild(helpNode);
+    targetContainer.appendChild(helpNode);
   }
+}
+
+function renderBracket() {
+  renderBracketContent(bracketContainer);
+  renderBracketContent(liveBracketContainer);
 }
 
 async function setOverlayMatch(index) {
@@ -1113,6 +1124,9 @@ function bindRealtimeSubscriptions() {
     if (duelTimerInitialSecondsInput) {
       duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
     }
+    if (liveTimerInitialSecondsInput) {
+      liveTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
+    }
     if (duelTimerProfileSelect) {
       duelTimerProfileSelect.value = currentOverlay.timerProfile;
     }
@@ -1366,6 +1380,17 @@ duelTextColorInput?.addEventListener('change', async (event) => {
 });
 
 duelTimerInitialSecondsInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const safeSeconds = sanitizeTimerInitialSeconds(target.value);
+  target.value = String(safeSeconds);
+  await setTimerInitialSeconds(safeSeconds);
+});
+
+liveTimerInitialSecondsInput?.addEventListener('change', async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
     return;
