@@ -1,135 +1,139 @@
 export const BRACKET_SIZE = 8;
+const MIN_BRACKET_SIZE = 2;
+const SIDE_LEFT = 'left';
+const SIDE_RIGHT = 'right';
 
-export function getRoundTitle(roundIndex, totalRounds) {
-  const labels = ['Quarts de finale', 'Demi-finales', 'Finale'];
-  if (totalRounds === 3) {
-    return labels[roundIndex] || `Tour ${roundIndex + 1}`;
+function isValidSide(side) {
+  return side === SIDE_LEFT || side === SIDE_RIGHT;
+}
+
+function isPowerOfTwo(value) {
+  return Number.isInteger(value) && value >= MIN_BRACKET_SIZE && (value & (value - 1)) === 0;
+}
+
+function normalizeParticipant(participant) {
+  if (!participant || typeof participant !== 'object') {
+    return null;
   }
 
-  const roundsUntilFinal = totalRounds - roundIndex;
-  if (roundsUntilFinal === 1) return 'Finale';
-  if (roundsUntilFinal === 2) return 'Demi-finales';
-  return `Tour ${roundIndex + 1}`;
-}
-
-export function emptyMatch() {
   return {
-    left: null,
-    right: null,
-    winnerSide: null,
-  };
-}
-
-export function cloneMatch(match) {
-  return {
-    left: match?.left || null,
-    right: match?.right || null,
-    winnerSide: match?.winnerSide === 'left' || match?.winnerSide === 'right' ? match.winnerSide : null,
+    pseudo: participant.pseudo || '',
+    character: participant.character || '',
+    image: participant.image || '',
   };
 }
 
 export function sanitizeBracketSize(value, fallback = BRACKET_SIZE) {
-  const normalized = Number(value);
-  if (!Number.isFinite(normalized)) {
-    return fallback;
-  }
-
-  const rounded = Math.trunc(normalized);
-  const isPowerOfTwo = rounded > 0 && (rounded & (rounded - 1)) === 0;
-
-  if (rounded < 2 || !isPowerOfTwo) {
-    return fallback;
-  }
-
-  return rounded;
+  const fallbackSafe = isPowerOfTwo(Math.trunc(Number(fallback))) ? Math.trunc(Number(fallback)) : BRACKET_SIZE;
+  const numeric = Math.trunc(Number(value));
+  return isPowerOfTwo(numeric) ? numeric : fallbackSafe;
 }
 
-function expectedRoundCountFromFirstRound(firstRound) {
-  if (!Array.isArray(firstRound) || firstRound.length < 1) {
-    return 0;
+export function getRoundTitle(roundIndex, totalRounds) {
+  if (!Number.isInteger(roundIndex) || !Number.isInteger(totalRounds) || roundIndex < 0 || roundIndex >= totalRounds) {
+    return `Tour ${Number(roundIndex) + 1 || 1}`;
   }
 
-  const participantSlots = firstRound.length * 2;
-  const rounds = Math.log2(participantSlots);
-  if (!Number.isInteger(rounds) || rounds < 1) {
-    return 0;
-  }
+  const roundsUntilFinal = totalRounds - roundIndex;
 
-  return rounds;
+  if (roundsUntilFinal === 1) return 'Finale';
+  if (roundsUntilFinal === 2) return 'Demi-finales';
+  if (roundsUntilFinal === 3) return 'Quarts de finale';
+  if (roundsUntilFinal === 4) return 'Huitièmes de finale';
+  if (roundsUntilFinal === 5) return 'Seizièmes de finale';
+
+  return `Tour ${roundIndex + 1}`;
 }
 
-function ensureRoundShape(rounds) {
-  if (!Array.isArray(rounds) || !rounds.length) {
-    return [];
-  }
+export function emptyMatch() {
+  return { left: null, right: null, winnerSide: null };
+}
 
-  const expectedRounds = expectedRoundCountFromFirstRound(rounds[0]);
-  if (!expectedRounds) {
-    return rounds;
-  }
-
-  for (let roundIndex = 0; roundIndex < expectedRounds; roundIndex += 1) {
-    const expectedMatches = rounds[0].length / 2 ** roundIndex;
-    const existing = Array.isArray(rounds[roundIndex]) ? rounds[roundIndex] : [];
-
-    rounds[roundIndex] = Array.from({ length: expectedMatches }, (_, matchIndex) =>
-      cloneMatch(existing[matchIndex] || emptyMatch()),
-    );
-  }
-
-  rounds.length = expectedRounds;
-  return rounds;
+export function cloneMatch(match) {
+  return {
+    left: normalizeParticipant(match?.left),
+    right: normalizeParticipant(match?.right),
+    winnerSide: isValidSide(match?.winnerSide) ? match.winnerSide : null,
+  };
 }
 
 export function shuffleParticipants(participants) {
-  const shuffled = [...participants];
+  const safeParticipants = Array.isArray(participants)
+    ? participants
+        .map(normalizeParticipant)
+        .filter((participant) => participant && participant.pseudo)
+    : [];
 
+  const shuffled = [...safeParticipants];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-
   return shuffled;
 }
 
 export function computeWinner(match) {
-  const left = match.left;
-  const right = match.right;
+  const safeMatch = cloneMatch(match);
 
-  if (!left && !right) {
-    return { side: null, player: null };
+  if (safeMatch.left && !safeMatch.right) return { side: SIDE_LEFT, player: safeMatch.left };
+  if (!safeMatch.left && safeMatch.right) return { side: SIDE_RIGHT, player: safeMatch.right };
+
+  if (safeMatch.winnerSide === SIDE_LEFT && safeMatch.left) {
+    return { side: SIDE_LEFT, player: safeMatch.left };
   }
 
-  if (left && !right) {
-    return { side: 'left', player: left };
-  }
-
-  if (!left && right) {
-    return { side: 'right', player: right };
-  }
-
-  if (match.winnerSide === 'left') {
-    return { side: 'left', player: left };
-  }
-
-  if (match.winnerSide === 'right') {
-    return { side: 'right', player: right };
+  if (safeMatch.winnerSide === SIDE_RIGHT && safeMatch.right) {
+    return { side: SIDE_RIGHT, player: safeMatch.right };
   }
 
   return { side: null, player: null };
 }
 
-export function rebuildTournament(rawTournament) {
-  if (!rawTournament || !Array.isArray(rawTournament.rounds) || !rawTournament.rounds.length) {
-    return null;
+function computeRoundCount(bracketSize) {
+  return Math.log2(sanitizeBracketSize(bracketSize));
+}
+
+function createEmptyRounds(bracketSize) {
+  const safeBracketSize = sanitizeBracketSize(bracketSize);
+  const totalRounds = computeRoundCount(safeBracketSize);
+
+  return Array.from({ length: totalRounds }, (_, roundIndex) => {
+    const matchesCount = safeBracketSize / 2 ** (roundIndex + 1);
+    return Array.from({ length: matchesCount }, () => emptyMatch());
+  });
+}
+
+function buildRoundFromSnapshot(roundValue, expectedMatchCount) {
+  const round = Array.isArray(roundValue) ? roundValue : [];
+  return Array.from({ length: expectedMatchCount }, (_, matchIndex) => cloneMatch(round[matchIndex]));
+}
+
+function sanitizeRounds(rawRounds, bracketSize) {
+  const skeleton = createEmptyRounds(bracketSize);
+  const sourceRounds = Array.isArray(rawRounds) ? rawRounds : [];
+
+  return skeleton.map((skeletonRound, roundIndex) =>
+    buildRoundFromSnapshot(sourceRounds[roundIndex], skeletonRound.length),
+  );
+}
+
+function seedFirstRound(rounds, participants) {
+  const firstRound = rounds[0];
+  if (!firstRound) {
+    return;
   }
 
-  const rounds = ensureRoundShape(rawTournament.rounds.map((round) => (Array.isArray(round) ? round.map(cloneMatch) : [])));
+  for (let i = 0; i < firstRound.length; i += 1) {
+    const left = participants[i * 2] || null;
+    const right = participants[i * 2 + 1] || null;
 
-  if (!rounds.length) {
-    return null;
+    firstRound[i].left = left;
+    firstRound[i].right = right;
+    firstRound[i].winnerSide = isValidSide(firstRound[i].winnerSide) ? firstRound[i].winnerSide : null;
   }
+}
 
+function propagateWinners(rounds) {
   for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex += 1) {
     const currentRound = rounds[roundIndex];
     const nextRound = rounds[roundIndex + 1];
@@ -137,6 +141,7 @@ export function rebuildTournament(rawTournament) {
     nextRound.forEach((match) => {
       match.left = null;
       match.right = null;
+      match.winnerSide = null;
     });
 
     currentRound.forEach((match, matchIndex) => {
@@ -147,30 +152,102 @@ export function rebuildTournament(rawTournament) {
         return;
       }
 
-      const targetMatch = nextRound[Math.floor(matchIndex / 2)];
-      if (!targetMatch) {
+      const nextMatch = nextRound[Math.floor(matchIndex / 2)];
+      if (!nextMatch) {
         return;
       }
 
       if (matchIndex % 2 === 0) {
-        targetMatch.left = winner.player;
+        nextMatch.left = winner.player;
       } else {
-        targetMatch.right = winner.player;
+        nextMatch.right = winner.player;
       }
     });
   }
+}
 
-  const championMatch = rounds[rounds.length - 1][0] || emptyMatch();
-  const champion = computeWinner(championMatch).player;
+function computeChampionFromFinal(rounds) {
+  if (!Array.isArray(rounds) || !rounds.length) {
+    return null;
+  }
 
-  const storedBracketSize = sanitizeBracketSize(rawTournament.bracketSize, rounds[0]?.length * 2 || BRACKET_SIZE);
+  const finalMatch = rounds[rounds.length - 1]?.[0] || emptyMatch();
+  return computeWinner(finalMatch).player;
+}
+
+export function rebuildTournament(rawTournament) {
+  if (!rawTournament || typeof rawTournament !== 'object') {
+    return null;
+  }
+
+  const bracketSize = sanitizeBracketSize(rawTournament.bracketSize, BRACKET_SIZE);
+  const rounds = sanitizeRounds(rawTournament.rounds, bracketSize);
+
+  if (!rounds.length) {
+    return null;
+  }
+
+  const seededParticipants = Array.isArray(rawTournament.participants)
+    ? rawTournament.participants.map(normalizeParticipant).filter(Boolean)
+    : rounds[0].flatMap((match) => [match.left, match.right]).filter(Boolean);
+
+  seedFirstRound(rounds, seededParticipants.slice(0, bracketSize));
+  propagateWinners(rounds);
 
   return {
+    bracketSize,
     rounds,
-    generatedAt: rawTournament.generatedAt || Date.now(),
-    champion,
-    bracketSize: storedBracketSize,
+    generatedAt: Number(rawTournament.generatedAt) || Date.now(),
+    champion: computeChampionFromFinal(rounds),
   };
+}
+
+export function createTournament(participants, bracketSize = BRACKET_SIZE, options = {}) {
+  const safeBracketSize = sanitizeBracketSize(bracketSize, BRACKET_SIZE);
+  const rounds = createEmptyRounds(safeBracketSize);
+
+  const safeParticipants = Array.isArray(participants)
+    ? participants
+        .map(normalizeParticipant)
+        .filter((participant) => participant && participant.pseudo)
+        .slice(0, safeBracketSize)
+    : [];
+
+  const seeded = options.shuffle === false ? safeParticipants : shuffleParticipants(safeParticipants);
+
+  return rebuildTournament({
+    bracketSize: safeBracketSize,
+    rounds,
+    participants: seeded,
+    generatedAt: Date.now(),
+  });
+}
+
+export function updateMatchWinner(tournament, roundIndex, matchIndex, winnerSide) {
+  if (!tournament || !Array.isArray(tournament.rounds)) {
+    return null;
+  }
+
+  if (!isValidSide(winnerSide)) {
+    return rebuildTournament(tournament);
+  }
+
+  const safeTournament = {
+    ...tournament,
+    rounds: tournament.rounds.map((round) => (Array.isArray(round) ? round.map(cloneMatch) : [])),
+  };
+
+  const targetMatch = safeTournament.rounds?.[roundIndex]?.[matchIndex];
+  if (!targetMatch) {
+    return rebuildTournament(safeTournament);
+  }
+
+  if (!targetMatch[winnerSide]) {
+    return rebuildTournament(safeTournament);
+  }
+
+  targetMatch.winnerSide = winnerSide;
+  return rebuildTournament(safeTournament);
 }
 
 export function normalizeTournament(snapshotValue) {
@@ -178,60 +255,21 @@ export function normalizeTournament(snapshotValue) {
     return null;
   }
 
+  // Legacy format: array of first-round matches.
   if (Array.isArray(snapshotValue)) {
-    const legacyRound = snapshotValue
-      .filter((match) => match?.left?.pseudo && match?.right?.pseudo)
-      .map((match) => ({
-        left: match.left,
-        right: match.right,
-        winnerSide: null,
-      }));
+    const legacyParticipants = snapshotValue
+      .flatMap((match) => [normalizeParticipant(match?.left), normalizeParticipant(match?.right)])
+      .filter((participant) => participant && participant.pseudo);
 
-    if (!legacyRound.length) {
+    if (!legacyParticipants.length) {
       return null;
     }
 
-    const tournament = {
-      rounds: [legacyRound, [emptyMatch(), emptyMatch()], [emptyMatch()]],
-      generatedAt: Date.now(),
-      bracketSize: BRACKET_SIZE,
-    };
-
-    return rebuildTournament(tournament);
+    const nextPowerOfTwo = 2 ** Math.max(1, Math.ceil(Math.log2(Math.max(2, legacyParticipants.length))));
+    return createTournament(legacyParticipants, sanitizeBracketSize(nextPowerOfTwo), { shuffle: false });
   }
 
   return rebuildTournament(snapshotValue);
-}
-
-export function createTournament(participants, bracketSize = BRACKET_SIZE) {
-  const sanitized = shuffleParticipants(
-    participants.map(({ id, ...participant }) => ({
-      pseudo: participant.pseudo,
-      character: participant.character,
-      image: participant.image || '',
-    })),
-  );
-
-  const safeBracketSize = sanitizeBracketSize(bracketSize);
-  const roundsCount = Math.log2(safeBracketSize);
-
-  const rounds = Array.from({ length: roundsCount }, (_, roundIndex) => {
-    const matchesInRound = safeBracketSize / 2 ** (roundIndex + 1);
-    return Array.from({ length: matchesInRound }, () => emptyMatch());
-  });
-
-  const firstRound = rounds[0];
-  for (let i = 0; i < safeBracketSize; i += 2) {
-    const matchIndex = i / 2;
-    firstRound[matchIndex].left = sanitized[i] || null;
-    firstRound[matchIndex].right = sanitized[i + 1] || null;
-  }
-
-  return rebuildTournament({
-    rounds,
-    generatedAt: Date.now(),
-    bracketSize: safeBracketSize,
-  });
 }
 
 export function getOverlayMatches(tournament) {
@@ -239,20 +277,9 @@ export function getOverlayMatches(tournament) {
     return [];
   }
 
-  const items = [];
-  tournament.rounds.forEach((round, roundIndex) => {
-    round.forEach((match, matchIndex) => {
-      if (!match.left && !match.right) {
-        return;
-      }
-
-      items.push({
-        roundIndex,
-        matchIndex,
-        ...match,
-      });
-    });
-  });
-
-  return items;
+  return tournament.rounds.flatMap((round, roundIndex) =>
+    round
+      .map((match, matchIndex) => ({ roundIndex, matchIndex, ...cloneMatch(match) }))
+      .filter((match) => match.left || match.right),
+  );
 }
