@@ -37,6 +37,8 @@ const createProfileMessage = document.getElementById('createProfileMessage');
 const loginForm = document.getElementById('loginForm');
 const loginMessage = document.getElementById('loginMessage');
 const logoutBtn = document.getElementById('logoutBtn');
+const navItems = Array.from(document.querySelectorAll('.app-nav-item'));
+const appViews = Array.from(document.querySelectorAll('.app-view'));
 
 const participantForm = document.getElementById('participantForm');
 const participantFormTitle = document.getElementById('participantFormTitle');
@@ -72,6 +74,9 @@ const timerStartParticipantSelect = document.getElementById('timerStartParticipa
 const timerStartBtn = document.getElementById('timerStartBtn');
 const timerStopBtn = document.getElementById('timerStopBtn');
 const timerSwitchBtn = document.getElementById('timerSwitchBtn');
+const liveTimerStatus = document.getElementById('liveTimerStatus');
+const liveCountdownP1 = document.getElementById('liveCountdownP1');
+const liveCountdownP2 = document.getElementById('liveCountdownP2');
 const keybindingStatus = document.getElementById('keybindingStatus');
 const bindStartBtn = document.getElementById('bindStartBtn');
 const bindStopBtn = document.getElementById('bindStopBtn');
@@ -316,6 +321,63 @@ function isInteractiveControlTarget(target) {
     target instanceof Element &&
     Boolean(target.closest('button, input, textarea, select, label, a, [role="button"]'))
   );
+}
+
+function parseViewFromHash() {
+  const normalized = String(window.location.hash || '')
+    .replace('#', '')
+    .trim()
+    .toLowerCase();
+  return ['participants', 'config', 'keybinds', 'live'].includes(normalized) ? normalized : 'participants';
+}
+
+function renderActiveView(viewName) {
+  appViews.forEach((view) => {
+    const isActive = view.dataset.view === viewName;
+    view.classList.toggle('is-active', isActive);
+    view.setAttribute('aria-hidden', String(!isActive));
+  });
+
+  navItems.forEach((item) => {
+    const isActive = item.dataset.targetView === viewName;
+    item.classList.toggle('is-active', isActive);
+    item.setAttribute('aria-current', isActive ? 'page' : 'false');
+  });
+}
+
+function formatMsToClock(value) {
+  const safeMs = Math.max(0, Math.round(Number(value) || 0));
+  const totalSeconds = Math.floor(safeMs / TIMER_SECOND_MS);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function renderLiveTimerPanel() {
+  const timer = resolveTimerNow(currentOverlay.timer, Date.now());
+  const activeParticipant = timer.activeParticipant;
+
+  if (liveCountdownP1) {
+    liveCountdownP1.textContent = `${timer.participant1Label}: ${formatMsToClock(timer.participant1Ms)}`;
+    liveCountdownP1.classList.toggle('is-active', Boolean(timer.isRunning && activeParticipant === 1));
+  }
+
+  if (liveCountdownP2) {
+    liveCountdownP2.textContent = `${timer.participant2Label}: ${formatMsToClock(timer.participant2Ms)}`;
+    liveCountdownP2.classList.toggle('is-active', Boolean(timer.isRunning && activeParticipant === 2));
+  }
+
+  if (!liveTimerStatus) {
+    return;
+  }
+
+  if (!timer.isRunning || !activeParticipant) {
+    liveTimerStatus.textContent = 'Timer en pause.';
+    return;
+  }
+
+  const activeLabel = activeParticipant === 1 ? timer.participant1Label : timer.participant2Label;
+  liveTimerStatus.textContent = `Timer en cours · ${activeLabel} actif`;
 }
 
 function setKeybindingStatus(message, tone = 'info') {
@@ -874,8 +936,10 @@ function showLogin() {
 function showApp() {
   loginSection.classList.add('hidden');
   appSection.classList.remove('hidden');
+  renderActiveView(parseViewFromHash());
   renderParticipants();
   renderBracket();
+  renderLiveTimerPanel();
 }
 
 function renderConnectionStatus() {
@@ -1087,9 +1151,26 @@ function bindRealtimeSubscriptions() {
     }
 
     renderBracket();
+    renderLiveTimerPanel();
     syncTimerParticipantLabels();
   });
 }
+
+window.addEventListener('hashchange', () => {
+  renderActiveView(parseViewFromHash());
+});
+
+navItems.forEach((item) => {
+  item.addEventListener('click', (event) => {
+    event.preventDefault();
+    const targetView = String(item.dataset.targetView || 'participants');
+    if (window.location.hash === `#${targetView}`) {
+      renderActiveView(targetView);
+      return;
+    }
+    window.location.hash = targetView;
+  });
+});
 
 createProfileForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -1482,6 +1563,8 @@ renderConnectionStatus();
 showLogin();
 
 timerTickHandle = window.setInterval(async () => {
+  renderLiveTimerPanel();
+
   if (!currentOverlay.timer?.isRunning || !currentOverlay.timer.activeParticipant) {
     return;
   }

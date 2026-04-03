@@ -72,6 +72,26 @@ body {
   gap: 1rem;
 }
 
+.app-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+}
+
+.app-content {
+  min-width: 0;
+}
+
+.app-view {
+  display: none;
+  gap: 1rem;
+}
+
+.app-view.is-active {
+  display: grid;
+}
+
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -79,6 +99,31 @@ body {
   gap: 1rem;
   background: linear-gradient(130deg, rgba(32, 46, 84, 0.9), rgba(14, 20, 42, 0.94));
   border: 1px solid rgba(132, 158, 255, 0.45);
+}
+
+.app-nav {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+}
+
+.app-nav-item {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid rgba(124, 149, 245, 0.4);
+  border-radius: 11px;
+  background: rgba(26, 37, 71, 0.75);
+  padding: 0.7rem 0.8rem;
+  font-weight: 700;
+}
+
+.app-nav-item.is-active {
+  background: linear-gradient(120deg, #5f75ff, #8a9eff);
+  border-color: rgba(145, 168, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(133, 156, 255, 0.22);
 }
 
 .top-actions {
@@ -181,6 +226,28 @@ body {
   display: grid;
   gap: 0.55rem;
   grid-template-columns: repeat(3, minmax(130px, 1fr));
+}
+
+.live-countdown-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.countdown-pill {
+  margin: 0;
+  border: 1px solid rgba(129, 154, 238, 0.55);
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  background: rgba(22, 33, 65, 0.75);
+  font-weight: 700;
+  text-align: center;
+}
+
+.countdown-pill.is-active {
+  border-color: rgba(75, 198, 148, 0.95);
+  color: #8bf8c0;
+  box-shadow: 0 0 0 2px rgba(75, 198, 148, 0.2);
 }
 
 .glass-panel {
@@ -451,8 +518,17 @@ button.danger {
 }
 
 @media (max-width: 1200px) {
-  .workspace-grid {
+  .app-layout {
     grid-template-columns: 1fr;
+  }
+
+  .app-nav {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 4;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: linear-gradient(165deg, rgba(24, 35, 65, 0.9), rgba(11, 18, 36, 0.95));
+    backdrop-filter: blur(12px);
   }
 }
 
@@ -471,6 +547,10 @@ button.danger {
     grid-template-columns: 1fr;
   }
 
+  .app-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .actions.stacked-mobile,
   .actions.stacked-mobile button,
   .app-header .actions button {
@@ -485,6 +565,10 @@ button.danger {
 
   .grid.two-columns,
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-nav {
     grid-template-columns: 1fr;
   }
 }
