@@ -488,3 +488,49 @@ button.danger {
     grid-template-columns: 1fr;
   }
 }
+
+.keybindings-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.keybinding-row {
+  display: grid;
+  grid-template-columns: 1.8fr minmax(130px, 180px) minmax(110px, 140px);
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(120, 145, 235, 0.4);
+  border-radius: 12px;
+  background: rgba(19, 28, 54, 0.42);
+}
+
+.keybinding-label,
+.keybinding-value {
+  margin: 0;
+}
+
+.keybinding-value {
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid rgba(129, 154, 238, 0.55);
+  background: rgba(22, 33, 65, 0.75);
+  font-weight: 700;
+  text-align: center;
+}
+
+.keybinding-row.is-capturing {
+  border-color: rgba(75, 198, 148, 0.85);
+  box-shadow: 0 0 0 2px rgba(75, 198, 148, 0.2);
+}
+
+.keybinding-row.is-capturing .keybinding-value {
+  border-color: rgba(75, 198, 148, 0.9);
+  color: #8bf8c0;
+}
+
+@media (max-width: 900px) {
+  .keybinding-row {
+    grid-template-columns: 1fr;
+  }
+}

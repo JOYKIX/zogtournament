@@ -153,6 +153,38 @@
               </div>
             </article>
 
+
+
+            <article class="card panel section-card">
+              <header class="section-head">
+                <p class="eyebrow">Raccourcis / Contrôles</p>
+                <h3>Keybindings live (clavier, souris, Stream Deck)</h3>
+              </header>
+
+              <div id="keybindingStatus" class="message no-margin"></div>
+              <div class="keybindings-list">
+                <div class="keybinding-row" data-action="start">
+                  <p class="keybinding-label">Démarrer le timer</p>
+                  <p id="bindingDisplayStart" class="keybinding-value">S</p>
+                  <button id="bindStartBtn" type="button" class="ghost">Binder</button>
+                </div>
+                <div class="keybinding-row" data-action="stop">
+                  <p class="keybinding-label">Arrêter le timer</p>
+                  <p id="bindingDisplayStop" class="keybinding-value">A</p>
+                  <button id="bindStopBtn" type="button" class="ghost">Binder</button>
+                </div>
+                <div class="keybinding-row" data-action="switch">
+                  <p class="keybinding-label">Changer le duel</p>
+                  <p id="bindingDisplaySwitch" class="keybinding-value">D</p>
+                  <button id="bindSwitchBtn" type="button" class="ghost">Binder</button>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button id="resetBindingsBtn" type="button" class="secondary">Reset bindings</button>
+              </div>
+            </article>
+
             <article class="card panel section-card">
               <header class="section-head">
                 <p class="eyebrow">Overlay / Apparence</p>

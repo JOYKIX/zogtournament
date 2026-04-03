@@ -25,6 +25,7 @@ import {
   canPlayMatch,
 } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
+import { createKeybindingManager, formatBinding } from '../shared/keybindings.js';
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
@@ -71,6 +72,14 @@ const timerStartParticipantSelect = document.getElementById('timerStartParticipa
 const timerStartBtn = document.getElementById('timerStartBtn');
 const timerStopBtn = document.getElementById('timerStopBtn');
 const timerSwitchBtn = document.getElementById('timerSwitchBtn');
+const keybindingStatus = document.getElementById('keybindingStatus');
+const bindStartBtn = document.getElementById('bindStartBtn');
+const bindStopBtn = document.getElementById('bindStopBtn');
+const bindSwitchBtn = document.getElementById('bindSwitchBtn');
+const bindingDisplayStart = document.getElementById('bindingDisplayStart');
+const bindingDisplayStop = document.getElementById('bindingDisplayStop');
+const bindingDisplaySwitch = document.getElementById('bindingDisplaySwitch');
+const resetBindingsBtn = document.getElementById('resetBindingsBtn');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
@@ -113,6 +122,28 @@ let currentOverlay = {
 let isConnected = false;
 let usersLoaded = false;
 let timerTickHandle = null;
+let keybindingManager = null;
+
+const KEYBINDING_ACTION_LABELS = {
+  start: 'Démarrer',
+  stop: 'Arrêter',
+  switch: 'Changer',
+};
+
+const KEYBINDING_UI = {
+  start: {
+    display: bindingDisplayStart,
+    button: bindStartBtn,
+  },
+  stop: {
+    display: bindingDisplayStop,
+    button: bindStopBtn,
+  },
+  switch: {
+    display: bindingDisplaySwitch,
+    button: bindSwitchBtn,
+  },
+};
 
 function sanitizeDuelImageHeight(value) {
   const parsed = Number(value);
@@ -265,6 +296,94 @@ function resolveTimerNow(baseTimer, now = Date.now()) {
     activeParticipant: reachedZero ? null : timer.activeParticipant,
     lastUpdatedAt: now,
   };
+}
+
+function isEditableElement(element) {
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement ||
+    (element instanceof HTMLElement && element.isContentEditable)
+  );
+}
+
+function isTextEntryActive() {
+  return isEditableElement(document.activeElement);
+}
+
+function isInteractiveControlTarget(target) {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('button, input, textarea, select, label, a, [role="button"]'))
+  );
+}
+
+function setKeybindingStatus(message, tone = 'info') {
+  if (!keybindingStatus) {
+    return;
+  }
+
+  keybindingStatus.textContent = message;
+  keybindingStatus.style.color = tone === 'warning' ? '#ffb26a' : '#9fc7ff';
+}
+
+function renderKeybindingsUi() {
+  if (!keybindingManager) {
+    return;
+  }
+
+  const bindings = keybindingManager.getBindings();
+  for (const [action, refs] of Object.entries(KEYBINDING_UI)) {
+    if (refs.display) {
+      refs.display.textContent = formatBinding(bindings[action]);
+    }
+    if (refs.button) {
+      const isCapturing = keybindingManager.captureAction === action;
+      refs.button.textContent = isCapturing ? 'Annuler' : 'Binder';
+      refs.button.classList.toggle('secondary', isCapturing);
+      refs.button.closest('.keybinding-row')?.classList.toggle('is-capturing', isCapturing);
+    }
+  }
+}
+
+function handleTimerKeybindingAction(action) {
+  if (action === 'start') {
+    const selected = Number(timerStartParticipantSelect?.value || 1);
+    return startTimer(selected);
+  }
+  if (action === 'stop') {
+    return stopTimer();
+  }
+  if (action === 'switch') {
+    return switchTimer();
+  }
+  return Promise.resolve();
+}
+
+function bindCaptureButton(action) {
+  const target = KEYBINDING_UI[action]?.button;
+  if (!target) {
+    return;
+  }
+
+  target.addEventListener('click', () => {
+    if (!keybindingManager) {
+      return;
+    }
+
+    if (keybindingManager.captureAction === action) {
+      keybindingManager.cancelCapture();
+      setKeybindingStatus('Capture annulée.');
+      renderKeybindingsUi();
+      return;
+    }
+
+    keybindingManager.beginCapture(action);
+    setKeybindingStatus(
+      `En attente d’un input pour “${KEYBINDING_ACTION_LABELS[action]}”. Appuie sur une touche ou clique souris.`
+    );
+    renderKeybindingsUi();
+  });
 }
 
 function normalizeUsers(snapshotValue) {
@@ -1280,6 +1399,58 @@ duelHealthDangerEffectsInput?.addEventListener('change', async (event) => {
   }
 
   await setTimerHealthConfig({ dangerEffects: target.checked });
+});
+
+keybindingManager = createKeybindingManager({
+  onAction: async (action) => {
+    await handleTimerKeybindingAction(action);
+  },
+  shouldIgnoreEvent: (event) => {
+    if (isTextEntryActive()) {
+      return true;
+    }
+
+    if (event instanceof MouseEvent && isInteractiveControlTarget(event.target)) {
+      return true;
+    }
+
+    return false;
+  },
+});
+
+bindCaptureButton('start');
+bindCaptureButton('stop');
+bindCaptureButton('switch');
+renderKeybindingsUi();
+setKeybindingStatus('Raccourcis actifs. Compatible clavier, souris et Stream Deck.');
+
+window.addEventListener('zog:keybindings-updated', (event) => {
+  const action = event.detail?.action;
+  const conflictAction = event.detail?.conflictAction;
+  if (conflictAction) {
+    setKeybindingStatus(
+      `Conflit détecté : “${KEYBINDING_ACTION_LABELS[action]}” remplace le bind de “${KEYBINDING_ACTION_LABELS[conflictAction]}”.`,
+      'warning'
+    );
+  } else {
+    setKeybindingStatus(`Bind enregistré pour “${KEYBINDING_ACTION_LABELS[action]}”.`);
+  }
+  renderKeybindingsUi();
+});
+
+window.addEventListener('zog:keybindings-capture-cancelled', () => {
+  setKeybindingStatus('Capture annulée.');
+  renderKeybindingsUi();
+});
+
+resetBindingsBtn?.addEventListener('click', () => {
+  if (!keybindingManager) {
+    return;
+  }
+  keybindingManager.resetBindings();
+  keybindingManager.cancelCapture();
+  renderKeybindingsUi();
+  setKeybindingStatus('Bindings réinitialisés par défaut (S / A / D).');
 });
 
 timerStartBtn?.addEventListener('click', async () => {
