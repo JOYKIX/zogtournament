@@ -12,6 +12,8 @@ const timerP1Label = document.getElementById('timerP1Label');
 const timerP2Label = document.getElementById('timerP2Label');
 const timerP1Value = document.getElementById('timerP1Value');
 const timerP2Value = document.getElementById('timerP2Value');
+const timerP1HealthFill = document.getElementById('timerP1HealthFill');
+const timerP2HealthFill = document.getElementById('timerP2HealthFill');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const MIN_DUEL_IMAGE_HEIGHT_PX = 200;
@@ -29,6 +31,7 @@ const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
 const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
 const DEFAULT_TIMER_LABEL_2 = 'Joueur 2';
+const DEFAULT_TIMER_PROFILE = 'classic';
 const TIMER_SECOND_MS = 1000;
 
 let tournamentCache = null;
@@ -86,6 +89,11 @@ function sanitizeTimerLabel(value, fallback) {
   return normalized || fallback;
 }
 
+function sanitizeTimerProfile(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'healthbar' ? 'healthbar' : DEFAULT_TIMER_PROFILE;
+}
+
 function normalizeTimerState(timerValue = {}) {
   const initialSeconds = Number(timerValue.initialSeconds || DEFAULT_TIMER_INITIAL_SECONDS);
   const safeInitialSeconds = Number.isFinite(initialSeconds) ? Math.max(10, Math.min(7200, Math.round(initialSeconds))) : DEFAULT_TIMER_INITIAL_SECONDS;
@@ -98,6 +106,7 @@ function normalizeTimerState(timerValue = {}) {
   const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
   const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
   const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
+  const profile = sanitizeTimerProfile(timerValue.profile);
 
   return {
     initialSeconds: safeInitialSeconds,
@@ -105,6 +114,7 @@ function normalizeTimerState(timerValue = {}) {
     participant2Ms,
     participant1Label,
     participant2Label,
+    profile,
     activeParticipant: isRunning ? activeParticipant : null,
     isRunning,
     lastUpdatedAt,
@@ -135,6 +145,26 @@ function fighterMarkup(player) {
   `;
 }
 
+function getHealthColor(remainingRatio) {
+  if (remainingRatio <= 0.25) {
+    return '#dd2a2a';
+  }
+  if (remainingRatio <= 0.55) {
+    return '#ff9f1a';
+  }
+  return '#1fcf66';
+}
+
+function applyHealthBar(fillNode, remainingMs, initialMs) {
+  if (!fillNode) {
+    return;
+  }
+
+  const ratio = initialMs > 0 ? Math.max(0, Math.min(1, remainingMs / initialMs)) : 0;
+  fillNode.style.setProperty('--timer-health-pct', `${Math.round(ratio * 100)}%`);
+  fillNode.style.setProperty('--timer-health-color', getHealthColor(ratio));
+}
+
 function render() {
   const overlayMatches = getOverlayMatches(tournamentCache);
   const safeIndex = Math.max(0, Math.min(currentMatchIndex, Math.max(overlayMatches.length - 1, 0)));
@@ -142,6 +172,7 @@ function render() {
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
+  const resolvedTimer = normalizeTimerState(currentTimer);
 
   if (duelView) {
     duelView.style.setProperty('--fighter-image-height', `${currentImageHeightPx}px`);
@@ -151,9 +182,8 @@ function render() {
   }
   if (duelTimers) {
     duelTimers.style.setProperty('--duel-timer-offset-y', `${currentTimerOffsetYPx}px`);
+    duelTimers.classList.toggle('timer-profile-health', resolvedTimer.profile === 'healthbar');
   }
-
-  const resolvedTimer = normalizeTimerState(currentTimer);
   if (timerP1Value) {
     timerP1Value.textContent = formatTimer(resolvedTimer.participant1Ms);
   }
@@ -171,6 +201,10 @@ function render() {
     timerParticipant1.classList.toggle('active', resolvedTimer.isRunning && resolvedTimer.activeParticipant === 1);
     timerParticipant2.classList.toggle('active', resolvedTimer.isRunning && resolvedTimer.activeParticipant === 2);
   }
+
+  const initialMs = resolvedTimer.initialSeconds * TIMER_SECOND_MS;
+  applyHealthBar(timerP1HealthFill, resolvedTimer.participant1Ms, initialMs);
+  applyHealthBar(timerP2HealthFill, resolvedTimer.participant2Ms, initialMs);
 }
 
 onValue(matchesRef, (snapshot) => {

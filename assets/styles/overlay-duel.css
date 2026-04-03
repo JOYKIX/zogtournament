@@ -108,6 +108,14 @@ body {
   background: transparent;
 }
 
+.fighter-left .fighter-card {
+  transform: translate(var(--fighter-offset-x), var(--fighter-offset-y));
+}
+
+.fighter-right .fighter-card {
+  transform: translate(calc(var(--fighter-offset-x) * -1), var(--fighter-offset-y));
+}
+
 .fighter img {
   display: block;
   width: auto;
@@ -117,14 +125,6 @@ body {
   object-fit: cover;
   border-radius: 18px;
   background: transparent;
-}
-
-.fighter-left img {
-  transform: translate(var(--fighter-offset-x), var(--fighter-offset-y));
-}
-
-.fighter-right img {
-  transform: translate(calc(var(--fighter-offset-x) * -1), var(--fighter-offset-y));
 }
 
 .fighter .character {
@@ -142,4 +142,27 @@ body {
   font-weight: 700;
   opacity: 0.98;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.88);
+}
+
+.timer-health-shell {
+  display: none;
+}
+
+.duel-timers.timer-profile-health .timer-health-shell {
+  display: block;
+  margin-top: 0.45rem;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.duel-timers.timer-profile-health .timer-health-fill {
+  width: var(--timer-health-pct, 100%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--timer-health-color, #1fcf66);
+  transition: width 0.2s linear, background-color 0.25s ease;
 }

@@ -57,6 +57,7 @@ const duelImageOffsetXInput = document.getElementById('duelImageOffsetXPx');
 const duelImageOffsetYInput = document.getElementById('duelImageOffsetYPx');
 const duelTextColorInput = document.getElementById('duelTextColor');
 const duelTimerInitialSecondsInput = document.getElementById('duelTimerInitialSeconds');
+const duelTimerProfileSelect = document.getElementById('duelTimerProfile');
 const duelTimerOffsetYInput = document.getElementById('duelTimerOffsetYPx');
 const timerStartParticipantSelect = document.getElementById('timerStartParticipant');
 const timerStartBtn = document.getElementById('timerStartBtn');
@@ -79,6 +80,7 @@ const MIN_DUEL_TIMER_OFFSET_Y_PX = -400;
 const MAX_DUEL_TIMER_OFFSET_Y_PX = 400;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
 const DEFAULT_TIMER_LABEL_2 = 'Joueur 2';
+const DEFAULT_TIMER_PROFILE = 'classic';
 const MIN_TIMER_INITIAL_SECONDS = 10;
 const MAX_TIMER_INITIAL_SECONDS = 7200;
 const TIMER_TICK_INTERVAL_MS = 1000;
@@ -156,6 +158,11 @@ function sanitizeTimerLabel(value, fallback) {
   return normalized || fallback;
 }
 
+function sanitizeTimerProfile(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'healthbar' ? 'healthbar' : DEFAULT_TIMER_PROFILE;
+}
+
 function normalizeTimerState(timerValue = {}) {
   const initialSeconds = sanitizeTimerInitialSeconds(timerValue.initialSeconds);
   const initialMs = initialSeconds * TIMER_SECOND_MS;
@@ -167,6 +174,7 @@ function normalizeTimerState(timerValue = {}) {
   const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
   const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
   const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
+  const profile = sanitizeTimerProfile(timerValue.profile);
 
   return {
     initialSeconds,
@@ -174,6 +182,7 @@ function normalizeTimerState(timerValue = {}) {
     participant2Ms,
     participant1Label,
     participant2Label,
+    profile,
     activeParticipant: isRunning ? activeParticipant : null,
     isRunning,
     lastUpdatedAt,
@@ -495,6 +504,12 @@ async function setTimerInitialSeconds(initialSeconds) {
   await setOverlayTimer(nextTimer);
 }
 
+async function setTimerProfile(profile) {
+  const nextTimer = normalizeTimerState(currentOverlay.timer);
+  nextTimer.profile = sanitizeTimerProfile(profile);
+  await setOverlayTimer(nextTimer);
+}
+
 async function startTimer(participant) {
   const starter = participant === 2 ? 2 : 1;
   const now = Date.now();
@@ -723,6 +738,7 @@ async function ensureDatabaseShape() {
       timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
       timer: normalizeTimerState({
         initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS,
+        profile: DEFAULT_TIMER_PROFILE,
       }),
       updatedAt: Date.now(),
     });
@@ -750,7 +766,7 @@ async function ensureDatabaseShape() {
     }
 
     if (!value.overlay.timer || typeof value.overlay.timer !== 'object') {
-      patches.timer = normalizeTimerState({ initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS });
+      patches.timer = normalizeTimerState({ initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS, profile: DEFAULT_TIMER_PROFILE });
     }
 
     if (Object.keys(patches).length) {
@@ -832,6 +848,9 @@ function bindRealtimeSubscriptions() {
     }
     if (duelTimerInitialSecondsInput) {
       duelTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
+    }
+    if (duelTimerProfileSelect) {
+      duelTimerProfileSelect.value = currentOverlay.timer.profile;
     }
     if (duelTimerOffsetYInput) {
       duelTimerOffsetYInput.value = String(currentOverlay.timerOffsetYPx);
@@ -1050,6 +1069,17 @@ duelTimerInitialSecondsInput?.addEventListener('change', async (event) => {
   const safeSeconds = sanitizeTimerInitialSeconds(target.value);
   target.value = String(safeSeconds);
   await setTimerInitialSeconds(safeSeconds);
+});
+
+duelTimerProfileSelect?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const safeProfile = sanitizeTimerProfile(target.value);
+  target.value = safeProfile;
+  await setTimerProfile(safeProfile);
 });
 
 duelTimerOffsetYInput?.addEventListener('change', async (event) => {
