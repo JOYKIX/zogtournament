@@ -26,35 +26,36 @@ body {
 
 .fighter {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .fighter-card {
-  width: min(42vw, 720px);
-  border: 1px solid rgba(146, 169, 255, 0.78);
-  border-radius: 18px;
-  padding: 0.7rem;
-  background: linear-gradient(180deg, rgba(10, 18, 42, 0.15), rgba(10, 18, 42, 0.45));
-  backdrop-filter: blur(6px);
+  width: min(42vw, 760px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 
 .fighter img {
-  width: min(36vw, 520px);
-  max-height: 62vh;
+  width: min(38vw, 560px);
+  max-height: 68vh;
   object-fit: contain;
-  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.45));
-}
-
-.fighter .name {
-  font-size: clamp(1.2rem, 2.5vw, 2rem);
-  font-weight: 800;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.55));
 }
 
 .fighter .character {
-  font-size: clamp(0.88rem, 1.6vw, 1.2rem);
+  font-size: clamp(1.8rem, 3.6vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.92);
+}
+
+.fighter .name {
+  font-size: clamp(0.95rem, 1.6vw, 1.4rem);
+  font-weight: 600;
   opacity: 0.95;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.88);
 }

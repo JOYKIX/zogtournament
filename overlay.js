@@ -137,9 +137,9 @@ function fighterMarkup(player) {
 
   return `
     <div class="fighter-card">
-      <img src="${normalizeImageUrl(player.image)}" alt="${safePseudo}" />
-      <div class="name">${safePseudo}</div>
+      <img src="${normalizeImageUrl(player.image)}" alt="${safeCharacter}" />
       <div class="character">${safeCharacter}</div>
+      <div class="name">${safePseudo}</div>
     </div>
   `;
 }
