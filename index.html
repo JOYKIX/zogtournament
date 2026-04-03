@@ -337,8 +337,15 @@
                   <h3>Régie WebRTC</h3>
                   <p class="hint">Lien invité: <a id="guestPageLink" href="guest.html" target="_blank" rel="noopener">ouvrir page invité</a></p>
                 </header>
-                <p id="camStatus" class="message no-margin">En attente d'invités.</p>
-                <div id="camGuestsList" class="split-grid"></div>
+                <div class="cam-discord-shell">
+                  <aside class="cam-channel-column" aria-label="Canaux vocaux">
+                    <p class="cam-channel-title">Canaux vocaux</p>
+                    <button type="button" class="cam-channel-item is-active" disabled>🎙️ Groupe tournoi</button>
+                    <button type="button" class="cam-channel-item" disabled>🔊 Salle attente</button>
+                    <p id="camStatus" class="message no-margin">En attente d'invités.</p>
+                  </aside>
+                  <div id="camGuestsList" class="cam-voice-grid"></div>
+                </div>
               </article>
             </section>
           </section>

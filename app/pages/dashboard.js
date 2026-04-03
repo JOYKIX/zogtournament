@@ -1155,7 +1155,7 @@ function renderCamView() {
   }
 
   if (!camGuestsCache.length) {
-    camGuestsList.innerHTML = '<p class="message">Aucun invité connecté.</p>';
+    camGuestsList.innerHTML = '<p class="message">Aucun membre dans le vocal.</p>';
     if (camStatus) {
       camStatus.textContent = 'En attente d’invités.';
     }
@@ -1173,10 +1173,13 @@ function renderCamView() {
       const hasStream = Boolean(camStreams.get(guest.id));
       return `
         <article class="sub-card cam-guest-card" data-guest-id="${guest.id}">
-          <h4>${escapeHtml(guest.name)}</h4>
-          <p class="message no-margin">${getCamStatusLabel(guest)} · ${hasStream ? 'Flux actif' : 'Flux indisponible'}</p>
+          <div class="cam-guest-head">
+            <h4>${escapeHtml(guest.name)}</h4>
+            <span class="cam-presence ${hasStream ? 'is-online' : 'is-idle'}">${hasStream ? 'En vocal' : 'Hors ligne'}</span>
+          </div>
+          <p class="message no-margin">${getCamStatusLabel(guest)} · ${guest.microphoneEnabled ? 'Micro OK' : 'Micro coupé'}</p>
           <video class="cam-preview" data-guest-video="${guest.id}" autoplay playsinline muted></video>
-          <div class="settings-grid two-cols">
+          <div class="cam-controls-row">
             <label class="setting-field">Slot overlay
               <select data-cam-slot="${guest.id}">
                 <option value="">Non affiché</option>
@@ -1189,9 +1192,7 @@ function renderCamView() {
             <label class="setting-field inline-toggle">Visible
               <input type="checkbox" data-cam-visible="${guest.id}" ${selectedSlot && camSlotsCache?.[selectedSlot]?.visible ? 'checked' : ''} />
             </label>
-          </div>
-          <div class="actions">
-            <button type="button" class="ghost danger" data-cam-remove="${guest.id}">Retirer le flux</button>
+            <button type="button" class="ghost danger" data-cam-remove="${guest.id}">Retirer</button>
           </div>
         </article>
       `;
