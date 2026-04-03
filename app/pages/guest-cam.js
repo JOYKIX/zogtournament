@@ -9,7 +9,22 @@ const guestPreview = document.getElementById('guestPreview');
 const guestVoicePeers = document.getElementById('guestVoicePeers');
 const microphoneSelect = document.getElementById('microphoneSelect');
 const refreshMicrophonesBtn = document.getElementById('refreshMicrophonesBtn');
+const guestPeerList = document.getElementById('guestPeerList');
 const peerAudioEls = new Map();
+
+function renderPeerList() {
+  if (!guestPeerList) return;
+
+  const peerIds = [...peerAudioEls.keys()];
+  if (!peerIds.length) {
+    guestPeerList.innerHTML = '<li class="member-empty">Personne connecté pour le moment</li>';
+    return;
+  }
+
+  guestPeerList.innerHTML = peerIds
+    .map((peerId, index) => `<li>🎧 Membre ${index + 1} · ${peerId.slice(0, 8)}</li>`)
+    .join('');
+}
 
 const publisher = new GuestCamPublisher({
   onState: (state) => {
@@ -31,11 +46,13 @@ const publisher = new GuestCamPublisher({
     if (!stream) {
       existing?.remove();
       peerAudioEls.delete(peerId);
+      renderPeerList();
       return;
     }
 
     if (existing) {
       existing.srcObject = stream;
+      renderPeerList();
       return;
     }
 
@@ -46,6 +63,7 @@ const publisher = new GuestCamPublisher({
     audio.srcObject = stream;
     peerAudioEls.set(peerId, audio);
     guestVoicePeers?.appendChild(audio);
+    renderPeerList();
   },
 });
 
@@ -61,6 +79,8 @@ async function refreshMicrophones() {
     microphoneSelect.innerHTML = options.join('');
   }
 }
+
+renderPeerList();
 
 refreshMicrophones().catch(() => {
   // Les labels de périphériques peuvent être vides avant la permission micro.
