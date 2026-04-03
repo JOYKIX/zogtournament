@@ -17,7 +17,7 @@ import {
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
-const ALLOWED_BRACKET_SIZES = [2, 4, 8, 16, 32, 64];
+const BRACKET_SIZE = 8;
 
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
@@ -38,10 +38,7 @@ const cancelEditBtn = document.getElementById('cancelEditBtn');
 const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
 
 const generateBracketBtn = document.getElementById('generateBracketBtn');
-const bracketSizeSelect = document.getElementById('bracketSizeSelect');
 const bracketContainer = document.getElementById('bracketContainer');
-const bracketSummaryText = document.getElementById('bracketSummaryText');
-const roundBreakdown = document.getElementById('roundBreakdown');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
@@ -109,58 +106,15 @@ function findUserByUsername(username) {
 }
 
 function getRoundTitle(roundIndex, totalRounds) {
+  const labels = ['Quarts de finale', 'Demi-finales', 'Finale'];
+  if (totalRounds === 3) {
+    return labels[roundIndex] || `Tour ${roundIndex + 1}`;
+  }
+
   const roundsUntilFinal = totalRounds - roundIndex;
-
-  if (roundsUntilFinal === 1) {
-    return 'Finale';
-  }
-
-  if (roundsUntilFinal === 2) {
-    return 'Demi-finales';
-  }
-
-  if (roundsUntilFinal === 3) {
-    return 'Quarts de finale';
-  }
-
-  if (roundsUntilFinal === 4) {
-    return 'Huitièmes de finale';
-  }
-
-  if (roundsUntilFinal === 5) {
-    return 'Seizièmes de finale';
-  }
-
-  if (roundsUntilFinal === 6) {
-    return 'Trente-deuxièmes de finale';
-  }
-
+  if (roundsUntilFinal === 1) return 'Finale';
+  if (roundsUntilFinal === 2) return 'Demi-finales';
   return `Tour ${roundIndex + 1}`;
-}
-
-
-function describeBracketStructure(bracketSize) {
-  const roundsCount = Math.log2(bracketSize);
-  return Array.from({ length: roundsCount }, (_, index) => {
-    const participantsInRound = bracketSize / 2 ** index;
-    const matches = participantsInRound / 2;
-    return {
-      label: getRoundTitle(index, roundsCount),
-      participants: participantsInRound,
-      matches,
-    };
-  });
-}
-
-function renderRoundBreakdown(bracketSize) {
-  if (!roundBreakdown) {
-    return;
-  }
-
-  const structure = describeBracketStructure(bracketSize);
-  roundBreakdown.innerHTML = structure
-    .map((item) => `<span class="round-chip">${escapeHtml(item.label)} : ${item.participants} joueurs (${item.matches} match${item.matches > 1 ? 's' : ''})</span>`)
-    .join('');
 }
 
 function emptyMatch() {
@@ -179,14 +133,8 @@ function cloneMatch(match) {
   };
 }
 
-
-function sanitizeBracketSize(rawSize, fallback = 8) {
-  const parsed = Number(rawSize);
-  if (ALLOWED_BRACKET_SIZES.includes(parsed)) {
-    return parsed;
-  }
-
-  return ALLOWED_BRACKET_SIZES.includes(fallback) ? fallback : 8;
+function sanitizeBracketSize() {
+  return BRACKET_SIZE;
 }
 
 function shuffleParticipants(participants) {
@@ -296,8 +244,9 @@ function normalizeTournament(snapshotValue) {
     }
 
     const tournament = {
-      rounds: [legacyRound],
+      rounds: [legacyRound, [emptyMatch(), emptyMatch()], [emptyMatch()]],
       generatedAt: Date.now(),
+      bracketSize: BRACKET_SIZE,
     };
 
     return rebuildTournament(tournament);
@@ -392,21 +341,10 @@ function renderBracket() {
 
   if (!tournamentCache?.rounds?.length) {
     bracketContainer.innerHTML = '<p>Pas de bracket généré.</p>';
-    if (bracketSummaryText) {
-      bracketSummaryText.textContent = 'Configure le format puis génère les matchs.';
-    }
-    renderRoundBreakdown(sanitizeBracketSize(bracketSizeSelect?.value, 8));
     return;
   }
 
   const { flatMatches, safeIndex, current } = getCurrentOverlayMeta();
-  const bracketSize = sanitizeBracketSize(tournamentCache.bracketSize, 8);
-  renderRoundBreakdown(bracketSize);
-
-  if (bracketSummaryText) {
-    const readyMatches = flatMatches.filter((match) => match.left && match.right).length;
-    bracketSummaryText.textContent = `Format ${bracketSize}: ${readyMatches} duels prêts. Progression automatique vers les demi-finales puis la finale.`;
-  }
 
   tournamentCache.rounds.forEach((round, roundIndex) => {
     const roundCol = document.createElement('section');
@@ -444,7 +382,7 @@ function renderBracket() {
           <span class="slot-name">${rightName}</span>
           <span class="slot-character">${rightCharacter}</span>
         </button>
-        <button type="button" class="ghost select-overlay" data-overlay-index="${overlayIndex}">Afficher en duel</button>
+        <button type="button" class="ghost select-overlay" data-overlay-index="${overlayIndex}">Duel</button>
       `;
 
       const [leftBtn, rightBtn] = node.querySelectorAll('.slot');
@@ -472,10 +410,6 @@ function renderBracket() {
 
     bracketContainer.appendChild(roundCol);
   });
-
-  if (bracketSizeSelect && tournamentCache.bracketSize) {
-    bracketSizeSelect.value = String(bracketSize);
-  }
 
   if (tournamentCache.champion?.pseudo) {
     const championNode = document.createElement('div');
@@ -514,7 +448,7 @@ async function shiftOverlayMatch(delta) {
   await setOverlayMatch(safeIndex + delta);
 }
 
-function createTournament(participants, desiredBracketSize) {
+function createTournament(participants) {
   const sanitized = shuffleParticipants(
     participants.map(({ id, ...participant }) => ({
       pseudo: participant.pseudo,
@@ -523,7 +457,7 @@ function createTournament(participants, desiredBracketSize) {
     })),
   );
 
-  const bracketSize = sanitizeBracketSize(desiredBracketSize);
+  const bracketSize = BRACKET_SIZE;
   const roundsCount = Math.log2(bracketSize);
 
   const rounds = Array.from({ length: roundsCount }, (_, roundIndex) => {
@@ -551,14 +485,12 @@ async function generateMatches() {
     return;
   }
 
-  const selectedSize = sanitizeBracketSize(bracketSizeSelect?.value, 8);
-
-  if (participantsCache.length > selectedSize) {
-    alert(`Il y a ${participantsCache.length} participants. Choisis un format de ${participantsCache.length} ou plus.`);
+  if (participantsCache.length > BRACKET_SIZE) {
+    alert(`Maximum ${BRACKET_SIZE} participants pour ce tournoi.`);
     return;
   }
 
-  const tournament = createTournament(participantsCache, selectedSize);
+  const tournament = createTournament(participantsCache);
   await set(matchesRef, tournament);
   await setOverlayMatch(0);
 }
@@ -915,10 +847,6 @@ generateBracketBtn.addEventListener('click', () => {
   generateMatches();
 });
 
-bracketSizeSelect?.addEventListener('change', () => {
-  renderRoundBreakdown(sanitizeBracketSize(bracketSizeSelect.value, 8));
-});
-
 overlayPrevBtn.addEventListener('click', () => shiftOverlayMatch(-1));
 overlayNextBtn.addEventListener('click', () => shiftOverlayMatch(1));
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
@@ -934,5 +862,4 @@ try {
 }
 bindRealtimeSubscriptions();
 renderConnectionStatus();
-renderRoundBreakdown(sanitizeBracketSize(bracketSizeSelect?.value, 8));
 showLogin();

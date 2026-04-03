@@ -22,6 +22,14 @@ function cloneMatch(match) {
   };
 }
 
+function emptyMatch() {
+  return {
+    left: null,
+    right: null,
+    winnerSide: null,
+  };
+}
+
 function computeWinner(match) {
   if (match.left && !match.right) return { side: 'left', player: match.left };
   if (!match.left && match.right) return { side: 'right', player: match.right };
@@ -69,18 +77,21 @@ function normalizeTournament(snapshotValue) {
       .map((match) => ({ left: match.left, right: match.right, winnerSide: null }));
 
     if (!legacyRound.length) return null;
-    return rebuildTournament({ rounds: [legacyRound] });
+    return rebuildTournament({ rounds: [legacyRound, [emptyMatch(), emptyMatch()], [emptyMatch()]] });
   }
 
   return rebuildTournament(snapshotValue);
 }
 
 function getRoundTitle(roundIndex, totalRounds) {
+  const labels = ['Quarts de finale', 'Demi-finales', 'Finale'];
+  if (totalRounds === 3) {
+    return labels[roundIndex] || `Tour ${roundIndex + 1}`;
+  }
+
   const roundsUntilFinal = totalRounds - roundIndex;
   if (roundsUntilFinal === 1) return 'Finale';
   if (roundsUntilFinal === 2) return 'Demi-finales';
-  if (roundsUntilFinal === 3) return 'Quarts de finale';
-  if (roundsUntilFinal === 4) return 'Huitièmes';
   return `Tour ${roundIndex + 1}`;
 }
 
