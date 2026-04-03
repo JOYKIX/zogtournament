@@ -24,6 +24,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const rootRef = ref(db, 'zogTournament');
+const connectedRef = ref(db, '.info/connected');
 const usersRef = ref(db, 'zogTournament/users');
 const participantsRef = ref(db, 'zogTournament/participants');
 const matchesRef = ref(db, 'zogTournament/matches');
@@ -32,6 +33,7 @@ const profileRef = ref(db, 'zogTournament/profile');
 
 export {
   db,
+  connectedRef,
   get,
   matchesRef,
   onValue,

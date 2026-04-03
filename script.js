@@ -1,4 +1,5 @@
 import {
+  connectedRef,
   get,
   matchesRef,
   onValue,
@@ -19,6 +20,7 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
 
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
+const connectionStatus = document.getElementById('connectionStatus');
 const createProfileForm = document.getElementById('createProfileForm');
 const createProfileMessage = document.getElementById('createProfileMessage');
 const loginForm = document.getElementById('loginForm');
@@ -46,6 +48,8 @@ let participantsCache = [];
 let tournamentCache = null;
 let currentProfile = null;
 let currentOverlay = { matchIndex: 0 };
+let isConnected = false;
+let usersLoaded = false;
 
 function escapeHtml(value) {
   return String(value)
@@ -603,6 +607,25 @@ function showApp() {
   renderBracket();
 }
 
+function renderConnectionStatus() {
+  if (!connectionStatus) {
+    return;
+  }
+
+  if (isConnected) {
+    connectionStatus.textContent = '✅ Connecté à la base de données.';
+    return;
+  }
+
+  connectionStatus.textContent = '⚠️ Connexion à la base perdue. Vérifie Internet/Firebase puis réessaie.';
+}
+
+async function refreshUsersCache() {
+  const snapshot = await get(usersRef);
+  usersCache = normalizeUsers(snapshot.val() || {});
+  usersLoaded = true;
+}
+
 async function ensureDatabaseShape() {
   const snapshot = await get(rootRef);
   const value = snapshot.val() || {};
@@ -636,9 +659,15 @@ async function ensureDatabaseShape() {
 }
 
 function bindRealtimeSubscriptions() {
+  onValue(connectedRef, (snapshot) => {
+    isConnected = snapshot.val() === true;
+    renderConnectionStatus();
+  });
+
   onValue(usersRef, async (snapshot) => {
     const usersMap = snapshot.val() || {};
     usersCache = normalizeUsers(usersMap);
+    usersLoaded = true;
 
     if (currentProfile?.uid && !usersMap[currentProfile.uid]) {
       await logout();
@@ -681,11 +710,20 @@ createProfileForm.addEventListener('submit', async (event) => {
   const username = String(formData.get('newUsername') || '').trim();
   const password = String(formData.get('newPassword') || '');
 
-  const result = await createProfile(username, password);
-  createProfileMessage.textContent = result.message;
+  try {
+    if (!usersLoaded) {
+      await refreshUsersCache();
+    }
 
-  if (result.ok) {
-    createProfileForm.reset();
+    const result = await createProfile(username, password);
+    createProfileMessage.textContent = result.message;
+
+    if (result.ok) {
+      createProfileForm.reset();
+    }
+  } catch (error) {
+    console.error('Erreur création du compte', error);
+    createProfileMessage.textContent = 'Connexion impossible pour le moment. Réessaie dans quelques secondes.';
   }
 });
 
@@ -695,11 +733,20 @@ loginForm.addEventListener('submit', async (event) => {
   const username = String(formData.get('username') || '').trim();
   const password = String(formData.get('password') || '');
 
-  if (await login(username, password)) {
-    loginMessage.textContent = '';
-    loginForm.reset();
-  } else {
-    loginMessage.textContent = 'Identifiants invalides.';
+  try {
+    if (!usersLoaded) {
+      await refreshUsersCache();
+    }
+
+    if (await login(username, password)) {
+      loginMessage.textContent = '';
+      loginForm.reset();
+    } else {
+      loginMessage.textContent = 'Identifiants invalides.';
+    }
+  } catch (error) {
+    console.error('Erreur de connexion utilisateur', error);
+    loginMessage.textContent = 'Connexion impossible à la base. Vérifie le statut ci-dessus.';
   }
 });
 
@@ -817,4 +864,5 @@ try {
   console.error('Impossible d’initialiser la base de données', error);
 }
 bindRealtimeSubscriptions();
+renderConnectionStatus();
 showLogin();
