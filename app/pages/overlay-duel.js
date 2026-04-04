@@ -17,6 +17,7 @@ const timerP1HealthFill = document.getElementById('timerP1HealthFill');
 const timerP2HealthFill = document.getElementById('timerP2HealthFill');
 const timerP1HealthTrail = document.getElementById('timerP1HealthTrail');
 const timerP2HealthTrail = document.getElementById('timerP2HealthTrail');
+const TIMER_RENDER_INTERVAL_MS = 250;
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
@@ -177,6 +178,36 @@ function formatTimer(ms) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+function resolveTimerNow(baseTimer, now = Date.now()) {
+  const timer = normalizeTimerState(baseTimer);
+  if (!timer.isRunning || !timer.activeParticipant) {
+    return timer;
+  }
+
+  const elapsed = Math.max(0, now - timer.lastUpdatedAt);
+  if (elapsed <= 0) {
+    return timer;
+  }
+
+  const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
+  const remaining = Math.max(0, timer[key] - elapsed);
+  if (remaining === 0) {
+    return {
+      ...timer,
+      [key]: 0,
+      activeParticipant: null,
+      isRunning: false,
+      lastUpdatedAt: now,
+    };
+  }
+
+  return {
+    ...timer,
+    [key]: remaining,
+    lastUpdatedAt: now,
+  };
+}
+
 function fighterMarkup(player) {
   if (!player) {
     return '<div class="fighter-card"><div class="name">En attente</div></div>';
@@ -221,7 +252,7 @@ function render() {
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
-  const resolvedTimer = normalizeTimerState({
+  const resolvedTimer = resolveTimerNow({
     ...currentTimer,
     profile: currentTimerProfile,
   });
@@ -297,3 +328,6 @@ onValue(overlayRef, (snapshot) => {
   render();
 });
 
+window.setInterval(() => {
+  render();
+}, TIMER_RENDER_INTERVAL_MS);
