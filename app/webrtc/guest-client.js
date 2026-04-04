@@ -68,6 +68,8 @@ export class GuestCamPublisher {
     this.captureStream = null;
     this.microphoneDeadzone = 0.06;
     this.microphoneGateOpen = true;
+    this.reconnectTimers = new Map();
+    this.reconnectAttempts = new Map();
   }
 
   createPairKey(guestA, guestB) {
@@ -399,11 +401,17 @@ export class GuestCamPublisher {
 
   async connectStream(name) {
     await this.ensureGuestSession(name);
-    if (this.connections.has('admin') || this.connections.has('overlay')) {
+    const pendingConnections = [];
+    if (!this.connections.has('admin')) {
+      pendingConnections.push(this.startRoleConnection('admin'));
+    }
+    if (!this.connections.has('overlay')) {
+      pendingConnections.push(this.startRoleConnection('overlay'));
+    }
+    if (!pendingConnections.length) {
       throw new Error('Flux déjà connecté.');
     }
-    await this.startRoleConnection('admin');
-    await this.startRoleConnection('overlay');
+    await Promise.all(pendingConnections);
     this.streamConnected = true;
     await this.updateGuestConnectionFlags();
     this.emitConnectionState();
@@ -421,6 +429,11 @@ export class GuestCamPublisher {
   }
 
   async startRoleConnection(role) {
+    if (!this.guestId || !this.localStream) {
+      return;
+    }
+    this.clearReconnectTimer(role);
+
     const connection = new RTCPeerConnection(WEBRTC_CONFIGURATION);
     const videoTrack = this.localStream.getVideoTracks()[0];
     const audioTrack = this.localStream.getAudioTracks()[0];
@@ -433,9 +446,11 @@ export class GuestCamPublisher {
 
     connection.onconnectionstatechange = async () => {
       this.onLog?.(`[guest/${role}] ${connection.connectionState}`);
-      if (['failed', 'disconnected', 'closed'].includes(connection.connectionState) && this.guestId) {
-        await patchGuest(this.guestId, { status: 'disconnected', updatedAt: Date.now() });
-        this.handleConnectionLoss(`[guest/${role}] Connexion perdue`);
+      if (['connected'].includes(connection.connectionState)) {
+        this.reconnectAttempts.set(role, 0);
+      }
+      if (['failed', 'disconnected', 'closed'].includes(connection.connectionState)) {
+        this.scheduleRoleReconnect(role, connection);
       }
     };
 
@@ -474,6 +489,62 @@ export class GuestCamPublisher {
     });
 
     this.connections.set(role, { connection, unsubscribeAnswer, unsubscribeCandidates });
+  }
+
+  clearReconnectTimer(role) {
+    const timer = this.reconnectTimers.get(role);
+    if (timer) {
+      clearTimeout(timer);
+    }
+    this.reconnectTimers.delete(role);
+  }
+
+  scheduleRoleReconnect(role, sourceConnection, force = false) {
+    if (!this.guestId || !this.localStream || !this.streamConnected) {
+      return;
+    }
+    const current = this.connections.get(role);
+    if (!force && (!current || current.connection !== sourceConnection)) {
+      return;
+    }
+    if (this.reconnectTimers.has(role)) {
+      return;
+    }
+
+    const attempt = (this.reconnectAttempts.get(role) || 0) + 1;
+    this.reconnectAttempts.set(role, attempt);
+    const delayMs = Math.min(15000, 1200 * attempt);
+    this.onLog?.(`[guest/${role}] Reconnexion automatique dans ${Math.round(delayMs / 1000)}s.`);
+
+    const timer = window.setTimeout(async () => {
+      this.reconnectTimers.delete(role);
+      this.closeRoleConnection(role);
+      if (!this.guestId || !this.localStream || !this.streamConnected) {
+        return;
+      }
+      try {
+        await clearSignals(role, this.guestId);
+        await this.startRoleConnection(role);
+        await this.updateGuestConnectionFlags();
+        this.emitConnectionState();
+      } catch (error) {
+        this.onLog?.(`[guest/${role}] Échec reconnexion: ${error.message}`);
+        this.scheduleRoleReconnect(role, sourceConnection, true);
+      }
+    }, delayMs);
+
+    this.reconnectTimers.set(role, timer);
+  }
+
+  closeRoleConnection(role) {
+    const item = this.connections.get(role);
+    if (!item) {
+      return;
+    }
+    item.unsubscribeAnswer?.();
+    item.unsubscribeCandidates?.();
+    item.connection?.close();
+    this.connections.delete(role);
   }
 
   registerDisconnectCleanup() {
@@ -680,12 +751,15 @@ export class GuestCamPublisher {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe?.());
     this.unsubscribers = [];
 
-    for (const { connection, unsubscribeAnswer, unsubscribeCandidates } of this.connections.values()) {
-      unsubscribeAnswer?.();
-      unsubscribeCandidates?.();
-      connection.close();
+    for (const role of this.reconnectTimers.keys()) {
+      this.clearReconnectTimer(role);
+    }
+
+    for (const role of [...this.connections.keys()]) {
+      this.closeRoleConnection(role);
     }
     this.connections.clear();
+    this.reconnectAttempts.clear();
     for (const peerId of [...this.voiceConnections.keys()]) {
       this.closeVoiceConnection(peerId);
     }
