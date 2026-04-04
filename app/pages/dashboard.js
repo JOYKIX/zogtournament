@@ -639,8 +639,8 @@ function normalizeParticipants(snapshotValue) {
   return Object.entries(snapshotValue)
     .filter(([, participant]) => participant && typeof participant === 'object')
     .map(([id, participant]) => ({
-      id,
       ...participant,
+      id,
     }));
 }
 
