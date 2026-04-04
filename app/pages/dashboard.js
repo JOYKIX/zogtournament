@@ -27,7 +27,15 @@ import {
 } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 import { createKeybindingManager, formatBinding } from '../shared/keybindings.js';
-import { getRemainingTime, resolveTimerStatus, TIMER_STATUS } from '../shared/timer-state.js';
+import {
+  normalizeTimerState as normalizeSharedTimerState,
+  resetTimerState as resetSharedTimerState,
+  startTimerForParticipant,
+  stopTimerState,
+  switchTimerParticipant,
+  tickTimerState,
+  TIMER_STATUS,
+} from '../shared/timer-state.js';
 import { CAM_SLOT_IDS } from '../webrtc/constants.js';
 import { GuestCamAdminManager } from '../webrtc/admin-room.js';
 import { camSlotsRef, patchGuest } from '../webrtc/signaling.js';
@@ -382,113 +390,48 @@ function normalizeTimerHealthConfig(value = {}) {
 }
 
 function normalizeTimerState(timerValue = {}) {
-  const initialSeconds = sanitizeTimerInitialSeconds(timerValue.initialSeconds);
-  const initialMs = initialSeconds * TIMER_SECOND_MS;
-  const participant1MsRaw = Number(timerValue.participant1Ms);
-  const participant2MsRaw = Number(timerValue.participant2Ms);
-  const participant1Ms = Math.max(
-    0,
-    Math.round(Number.isFinite(participant1MsRaw) ? participant1MsRaw : initialMs)
-  );
-  const participant2Ms = Math.max(
-    0,
-    Math.round(Number.isFinite(participant2MsRaw) ? participant2MsRaw : initialMs)
-  );
-  const activeParticipant =
-    timerValue.activeParticipant === 1 || timerValue.activeParticipant === 2 ? timerValue.activeParticipant : null;
-  const isRunning = Boolean(timerValue.isRunning && activeParticipant);
-  const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
-  const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
-  const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
-  const profile = sanitizeTimerProfile(timerValue.profile);
-  const healthConfig = normalizeTimerHealthConfig(timerValue.healthConfig);
-  const status = resolveTimerStatus({
-    status: timerValue.status,
-    isRunning,
-    activeParticipant,
-  });
+  const normalized = normalizeSharedTimerState(timerValue);
 
   return {
-    initialSeconds,
-    participant1Ms,
-    participant2Ms,
-    participant1Label,
-    participant2Label,
-    profile,
-    healthConfig,
-    activeParticipant: isRunning ? activeParticipant : null,
-    isRunning,
-    status,
-    lastUpdatedAt,
+    ...normalized,
+    initialSeconds: sanitizeTimerInitialSeconds(normalized.initialSeconds),
+    participant1Label: sanitizeTimerLabel(normalized.participant1Label, DEFAULT_TIMER_LABEL_1),
+    participant2Label: sanitizeTimerLabel(normalized.participant2Label, DEFAULT_TIMER_LABEL_2),
+    profile: sanitizeTimerProfile(normalized.profile),
+    healthConfig: normalizeTimerHealthConfig(normalized.healthConfig),
   };
 }
 
 function resetTimerState(timer, now = Date.now(), labels = null) {
-  const normalized = normalizeTimerState(timer);
-  const initialMs = normalized.initialSeconds * TIMER_SECOND_MS;
-  const nextLabels = labels || {
-    participant1Label: normalized.participant1Label,
-    participant2Label: normalized.participant2Label,
-  };
-
-  return {
-    ...normalized,
-    participant1Ms: initialMs,
-    participant2Ms: initialMs,
-    participant1Label: sanitizeTimerLabel(nextLabels.participant1Label, DEFAULT_TIMER_LABEL_1),
-    participant2Label: sanitizeTimerLabel(nextLabels.participant2Label, DEFAULT_TIMER_LABEL_2),
-    activeParticipant: null,
-    isRunning: false,
-    status: TIMER_STATUS.IDLE,
-    lastUpdatedAt: now,
-  };
+  return normalizeTimerState(resetSharedTimerState(normalizeTimerState(timer), now, labels));
 }
 
 function resolveTimerNow(baseTimer, now = Date.now()) {
-  const timer = normalizeTimerState(baseTimer);
-  if (!timer.isRunning || !timer.activeParticipant) {
-    if (timer.status === TIMER_STATUS.FINISHED) {
-      return timer;
-    }
-    return timer;
-  }
-
-  const elapsed = Math.max(0, now - timer.lastUpdatedAt);
-  if (elapsed <= 0) {
-    return timer;
-  }
-
-  const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
-  const remaining = getRemainingTime(
-    {
-      status: timer.status,
-      remainingMs: timer[key],
-      isRunning: timer.isRunning,
-      lastUpdatedAt: timer.lastUpdatedAt,
-    },
-    now
-  );
-  if (remaining === 0) {
-    return {
-      ...timer,
-      [key]: 0,
-      activeParticipant: null,
-      isRunning: false,
-      status: TIMER_STATUS.FINISHED,
-      lastUpdatedAt: now,
-    };
-  }
-
-  return {
-    ...timer,
-    [key]: remaining,
-    status: TIMER_STATUS.RUNNING,
-    lastUpdatedAt: now,
-  };
+  return normalizeTimerState(tickTimerState(baseTimer, now));
 }
 
 function getResolvedCurrentTimer(now = Date.now()) {
   return resolveTimerNow(currentOverlay.timer, now);
+}
+
+async function persistTimerTick() {
+  const timer = normalizeTimerState(currentOverlay.timer);
+  if (!timer.activeParticipant) {
+    return;
+  }
+
+  const nextTimer = resolveTimerNow(timer, Date.now());
+  const hasChanged =
+    nextTimer.participant1.remainingMs !== timer.participant1.remainingMs ||
+    nextTimer.participant2.remainingMs !== timer.participant2.remainingMs ||
+    nextTimer.participant1.status !== timer.participant1.status ||
+    nextTimer.participant2.status !== timer.participant2.status ||
+    nextTimer.activeParticipant !== timer.activeParticipant;
+  if (!hasChanged) {
+    return;
+  }
+
+  await setOverlayTimer(nextTimer);
 }
 
 function isEditableElement(element) {
@@ -542,26 +485,28 @@ function formatMsToClock(value) {
 }
 
 function renderLiveTimerPanel() {
-  const timer = resolveTimerNow(currentOverlay.timer, Date.now());
+  const timer = normalizeTimerState(currentOverlay.timer);
   const activeParticipant = timer.activeParticipant;
+  const participant1Ms = timer.participant1.remainingMs;
+  const participant2Ms = timer.participant2.remainingMs;
 
   if (liveCountdownP1) {
-    liveCountdownP1.textContent = `${timer.participant1Label}: ${formatMsToClock(timer.participant1Ms)}`;
-    liveCountdownP1.classList.toggle('is-active', Boolean(timer.isRunning && activeParticipant === 1));
+    liveCountdownP1.textContent = `${timer.participant1Label}: ${formatMsToClock(participant1Ms)}`;
+    liveCountdownP1.classList.toggle('is-active', Boolean(activeParticipant === 1 && timer.participant1.isRunning));
   }
 
   if (liveCountdownP2) {
-    liveCountdownP2.textContent = `${timer.participant2Label}: ${formatMsToClock(timer.participant2Ms)}`;
-    liveCountdownP2.classList.toggle('is-active', Boolean(timer.isRunning && activeParticipant === 2));
+    liveCountdownP2.textContent = `${timer.participant2Label}: ${formatMsToClock(participant2Ms)}`;
+    liveCountdownP2.classList.toggle('is-active', Boolean(activeParticipant === 2 && timer.participant2.isRunning));
   }
 
   if (!liveTimerStatus) {
     return;
   }
 
-  if (!timer.isRunning || !activeParticipant) {
-    if (timer.participant1Ms <= 0 || timer.participant2Ms <= 0) {
-      const endedLabel = timer.participant1Ms <= 0 ? timer.participant1Label : timer.participant2Label;
+  if (!activeParticipant) {
+    if (timer.participant1.status === TIMER_STATUS.FINISHED || timer.participant2.status === TIMER_STATUS.FINISHED) {
+      const endedLabel = timer.participant1.status === TIMER_STATUS.FINISHED ? timer.participant1Label : timer.participant2Label;
       liveTimerStatus.textContent = `Temps écoulé · ${endedLabel}`;
       return;
     }
@@ -1102,16 +1047,9 @@ async function syncTimerParticipantLabels() {
 
 async function setTimerInitialSeconds(initialSeconds) {
   const safeInitialSeconds = sanitizeTimerInitialSeconds(initialSeconds);
-  const nextTimer = getResolvedCurrentTimer();
-  const initialMs = safeInitialSeconds * TIMER_SECOND_MS;
-  nextTimer.initialSeconds = safeInitialSeconds;
-  nextTimer.participant1Ms = initialMs;
-  nextTimer.participant2Ms = initialMs;
-  nextTimer.activeParticipant = null;
-  nextTimer.isRunning = false;
-  nextTimer.lastUpdatedAt = Date.now();
-
-  await setOverlayTimer(nextTimer);
+  const baseTimer = normalizeTimerState(getResolvedCurrentTimer());
+  baseTimer.initialSeconds = safeInitialSeconds;
+  await setOverlayTimer(resetTimerState(baseTimer, Date.now()));
 }
 
 async function setTimerProfile(profile) {
@@ -1131,52 +1069,18 @@ async function setTimerHealthConfig(partialConfig) {
 }
 
 async function startTimer(participant) {
-  const starter = participant === 2 ? 2 : 1;
   const now = Date.now();
-  const timer = resolveTimerNow(currentOverlay.timer, now);
-  const key = starter === 1 ? 'participant1Ms' : 'participant2Ms';
-
-  if (timer[key] <= 0) {
-    return;
-  }
-
-  timer.activeParticipant = starter;
-  timer.isRunning = true;
-  timer.status = TIMER_STATUS.RUNNING;
-  timer.lastUpdatedAt = now;
+  const timer = startTimerForParticipant(currentOverlay.timer, participant, now);
   await setOverlayTimer(timer);
 }
 
 async function stopTimer() {
-  const timer = resolveTimerNow(currentOverlay.timer, Date.now());
-  timer.activeParticipant = null;
-  timer.isRunning = false;
-  timer.status = timer.participant1Ms <= 0 || timer.participant2Ms <= 0 ? TIMER_STATUS.FINISHED : TIMER_STATUS.IDLE;
-  timer.lastUpdatedAt = Date.now();
+  const timer = stopTimerState(currentOverlay.timer, Date.now());
   await setOverlayTimer(timer);
 }
 
 async function switchTimer() {
-  const timer = resolveTimerNow(currentOverlay.timer, Date.now());
-  if (!timer.isRunning || !timer.activeParticipant) {
-    return;
-  }
-
-  const nextParticipant = timer.activeParticipant === 1 ? 2 : 1;
-  const nextKey = nextParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
-  if (timer[nextKey] <= 0) {
-    timer.activeParticipant = null;
-    timer.isRunning = false;
-    timer.status = TIMER_STATUS.FINISHED;
-    timer.lastUpdatedAt = Date.now();
-    await setOverlayTimer(timer);
-    return;
-  }
-
-  timer.activeParticipant = nextParticipant;
-  timer.isRunning = true;
-  timer.status = TIMER_STATUS.RUNNING;
-  timer.lastUpdatedAt = Date.now();
+  const timer = switchTimerParticipant(currentOverlay.timer, Date.now());
   await setOverlayTimer(timer);
 }
 
@@ -1636,7 +1540,6 @@ function bindRealtimeSubscriptions() {
       ...value.timer,
       profile: value.timerProfile ?? value.timer?.profile,
     });
-    const resolvedTimer = resolveTimerNow(normalizedTimer, Date.now());
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
       imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
@@ -1653,8 +1556,8 @@ function bindRealtimeSubscriptions() {
       guestCamHeightPx: sanitizeGuestCamHeight(value.guestCamHeightPx),
       guestCamOffsetYPx: sanitizeGuestCamOffsetY(value.guestCamOffsetYPx),
       timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
-      timerProfile: resolvedTimer.profile,
-      timer: resolvedTimer,
+      timerProfile: normalizedTimer.profile,
+      timer: normalizedTimer,
     };
 
     if (duelImageHeightInput) {
@@ -2479,6 +2382,9 @@ showLogin();
 renderLiveWinnerControls();
 
 timerTickHandle = window.setInterval(() => {
+  persistTimerTick().catch((error) => {
+    console.error('Erreur de synchronisation timer', error);
+  });
   renderLiveTimerPanel();
 }, TIMER_TICK_INTERVAL_MS);
 

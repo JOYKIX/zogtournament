@@ -1,6 +1,6 @@
 import { matchesRef, onValue, overlayRef } from '../shared/firebase.js';
 import { getOverlayMatches, normalizeTournament } from '../shared/tournament.js';
-import { getRemainingTime, resolveTimerStatus, TIMER_STATUS } from '../shared/timer-state.js';
+import { normalizeTimerState as normalizeSharedTimerState } from '../shared/timer-state.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 
 const leftFighter = document.getElementById('leftFighter');
@@ -18,7 +18,6 @@ const timerP1HealthFill = document.getElementById('timerP1HealthFill');
 const timerP2HealthFill = document.getElementById('timerP2HealthFill');
 const timerP1HealthTrail = document.getElementById('timerP1HealthTrail');
 const timerP2HealthTrail = document.getElementById('timerP2HealthTrail');
-const TIMER_RENDER_INTERVAL_MS = 250;
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
@@ -185,45 +184,17 @@ function normalizeTimerHealthConfig(value = {}) {
 }
 
 function normalizeTimerState(timerValue = {}) {
-  const initialSeconds = Number(timerValue.initialSeconds || DEFAULT_TIMER_INITIAL_SECONDS);
-  const safeInitialSeconds = Number.isFinite(initialSeconds) ? Math.max(10, Math.min(7200, Math.round(initialSeconds))) : DEFAULT_TIMER_INITIAL_SECONDS;
-  const initialMs = safeInitialSeconds * TIMER_SECOND_MS;
-  const participant1MsRaw = Number(timerValue.participant1Ms);
-  const participant2MsRaw = Number(timerValue.participant2Ms);
-  const participant1Ms = Math.max(
-    0,
-    Math.round(Number.isFinite(participant1MsRaw) ? participant1MsRaw : initialMs)
-  );
-  const participant2Ms = Math.max(
-    0,
-    Math.round(Number.isFinite(participant2MsRaw) ? participant2MsRaw : initialMs)
-  );
-  const activeParticipant =
-    timerValue.activeParticipant === 1 || timerValue.activeParticipant === 2 ? timerValue.activeParticipant : null;
-  const isRunning = Boolean(timerValue.isRunning && activeParticipant);
-  const lastUpdatedAt = Number(timerValue.lastUpdatedAt || Date.now());
-  const participant1Label = sanitizeTimerLabel(timerValue.participant1Label, DEFAULT_TIMER_LABEL_1);
-  const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
-  const profile = sanitizeTimerProfile(timerValue.profile);
-  const healthConfig = normalizeTimerHealthConfig(timerValue.healthConfig);
-  const status = resolveTimerStatus({
-    status: timerValue.status,
-    isRunning,
-    activeParticipant,
-  });
+  const normalized = normalizeSharedTimerState(timerValue);
 
   return {
-    initialSeconds: safeInitialSeconds,
-    participant1Ms,
-    participant2Ms,
-    participant1Label,
-    participant2Label,
-    profile,
-    healthConfig,
-    activeParticipant: isRunning ? activeParticipant : null,
-    isRunning,
-    status,
-    lastUpdatedAt,
+    ...normalized,
+    initialSeconds: Number.isFinite(Number(normalized.initialSeconds))
+      ? Math.max(10, Math.min(7200, Math.round(Number(normalized.initialSeconds))))
+      : DEFAULT_TIMER_INITIAL_SECONDS,
+    participant1Label: sanitizeTimerLabel(normalized.participant1Label, DEFAULT_TIMER_LABEL_1),
+    participant2Label: sanitizeTimerLabel(normalized.participant2Label, DEFAULT_TIMER_LABEL_2),
+    profile: sanitizeTimerProfile(normalized.profile),
+    healthConfig: normalizeTimerHealthConfig(normalized.healthConfig),
   };
 }
 
@@ -232,49 +203,6 @@ function formatTimer(ms) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function resolveTimerNow(baseTimer, now = Date.now()) {
-  const timer = normalizeTimerState(baseTimer);
-  if (!timer.isRunning || !timer.activeParticipant) {
-    if (timer.status === TIMER_STATUS.FINISHED) {
-      return timer;
-    }
-    return timer;
-  }
-
-  const elapsed = Math.max(0, now - timer.lastUpdatedAt);
-  if (elapsed <= 0) {
-    return timer;
-  }
-
-  const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
-  const remaining = getRemainingTime(
-    {
-      status: timer.status,
-      remainingMs: timer[key],
-      isRunning: timer.isRunning,
-      lastUpdatedAt: timer.lastUpdatedAt,
-    },
-    now
-  );
-  if (remaining === 0) {
-    return {
-      ...timer,
-      [key]: 0,
-      activeParticipant: null,
-      isRunning: false,
-      status: TIMER_STATUS.FINISHED,
-      lastUpdatedAt: now,
-    };
-  }
-
-  return {
-    ...timer,
-    [key]: remaining,
-    status: TIMER_STATUS.RUNNING,
-    lastUpdatedAt: now,
-  };
 }
 
 function fighterMarkup(player) {
@@ -321,7 +249,7 @@ function render() {
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
-  const resolvedTimer = resolveTimerNow({
+  const resolvedTimer = normalizeTimerState({
     ...currentTimer,
     profile: currentTimerProfile,
   });
@@ -362,10 +290,10 @@ function render() {
     duelTimers.style.setProperty('--health-anim-intensity', `${resolvedTimer.healthConfig.animationIntensity / 100}`);
   }
   if (timerP1Value) {
-    timerP1Value.textContent = formatTimer(resolvedTimer.participant1Ms);
+    timerP1Value.textContent = formatTimer(resolvedTimer.participant1.remainingMs);
   }
   if (timerP2Value) {
-    timerP2Value.textContent = formatTimer(resolvedTimer.participant2Ms);
+    timerP2Value.textContent = formatTimer(resolvedTimer.participant2.remainingMs);
   }
   if (timerP1Label) {
     timerP1Label.textContent = resolvedTimer.participant1Label;
@@ -375,19 +303,19 @@ function render() {
   }
 
   if (timerParticipant1 && timerParticipant2) {
-    timerParticipant1.classList.toggle('active', resolvedTimer.isRunning && resolvedTimer.activeParticipant === 1);
-    timerParticipant2.classList.toggle('active', resolvedTimer.isRunning && resolvedTimer.activeParticipant === 2);
+    timerParticipant1.classList.toggle('active', resolvedTimer.activeParticipant === 1 && resolvedTimer.participant1.isRunning);
+    timerParticipant2.classList.toggle('active', resolvedTimer.activeParticipant === 2 && resolvedTimer.participant2.isRunning);
   }
 
   const initialMs = resolvedTimer.initialSeconds * TIMER_SECOND_MS;
-  const ratioP1 = initialMs > 0 ? Math.max(0, Math.min(1, resolvedTimer.participant1Ms / initialMs)) : 0;
-  const ratioP2 = initialMs > 0 ? Math.max(0, Math.min(1, resolvedTimer.participant2Ms / initialMs)) : 0;
+  const ratioP1 = initialMs > 0 ? Math.max(0, Math.min(1, resolvedTimer.participant1.remainingMs / initialMs)) : 0;
+  const ratioP2 = initialMs > 0 ? Math.max(0, Math.min(1, resolvedTimer.participant2.remainingMs / initialMs)) : 0;
   const dangerMode = resolvedTimer.healthConfig.dangerEffects && (ratioP1 <= 0.2 || ratioP2 <= 0.2);
 
-  applyHealthBar(timerP1HealthFill, resolvedTimer.participant1Ms, initialMs, resolvedTimer.healthConfig);
-  applyHealthBar(timerP2HealthFill, resolvedTimer.participant2Ms, initialMs, resolvedTimer.healthConfig);
-  applyHealthBar(timerP1HealthTrail, resolvedTimer.participant1Ms, initialMs, resolvedTimer.healthConfig);
-  applyHealthBar(timerP2HealthTrail, resolvedTimer.participant2Ms, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP1HealthFill, resolvedTimer.participant1.remainingMs, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP2HealthFill, resolvedTimer.participant2.remainingMs, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP1HealthTrail, resolvedTimer.participant1.remainingMs, initialMs, resolvedTimer.healthConfig);
+  applyHealthBar(timerP2HealthTrail, resolvedTimer.participant2.remainingMs, initialMs, resolvedTimer.healthConfig);
 
   if (timerCenterValue) {
     timerCenterValue.textContent = 'VS';
@@ -420,7 +348,3 @@ onValue(overlayRef, (snapshot) => {
   currentTimer = normalizeTimerState(value.timer);
   render();
 });
-
-window.setInterval(() => {
-  render();
-}, TIMER_RENDER_INTERVAL_MS);
