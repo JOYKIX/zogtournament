@@ -28,6 +28,7 @@ const rootRef = ref(db, 'zogTournament');
 const connectedRef = ref(db, '.info/connected');
 const usersRef = ref(db, 'zogTournament/users');
 const participantsRef = ref(db, 'zogTournament/participants');
+const participantImagesRef = ref(db, 'zogTournament/participantImages');
 const matchesRef = ref(db, 'zogTournament/matches');
 const overlayRef = ref(db, 'zogTournament/overlay');
 const profileRef = ref(db, 'zogTournament/profile');
@@ -40,6 +41,7 @@ export {
   onDisconnect,
   onValue,
   overlayRef,
+  participantImagesRef,
   profileRef,
   participantsRef,
   push,

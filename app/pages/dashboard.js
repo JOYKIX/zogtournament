@@ -4,6 +4,7 @@ import {
   matchesRef,
   onValue,
   overlayRef,
+  participantImagesRef,
   participantsRef,
   profileRef,
   push,
@@ -640,27 +641,40 @@ async function loadParticipantImagePresets() {
   }
 
   try {
-    const response = await fetch('/image_participants/manifest.json', { cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const payload = await response.json();
-    if (!Array.isArray(payload)) {
-      throw new Error('Manifest invalide');
-    }
+    const snapshot = await get(participantImagesRef);
+    const payload = snapshot.exists() ? snapshot.val() : [];
 
-    participantImagePresetPaths = payload
-      .filter((entry) => typeof entry === 'string')
-      .map((entry) => entry.trim())
+    const rawEntries = Array.isArray(payload)
+      ? payload
+      : payload && typeof payload === 'object'
+        ? Object.values(payload)
+        : [];
+
+    participantImagePresetPaths = rawEntries
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return entry.trim();
+        }
+        if (entry && typeof entry === 'object') {
+          const candidate = entry.path || entry.url || entry.name || '';
+          return String(candidate).trim();
+        }
+        return '';
+      })
       .filter(Boolean)
-      .map((entry) => (entry.startsWith('/') ? entry : `/image_participants/${entry}`));
+      .map((entry) => {
+        if (/^https?:\/\//i.test(entry)) {
+          return entry;
+        }
+        return entry.startsWith('/') ? entry : `/image_participants/${entry}`;
+      });
     renderParticipantImagePresetOptions();
     syncParticipantImagePresetFromInput();
   } catch (error) {
-    console.error('Impossible de charger image_participants/manifest.json', error);
+    console.error('Impossible de charger la liste des images depuis Firebase', error);
     participantImagePresetPaths = [];
     participantImagePresetSelect.innerHTML =
-      '<option value="">Manifest introuvable (utilise le champ URL)</option>';
+      '<option value="">Images Firebase introuvables (utilise le champ URL)</option>';
   }
 }
 
