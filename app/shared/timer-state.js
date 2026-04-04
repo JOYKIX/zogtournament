@@ -203,7 +203,21 @@ export function resetTimerState(timerValue, now = Date.now(), labels = null) {
 
 export function startTimerForParticipant(timerValue, participant, now = Date.now()) {
   const timer = tickTimerState(timerValue, now);
-  const target = participant === 2 ? 2 : 1;
+  const requestedTarget = participant === 2 ? 2 : 1;
+  const requestedKey = requestedTarget === 1 ? 'participant1' : 'participant2';
+  const alternateTarget = requestedTarget === 1 ? 2 : 1;
+  const alternateKey = alternateTarget === 1 ? 'participant1' : 'participant2';
+
+  const requestedHasTime =
+    timer[requestedKey].status !== TIMER_STATUS.FINISHED && timer[requestedKey].remainingMs > 0;
+  const alternateHasTime =
+    timer[alternateKey].status !== TIMER_STATUS.FINISHED && timer[alternateKey].remainingMs > 0;
+
+  let target = requestedTarget;
+  if (!requestedHasTime && alternateHasTime) {
+    target = alternateTarget;
+  }
+
   const key = target === 1 ? 'participant1' : 'participant2';
   const otherKey = target === 1 ? 'participant2' : 'participant1';
 
