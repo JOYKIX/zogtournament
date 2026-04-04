@@ -12,43 +12,30 @@ body {
   position: fixed;
   inset: 0;
   height: 100%;
-  padding: clamp(1rem, 2.2vh, 1.8rem) clamp(1rem, 2.2vw, 2.4rem);
+  width: 100%;
+  padding: clamp(0.45rem, 1.1vh, 0.9rem) clamp(0.6rem, 1.2vw, 1.2rem);
   background: transparent;
   box-sizing: border-box;
   overflow: hidden;
 }
 
-.tree-title-wrap {
-  margin-bottom: 0.9rem;
-}
-
-.tree-root h2 {
-  margin: 0;
-  font-size: clamp(1.15rem, 1.5vw, 1.5rem);
-  color: #f8fbff;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  text-shadow:
-    0 0 18px rgba(113, 157, 255, 0.5),
-    0 4px 18px rgba(0, 0, 0, 0.6);
-}
-
 .tree-grid {
   --round-count: 3;
-  --column-gap: clamp(1.1rem, 2.4vw, 2.3rem);
-  --card-width: clamp(220px, 23vw, 300px);
-  --card-height: 100px;
+  --column-gap: clamp(0.7rem, 1.45vw, 1.5rem);
+  --card-width: clamp(200px, 18.2vw, 312px);
+  --card-height: clamp(74px, 9.6vh, 104px);
   --base-match-center: 150px;
   --connector: rgba(173, 197, 255, 0.88);
 
   position: relative;
-  height: calc(100% - 3.1rem);
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(var(--round-count), minmax(0, var(--card-width)));
   justify-content: center;
   gap: var(--column-gap);
-  overflow: auto;
-  padding: 0.2rem 0.5rem 0.7rem 0;
+  overflow: hidden;
+  padding: 0.2rem 0.35rem 0.35rem 0;
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: rgba(168, 190, 255, 0.6) rgba(18, 26, 49, 0.35);
@@ -77,9 +64,9 @@ body {
 }
 
 .round-title {
-  margin: 0 0 0.9rem;
+  margin: 0 0 clamp(0.4rem, 0.9vh, 0.75rem);
   text-align: center;
-  font-size: 0.86rem;
+  font-size: clamp(0.72rem, 0.95vw, 0.9rem);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -106,8 +93,8 @@ body {
   height: var(--card-height);
   box-sizing: border-box;
   border: 1px solid rgba(154, 182, 255, 0.7);
-  border-radius: 14px;
-  padding: 0.52rem;
+  border-radius: 12px;
+  padding: clamp(0.35rem, 0.58vw, 0.54rem);
   display: grid;
   grid-template-rows: 1fr 1fr;
   gap: 0.4rem;
@@ -143,12 +130,12 @@ body {
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 0.44rem 0.65rem;
-  border-radius: 9px;
+  padding: clamp(0.28rem, 0.45vw, 0.44rem) clamp(0.4rem, 0.68vw, 0.6rem);
+  border-radius: 8px;
   border: 1px solid rgba(128, 152, 219, 0.68);
   background: linear-gradient(170deg, rgba(20, 30, 63, 0.85), rgba(13, 19, 43, 0.72));
   color: #f3f7ff;
-  font-size: 0.88rem;
+  font-size: clamp(0.75rem, 1vw, 0.9rem);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
