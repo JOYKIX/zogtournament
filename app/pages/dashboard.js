@@ -57,6 +57,7 @@ const bracketContainer = document.getElementById('bracketContainer');
 const liveBracketContainer = document.getElementById('liveBracketContainer');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
+const openCamOverlayBtn = document.getElementById('openCamOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
 const overlayNextBtn = document.getElementById('overlayNextBtn');
 const duelImageHeightInput = document.getElementById('duelImageHeightPx');
@@ -1010,6 +1011,10 @@ function openDuelOverlayWindow() {
 
 function openTreeOverlayWindow() {
   window.open('overlay-tree.html', '_blank', 'width=1600,height=900');
+}
+
+function openCamOverlayWindow() {
+  window.open('cam.html', '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
@@ -2011,6 +2016,7 @@ camGuestsList?.addEventListener('click', async (event) => {
 
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
 openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
+openCamOverlayBtn?.addEventListener('click', openCamOverlayWindow);
 logoutBtn.addEventListener('click', () => {
   logout();
 });

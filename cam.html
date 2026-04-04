@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caméras invités</title>
+    <link rel="stylesheet" href="assets/styles/cam.css" />
+  </head>
+  <body>
+    <main class="cam-root" aria-label="Caméras et micros invités">
+      <article class="guest-slot" id="guestSlot1">
+        <video id="guestVideo1" autoplay playsinline muted></video>
+        <audio id="guestAudio1" autoplay playsinline></audio>
+      </article>
+      <article class="guest-slot" id="guestSlot2">
+        <video id="guestVideo2" autoplay playsinline muted></video>
+        <audio id="guestAudio2" autoplay playsinline></audio>
+      </article>
+      <article class="guest-slot" id="guestSlot3">
+        <video id="guestVideo3" autoplay playsinline muted></video>
+        <audio id="guestAudio3" autoplay playsinline></audio>
+      </article>
+    </main>
+
+    <script type="module" src="app/pages/cam.js"></script>
+  </body>
+</html>
