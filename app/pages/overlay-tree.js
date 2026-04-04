@@ -1,13 +1,63 @@
 import { matchesRef, onValue, overlayRef } from '../shared/firebase.js';
 import { computeWinner, getOverlayMatches, getRoundTitle, normalizeTournament } from '../shared/tournament.js';
 import { escapeHtml } from '../shared/view-helpers.js';
+import { GuestCamOverlayReceiver } from '../webrtc/overlay-room.js';
 
 const overlayTreeContainer = document.getElementById('overlayTreeContainer');
+const guestCamsLayer = document.querySelector('.guest-cams-layer');
+const guestSlot1 = document.getElementById('guestSlot1');
+const guestSlot2 = document.getElementById('guestSlot2');
+const guestSlot3 = document.getElementById('guestSlot3');
+const guestVideo1 = document.getElementById('guestVideo1');
+const guestVideo2 = document.getElementById('guestVideo2');
+const guestVideo3 = document.getElementById('guestVideo3');
+const guestAudio1 = document.getElementById('guestAudio1');
+const guestAudio2 = document.getElementById('guestAudio2');
+const guestAudio3 = document.getElementById('guestAudio3');
 
 const BASE_MATCH_CENTER = 150;
+const DEFAULT_GUEST_CAM_OFFSET_Y_PX = 0;
+const DEFAULT_GUEST_CAM_WIDTH_PX = 320;
+const DEFAULT_GUEST_CAM_HEIGHT_PX = 180;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
+let currentGuestCamOffsetYPx = DEFAULT_GUEST_CAM_OFFSET_Y_PX;
+let currentGuestCamWidthPx = DEFAULT_GUEST_CAM_WIDTH_PX;
+let currentGuestCamHeightPx = DEFAULT_GUEST_CAM_HEIGHT_PX;
+
+const slotNodes = {
+  slot1: { wrapper: guestSlot1, video: guestVideo1, audio: guestAudio1 },
+  slot2: { wrapper: guestSlot2, video: guestVideo2, audio: guestAudio2 },
+  slot3: { wrapper: guestSlot3, video: guestVideo3, audio: guestAudio3 },
+};
+
+function sanitizeGuestCamOffsetY(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_OFFSET_Y_PX;
+  }
+
+  return Math.round(parsed);
+}
+
+function sanitizeGuestCamWidth(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_WIDTH_PX;
+  }
+
+  return Math.max(120, Math.min(920, Math.round(parsed)));
+}
+
+function sanitizeGuestCamHeight(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_GUEST_CAM_HEIGHT_PX;
+  }
+
+  return Math.max(80, Math.min(520, Math.round(parsed)));
+}
 
 function createMatchCard(match, roundIndex, matchIndex, flatMatches, hasNextRound) {
   const winner = computeWinner(match);
@@ -85,6 +135,12 @@ function renderTree() {
   rounds.forEach((round, roundIndex) => {
     overlayTreeContainer.appendChild(createRoundColumn(round, roundIndex, rounds.length, flatMatches));
   });
+
+  if (guestCamsLayer) {
+    guestCamsLayer.style.setProperty('--guest-cams-offset-y', `${currentGuestCamOffsetYPx}px`);
+    guestCamsLayer.style.setProperty('--guest-cam-width-px', `${currentGuestCamWidthPx}px`);
+    guestCamsLayer.style.setProperty('--guest-cam-height-px', `${currentGuestCamHeightPx}px`);
+  }
 }
 
 onValue(matchesRef, (snapshot) => {
@@ -95,5 +151,43 @@ onValue(matchesRef, (snapshot) => {
 onValue(overlayRef, (snapshot) => {
   const value = snapshot.val() || {};
   currentMatchIndex = Number(value.matchIndex || 0);
+  currentGuestCamOffsetYPx = sanitizeGuestCamOffsetY(value.guestCamOffsetYPx);
+  currentGuestCamWidthPx = sanitizeGuestCamWidth(value.guestCamWidthPx);
+  currentGuestCamHeightPx = sanitizeGuestCamHeight(value.guestCamHeightPx);
   renderTree();
+});
+
+const overlayReceiver = new GuestCamOverlayReceiver({
+  onSlotUpdate: (slotId, stream, isVisible, meta = {}) => {
+    const slot = slotNodes[slotId];
+    if (!slot?.wrapper || !slot.video || !slot.audio) {
+      return;
+    }
+
+    slot.wrapper.classList.toggle('is-visible', Boolean(isVisible));
+    slot.video.srcObject = stream || null;
+    slot.video.muted = true;
+    slot.audio.srcObject = stream || null;
+    slot.audio.muted = !meta.includeOverlayAudio;
+    slot.audio.volume = meta.includeOverlayAudio ? 1 : 0;
+
+    if (!stream) {
+      return;
+    }
+
+    slot.video.play().catch(() => {
+      // Certains navigateurs bloquent l'autoplay vidéo sans interaction utilisateur.
+    });
+    slot.audio.play().catch(() => {
+      // Certains navigateurs bloquent l'autoplay audio sans interaction utilisateur.
+    });
+  },
+  onLog: (message) => {
+    console.log('[OverlayTreeCam]', message);
+  },
+});
+overlayReceiver.start();
+
+window.addEventListener('beforeunload', () => {
+  overlayReceiver.stop();
 });
