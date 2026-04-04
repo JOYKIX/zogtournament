@@ -487,6 +487,10 @@ function resolveTimerNow(baseTimer, now = Date.now()) {
   };
 }
 
+function getResolvedCurrentTimer(now = Date.now()) {
+  return resolveTimerNow(currentOverlay.timer, now);
+}
+
 function isEditableElement(element) {
   return (
     element instanceof HTMLInputElement ||
@@ -1083,7 +1087,7 @@ function getTimerParticipantLabels() {
 }
 
 async function syncTimerParticipantLabels() {
-  const timer = normalizeTimerState(currentOverlay.timer);
+  const timer = getResolvedCurrentTimer();
   const labels = getTimerParticipantLabels();
   if (timer.participant1Label === labels.participant1Label && timer.participant2Label === labels.participant2Label) {
     return;
@@ -1098,7 +1102,7 @@ async function syncTimerParticipantLabels() {
 
 async function setTimerInitialSeconds(initialSeconds) {
   const safeInitialSeconds = sanitizeTimerInitialSeconds(initialSeconds);
-  const nextTimer = normalizeTimerState(currentOverlay.timer);
+  const nextTimer = getResolvedCurrentTimer();
   const initialMs = safeInitialSeconds * TIMER_SECOND_MS;
   nextTimer.initialSeconds = safeInitialSeconds;
   nextTimer.participant1Ms = initialMs;
@@ -1112,13 +1116,13 @@ async function setTimerInitialSeconds(initialSeconds) {
 
 async function setTimerProfile(profile) {
   const safeProfile = sanitizeTimerProfile(profile);
-  const nextTimer = normalizeTimerState(currentOverlay.timer);
+  const nextTimer = getResolvedCurrentTimer();
   nextTimer.profile = safeProfile;
   await setOverlayTimer(nextTimer);
 }
 
 async function setTimerHealthConfig(partialConfig) {
-  const nextTimer = normalizeTimerState(currentOverlay.timer);
+  const nextTimer = getResolvedCurrentTimer();
   nextTimer.healthConfig = normalizeTimerHealthConfig({
     ...nextTimer.healthConfig,
     ...partialConfig,
@@ -1632,6 +1636,7 @@ function bindRealtimeSubscriptions() {
       ...value.timer,
       profile: value.timerProfile ?? value.timer?.profile,
     });
+    const resolvedTimer = resolveTimerNow(normalizedTimer, Date.now());
     currentOverlay = {
       matchIndex: Number(value.matchIndex || 0),
       imageHeightPx: sanitizeDuelImageHeight(value.imageHeightPx),
@@ -1648,8 +1653,8 @@ function bindRealtimeSubscriptions() {
       guestCamHeightPx: sanitizeGuestCamHeight(value.guestCamHeightPx),
       guestCamOffsetYPx: sanitizeGuestCamOffsetY(value.guestCamOffsetYPx),
       timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
-      timerProfile: normalizedTimer.profile,
-      timer: normalizedTimer,
+      timerProfile: resolvedTimer.profile,
+      timer: resolvedTimer,
     };
 
     if (duelImageHeightInput) {
