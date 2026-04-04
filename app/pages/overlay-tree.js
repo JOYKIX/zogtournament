@@ -4,7 +4,7 @@ import { escapeHtml } from '../shared/view-helpers.js';
 
 const overlayTreeContainer = document.getElementById('overlayTreeContainer');
 
-const BASE_MATCH_CENTER = 150;
+const BASE_MATCH_CENTER = 132;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
@@ -98,4 +98,3 @@ onValue(overlayRef, (snapshot) => {
   currentMatchIndex = Number(value.matchIndex || 0);
   renderTree();
 });
-
