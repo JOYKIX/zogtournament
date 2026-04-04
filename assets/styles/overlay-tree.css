@@ -23,9 +23,9 @@ body {
 
 .tree-grid {
   --round-count: 3;
-  --column-gap: clamp(0.7rem, 1.45vw, 1.5rem);
-  --card-width: clamp(200px, 18.2vw, 312px);
-  --card-height: clamp(74px, 9.6vh, 104px);
+  --column-gap: clamp(0.9rem, 1.8vw, 1.9rem);
+  --card-width: clamp(250px, 22.5vw, 390px);
+  --card-height: clamp(96px, 12.8vh, 142px);
   --base-match-center: 150px;
   --connector: rgba(173, 197, 255, 0.88);
 
@@ -68,7 +68,7 @@ body {
 .round-title {
   margin: 0 0 clamp(0.4rem, 0.9vh, 0.75rem);
   text-align: center;
-  font-size: clamp(0.72rem, 0.95vw, 0.9rem);
+  font-size: clamp(0.84rem, 1.15vw, 1.08rem);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -95,7 +95,7 @@ body {
   height: var(--card-height);
   box-sizing: border-box;
   border: 1px solid rgba(154, 182, 255, 0.7);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: clamp(0.35rem, 0.58vw, 0.54rem);
   display: grid;
   grid-template-rows: 1fr 1fr;
@@ -137,7 +137,7 @@ body {
   border: 1px solid rgba(128, 152, 219, 0.68);
   background: linear-gradient(170deg, rgba(20, 30, 63, 0.85), rgba(13, 19, 43, 0.72));
   color: #f3f7ff;
-  font-size: clamp(0.75rem, 1vw, 0.9rem);
+  font-size: clamp(0.9rem, 1.22vw, 1.12rem);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;

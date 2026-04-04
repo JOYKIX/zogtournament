@@ -4,7 +4,7 @@ import { escapeHtml } from '../shared/view-helpers.js';
 
 const overlayTreeContainer = document.getElementById('overlayTreeContainer');
 
-const BASE_MATCH_CENTER = 132;
+const BASE_MATCH_CENTER = 176;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
