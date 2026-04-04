@@ -442,7 +442,13 @@ function resolveTimerNow(baseTimer, now = Date.now()) {
   const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
   const remaining = Math.max(0, timer[key] - elapsed);
   if (remaining === 0) {
-    return resetTimerState(timer, now);
+    return {
+      ...timer,
+      [key]: 0,
+      activeParticipant: null,
+      isRunning: false,
+      lastUpdatedAt: now,
+    };
   }
 
   return {
@@ -521,6 +527,12 @@ function renderLiveTimerPanel() {
   }
 
   if (!timer.isRunning || !activeParticipant) {
+    if (timer.participant1Ms <= 0 || timer.participant2Ms <= 0) {
+      const endedLabel = timer.participant1Ms <= 0 ? timer.participant1Label : timer.participant2Label;
+      liveTimerStatus.textContent = `Temps écoulé · ${endedLabel}`;
+      return;
+    }
+
     liveTimerStatus.textContent = 'Timer en pause.';
     return;
   }
