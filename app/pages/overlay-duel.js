@@ -1,5 +1,6 @@
 import { matchesRef, onValue, overlayRef } from '../shared/firebase.js';
 import { getOverlayMatches, normalizeTournament } from '../shared/tournament.js';
+import { getRemainingTime, resolveTimerStatus, TIMER_STATUS } from '../shared/timer-state.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 
 const leftFighter = document.getElementById('leftFighter');
@@ -205,6 +206,11 @@ function normalizeTimerState(timerValue = {}) {
   const participant2Label = sanitizeTimerLabel(timerValue.participant2Label, DEFAULT_TIMER_LABEL_2);
   const profile = sanitizeTimerProfile(timerValue.profile);
   const healthConfig = normalizeTimerHealthConfig(timerValue.healthConfig);
+  const status = resolveTimerStatus({
+    status: timerValue.status,
+    isRunning,
+    activeParticipant,
+  });
 
   return {
     initialSeconds: safeInitialSeconds,
@@ -216,6 +222,7 @@ function normalizeTimerState(timerValue = {}) {
     healthConfig,
     activeParticipant: isRunning ? activeParticipant : null,
     isRunning,
+    status,
     lastUpdatedAt,
   };
 }
@@ -230,6 +237,9 @@ function formatTimer(ms) {
 function resolveTimerNow(baseTimer, now = Date.now()) {
   const timer = normalizeTimerState(baseTimer);
   if (!timer.isRunning || !timer.activeParticipant) {
+    if (timer.status === TIMER_STATUS.FINISHED) {
+      return timer;
+    }
     return timer;
   }
 
@@ -239,13 +249,22 @@ function resolveTimerNow(baseTimer, now = Date.now()) {
   }
 
   const key = timer.activeParticipant === 1 ? 'participant1Ms' : 'participant2Ms';
-  const remaining = Math.max(0, timer[key] - elapsed);
+  const remaining = getRemainingTime(
+    {
+      status: timer.status,
+      remainingMs: timer[key],
+      isRunning: timer.isRunning,
+      lastUpdatedAt: timer.lastUpdatedAt,
+    },
+    now
+  );
   if (remaining === 0) {
     return {
       ...timer,
       [key]: 0,
       activeParticipant: null,
       isRunning: false,
+      status: TIMER_STATUS.FINISHED,
       lastUpdatedAt: now,
     };
   }
@@ -253,6 +272,7 @@ function resolveTimerNow(baseTimer, now = Date.now()) {
   return {
     ...timer,
     [key]: remaining,
+    status: TIMER_STATUS.RUNNING,
     lastUpdatedAt: now,
   };
 }
