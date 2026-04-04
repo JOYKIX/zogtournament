@@ -383,8 +383,16 @@ function normalizeTimerHealthConfig(value = {}) {
 function normalizeTimerState(timerValue = {}) {
   const initialSeconds = sanitizeTimerInitialSeconds(timerValue.initialSeconds);
   const initialMs = initialSeconds * TIMER_SECOND_MS;
-  const participant1Ms = Math.max(0, Math.round(Number(timerValue.participant1Ms ?? initialMs) || initialMs));
-  const participant2Ms = Math.max(0, Math.round(Number(timerValue.participant2Ms ?? initialMs) || initialMs));
+  const participant1MsRaw = Number(timerValue.participant1Ms);
+  const participant2MsRaw = Number(timerValue.participant2Ms);
+  const participant1Ms = Math.max(
+    0,
+    Math.round(Number.isFinite(participant1MsRaw) ? participant1MsRaw : initialMs)
+  );
+  const participant2Ms = Math.max(
+    0,
+    Math.round(Number.isFinite(participant2MsRaw) ? participant2MsRaw : initialMs)
+  );
   const activeParticipant =
     timerValue.activeParticipant === 1 || timerValue.activeParticipant === 2 ? timerValue.activeParticipant : null;
   const isRunning = Boolean(timerValue.isRunning && activeParticipant);
