@@ -5,16 +5,17 @@ body {
   height: 100%;
   background: transparent;
   color: #eef3ff;
-  font-family: Inter, Arial, sans-serif;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
 }
 
 .tree-root {
   position: fixed;
   inset: 0;
   height: 100%;
-  padding: clamp(1rem, 2.2vh, 1.8rem) clamp(1rem, 2.2vw, 2.2rem);
-  background: radial-gradient(circle at top, rgba(36, 52, 104, 0.22), rgba(8, 12, 26, 0.05) 60%);
+  padding: clamp(1rem, 2.2vh, 1.8rem) clamp(1rem, 2.2vw, 2.4rem);
+  background: transparent;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tree-title-wrap {
@@ -25,26 +26,42 @@ body {
   margin: 0;
   font-size: clamp(1.15rem, 1.5vw, 1.5rem);
   color: #f8fbff;
-  letter-spacing: 0.03em;
-  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 18px rgba(113, 157, 255, 0.5),
+    0 4px 18px rgba(0, 0, 0, 0.6);
 }
 
 .tree-grid {
   --round-count: 3;
-  --column-gap: clamp(1rem, 2.3vw, 2.1rem);
-  --card-width: clamp(220px, 23vw, 290px);
-  --card-height: 96px;
+  --column-gap: clamp(1.1rem, 2.4vw, 2.3rem);
+  --card-width: clamp(220px, 23vw, 300px);
+  --card-height: 100px;
   --base-match-center: 150px;
-  --connector: rgba(149, 175, 255, 0.65);
+  --connector: rgba(173, 197, 255, 0.88);
 
+  position: relative;
   height: calc(100% - 3.1rem);
   display: grid;
   grid-template-columns: repeat(var(--round-count), minmax(0, var(--card-width)));
   justify-content: center;
   gap: var(--column-gap);
   overflow: auto;
-  padding-right: 0.4rem;
+  padding: 0.2rem 0.5rem 0.7rem 0;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 190, 255, 0.6) rgba(18, 26, 49, 0.35);
+}
+
+.tree-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(102, 143, 255, 0.16), transparent 38%),
+    radial-gradient(circle at 75% 82%, rgba(88, 214, 169, 0.12), transparent 40%);
 }
 
 .bracket-round {
@@ -52,19 +69,21 @@ body {
   --stack-offset: calc((var(--center-step) - var(--card-height)) / 2);
   --stack-gap: calc(var(--center-step) - var(--card-height));
 
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
 .round-title {
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.9rem;
   text-align: center;
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #d6e2ff;
+  letter-spacing: 0.14em;
+  color: #dbe6ff;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
@@ -83,46 +102,66 @@ body {
 }
 
 .tree-match-card {
+  position: relative;
   height: var(--card-height);
   box-sizing: border-box;
-  background: linear-gradient(165deg, rgba(17, 26, 58, 0.9), rgba(8, 14, 35, 0.86));
-  border: 1px solid rgba(137, 162, 235, 0.55);
-  border-radius: 12px;
-  padding: 0.5rem;
+  border: 1px solid rgba(154, 182, 255, 0.7);
+  border-radius: 14px;
+  padding: 0.52rem;
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 0.38rem;
-  backdrop-filter: blur(3px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  gap: 0.4rem;
+  background:
+    linear-gradient(170deg, rgba(19, 30, 66, 0.84), rgba(9, 16, 35, 0.72));
+  backdrop-filter: blur(4px);
+  box-shadow:
+    0 8px 20px rgba(3, 9, 23, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.tree-match-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
 }
 
 .tree-match-card.is-active {
-  border-color: #91b0ff;
+  border-color: rgba(156, 193, 255, 1);
   box-shadow:
-    0 0 0 2px rgba(145, 176, 255, 0.3),
-    0 0 24px rgba(78, 109, 198, 0.35);
+    0 0 0 2px rgba(155, 189, 255, 0.28),
+    0 0 28px rgba(107, 145, 255, 0.38),
+    0 10px 22px rgba(4, 11, 26, 0.56);
+  transform: translateY(-1px) scale(1.01);
 }
 
 .seed {
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 0.45rem 0.62rem;
-  border-radius: 8px;
-  border: 1px solid rgba(113, 136, 205, 0.55);
-  background: rgba(16, 23, 51, 0.82);
-  color: #f1f5ff;
+  padding: 0.44rem 0.65rem;
+  border-radius: 9px;
+  border: 1px solid rgba(128, 152, 219, 0.68);
+  background: linear-gradient(170deg, rgba(20, 30, 63, 0.85), rgba(13, 19, 43, 0.72));
+  color: #f3f7ff;
   font-size: 0.88rem;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .seed.winner {
-  border-color: rgba(92, 233, 173, 0.92);
-  background: rgba(45, 156, 113, 0.28);
-  color: #dbffe9;
+  border-color: rgba(102, 237, 186, 0.98);
+  background: linear-gradient(170deg, rgba(28, 128, 97, 0.55), rgba(17, 71, 52, 0.48));
+  color: #e7fff3;
   font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(183, 255, 226, 0.25);
 }
 
 .tree-match-shell.has-next-round::after {
@@ -132,7 +171,9 @@ body {
   right: calc(var(--column-gap) * -0.5);
   width: calc(var(--column-gap) * 0.5);
   border-top: 2px solid var(--connector);
+  opacity: 0.9;
   transform: translateY(-50%);
+  filter: drop-shadow(0 0 5px rgba(130, 167, 255, 0.6));
 }
 
 .tree-match-shell.has-next-round.pair-start::before {
@@ -142,9 +183,12 @@ body {
   right: calc(var(--column-gap) * -0.5);
   height: var(--center-step);
   border-right: 2px solid var(--connector);
+  opacity: 0.9;
+  filter: drop-shadow(0 0 5px rgba(130, 167, 255, 0.6));
 }
 
 .empty {
   margin-top: 2rem;
+  color: #dbe6ff;
+  text-align: center;
 }
-
