@@ -161,7 +161,7 @@ const DEFAULT_TIMER_HEALTH_CONFIG = {
 };
 const MIN_TIMER_INITIAL_SECONDS = 10;
 const MAX_TIMER_INITIAL_SECONDS = 7200;
-const TIMER_TICK_INTERVAL_MS = 1000;
+const TIMER_TICK_INTERVAL_MS = 250;
 const TIMER_SECOND_MS = 1000;
 
 let usersCache = [];
@@ -2448,25 +2448,8 @@ renderConnectionStatus();
 showLogin();
 renderLiveWinnerControls();
 
-timerTickHandle = window.setInterval(async () => {
+timerTickHandle = window.setInterval(() => {
   renderLiveTimerPanel();
-
-  if (!currentOverlay.timer?.isRunning || !currentOverlay.timer.activeParticipant) {
-    return;
-  }
-
-  const baseTimer = normalizeTimerState(currentOverlay.timer);
-  const resolved = resolveTimerNow(baseTimer, Date.now());
-  if (
-    resolved.participant1Ms === baseTimer.participant1Ms &&
-    resolved.participant2Ms === baseTimer.participant2Ms &&
-    resolved.isRunning === baseTimer.isRunning &&
-    resolved.activeParticipant === baseTimer.activeParticipant
-  ) {
-    return;
-  }
-
-  await setOverlayTimer(resolved);
 }, TIMER_TICK_INTERVAL_MS);
 
 window.addEventListener('beforeunload', () => {
