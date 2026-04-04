@@ -47,6 +47,8 @@ const participantForm = document.getElementById('participantForm');
 const participantFormTitle = document.getElementById('participantFormTitle');
 const participantsList = document.getElementById('participantsList');
 const participantMessage = document.getElementById('participantMessage');
+const participantImageInput = document.getElementById('image');
+const participantImagePresetSelect = document.getElementById('participantImagePreset');
 const editParticipantIdField = document.getElementById('editParticipantId');
 const participantSubmitBtn = document.getElementById('participantSubmitBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
@@ -133,6 +135,7 @@ const TIMER_SECOND_MS = 1000;
 
 let usersCache = [];
 let participantsCache = [];
+let participantImagePresetPaths = [];
 let tournamentCache = null;
 let currentProfile = null;
 let currentOverlay = {
@@ -595,6 +598,72 @@ function normalizeParticipants(snapshotValue) {
     }));
 }
 
+function resolveParticipantImagePresetPath(rawImage) {
+  const raw = String(rawImage || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  try {
+    return new URL(raw, window.location.origin).pathname;
+  } catch {
+    return '';
+  }
+}
+
+function syncParticipantImagePresetFromInput() {
+  if (!participantImagePresetSelect || !participantImageInput) {
+    return;
+  }
+
+  const presetPath = resolveParticipantImagePresetPath(participantImageInput.value);
+  participantImagePresetSelect.value = participantImagePresetPaths.includes(presetPath) ? presetPath : '';
+}
+
+function renderParticipantImagePresetOptions() {
+  if (!participantImagePresetSelect) {
+    return;
+  }
+
+  participantImagePresetSelect.innerHTML = '<option value="">Aucune (je garde une URL manuelle)</option>';
+  participantImagePresetPaths.forEach((imagePath) => {
+    const option = document.createElement('option');
+    option.value = imagePath;
+    option.textContent = imagePath.split('/').pop() || imagePath;
+    participantImagePresetSelect.appendChild(option);
+  });
+}
+
+async function loadParticipantImagePresets() {
+  if (!participantImagePresetSelect) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/image_participants/manifest.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    if (!Array.isArray(payload)) {
+      throw new Error('Manifest invalide');
+    }
+
+    participantImagePresetPaths = payload
+      .filter((entry) => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => (entry.startsWith('/') ? entry : `/image_participants/${entry}`));
+    renderParticipantImagePresetOptions();
+    syncParticipantImagePresetFromInput();
+  } catch (error) {
+    console.error('Impossible de charger image_participants/manifest.json', error);
+    participantImagePresetPaths = [];
+    participantImagePresetSelect.innerHTML =
+      '<option value="">Manifest introuvable (utilise le champ URL)</option>';
+  }
+}
+
 function findUserByUsername(username) {
   const normalized = username.toLowerCase();
   return usersCache.find((user) => String(user.username || '').toLowerCase() === normalized);
@@ -626,6 +695,7 @@ function toggleEditMode(participant = null) {
   participantForm.pseudo.value = participant.pseudo || '';
   participantForm.character.value = participant.character || '';
   participantForm.image.value = participant.image || '';
+  syncParticipantImagePresetFromInput();
 }
 
 function renderParticipants() {
@@ -1598,6 +1668,23 @@ participantForm.addEventListener('submit', async (event) => {
   toggleEditMode();
 });
 
+participantImagePresetSelect?.addEventListener('change', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement) || !participantImageInput) {
+    return;
+  }
+
+  if (!target.value) {
+    return;
+  }
+
+  participantImageInput.value = new URL(target.value, window.location.origin).toString();
+});
+
+participantImageInput?.addEventListener('input', () => {
+  syncParticipantImagePresetFromInput();
+});
+
 participantsList.addEventListener('click', async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) {
@@ -2026,6 +2113,7 @@ try {
 } catch (error) {
   console.error('Impossible d’initialiser la base de données', error);
 }
+await loadParticipantImagePresets();
 bindRealtimeSubscriptions();
 renderConnectionStatus();
 showLogin();
