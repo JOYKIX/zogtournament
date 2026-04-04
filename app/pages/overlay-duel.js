@@ -23,6 +23,23 @@ const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
 const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_TIMER_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_TIMER_LABEL_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_CHARACTER_NAME_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_TEXT_SHADOW = {
+  enabled: true,
+  color: '#000000',
+  blurPx: 12,
+  offsetXPx: 0,
+  offsetYPx: 3,
+};
+const DEFAULT_DUEL_FONT_SIZES = {
+  timerValuePx: 48,
+  timerLabelPx: 24,
+  characterNamePx: 58,
+  fighterPseudoPx: 28,
+};
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
@@ -46,6 +63,12 @@ let currentImageHeightPx = DEFAULT_DUEL_IMAGE_HEIGHT_PX;
 let currentImageOffsetXPx = DEFAULT_DUEL_IMAGE_OFFSET_X_PX;
 let currentImageOffsetYPx = DEFAULT_DUEL_IMAGE_OFFSET_Y_PX;
 let currentTextColor = DEFAULT_DUEL_TEXT_COLOR;
+let currentTimerTextColor = DEFAULT_DUEL_TIMER_TEXT_COLOR;
+let currentTimerLabelColor = DEFAULT_DUEL_TIMER_LABEL_COLOR;
+let currentCharacterNameColor = DEFAULT_DUEL_CHARACTER_NAME_COLOR;
+let currentFighterPseudoColor = DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR;
+let currentTextShadow = DEFAULT_DUEL_TEXT_SHADOW;
+let currentFontSizes = DEFAULT_DUEL_FONT_SIZES;
 let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
@@ -82,6 +105,42 @@ function sanitizeTextColor(value) {
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
 }
 
+function sanitizeColor(value, fallback) {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : fallback;
+}
+
+function sanitizeBoolean(value, fallback) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function sanitizeRange(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
+function normalizeTextShadow(value = {}) {
+  return {
+    enabled: sanitizeBoolean(value.enabled, DEFAULT_DUEL_TEXT_SHADOW.enabled),
+    color: sanitizeColor(value.color, DEFAULT_DUEL_TEXT_SHADOW.color),
+    blurPx: sanitizeRange(value.blurPx, DEFAULT_DUEL_TEXT_SHADOW.blurPx, 0, 80),
+    offsetXPx: sanitizeRange(value.offsetXPx, DEFAULT_DUEL_TEXT_SHADOW.offsetXPx, -30, 30),
+    offsetYPx: sanitizeRange(value.offsetYPx, DEFAULT_DUEL_TEXT_SHADOW.offsetYPx, -30, 30),
+  };
+}
+
+function normalizeFontSizes(value = {}) {
+  return {
+    timerValuePx: sanitizeRange(value.timerValuePx, DEFAULT_DUEL_FONT_SIZES.timerValuePx, 12, 120),
+    timerLabelPx: sanitizeRange(value.timerLabelPx, DEFAULT_DUEL_FONT_SIZES.timerLabelPx, 10, 90),
+    characterNamePx: sanitizeRange(value.characterNamePx, DEFAULT_DUEL_FONT_SIZES.characterNamePx, 12, 140),
+    fighterPseudoPx: sanitizeRange(value.fighterPseudoPx, DEFAULT_DUEL_FONT_SIZES.fighterPseudoPx, 10, 100),
+  };
+}
+
 function sanitizeDuelTimerOffsetY(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -103,30 +162,12 @@ function sanitizeTimerProfile(value) {
     : DEFAULT_TIMER_PROFILE;
 }
 
-function sanitizeBoolean(value, fallback) {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-function sanitizeRange(value, fallback, min, max) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  return Math.max(min, Math.min(max, Math.round(parsed)));
-}
-
 function sanitizeInteger(value, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
   return Math.round(parsed);
-}
-
-function sanitizeColor(value, fallback) {
-  const normalized = String(value || '').trim();
-  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : fallback;
 }
 
 function normalizeTimerHealthConfig(value = {}) {
@@ -262,9 +303,27 @@ function render() {
     duelView.style.setProperty('--fighter-offset-x', `${currentImageOffsetXPx}px`);
     duelView.style.setProperty('--fighter-offset-y', `${currentImageOffsetYPx}px`);
     duelView.style.setProperty('--fighter-text-color', currentTextColor);
+    duelView.style.setProperty('--fighter-character-color', currentCharacterNameColor);
+    duelView.style.setProperty('--fighter-name-color', currentFighterPseudoColor);
+    duelView.style.setProperty('--character-font-size', `${currentFontSizes.characterNamePx}px`);
+    duelView.style.setProperty('--fighter-name-font-size', `${currentFontSizes.fighterPseudoPx}px`);
+    const textShadowValue = currentTextShadow.enabled
+      ? `${currentTextShadow.offsetXPx}px ${currentTextShadow.offsetYPx}px ${currentTextShadow.blurPx}px ${currentTextShadow.color}`
+      : 'none';
+    duelView.style.setProperty('--overlay-text-shadow', textShadowValue);
   }
   if (duelTimers) {
     duelTimers.style.setProperty('--duel-timer-offset-y', `${currentTimerOffsetYPx}px`);
+    duelTimers.style.setProperty('--timer-value-color', currentTimerTextColor);
+    duelTimers.style.setProperty('--timer-label-color', currentTimerLabelColor);
+    duelTimers.style.setProperty('--timer-value-font-size', `${currentFontSizes.timerValuePx}px`);
+    duelTimers.style.setProperty('--timer-label-font-size', `${currentFontSizes.timerLabelPx}px`);
+    duelTimers.style.setProperty(
+      '--overlay-text-shadow',
+      currentTextShadow.enabled
+        ? `${currentTextShadow.offsetXPx}px ${currentTextShadow.offsetYPx}px ${currentTextShadow.blurPx}px ${currentTextShadow.color}`
+        : 'none',
+    );
     const useHealthProfile = resolvedTimer.profile === 'healthbar' && resolvedTimer.healthConfig.enabled;
     duelTimers.classList.toggle('timer-profile-health', useHealthProfile);
     duelTimers.style.setProperty('--health-bar-height', `${resolvedTimer.healthConfig.barHeightPx}px`);
@@ -322,6 +381,12 @@ onValue(overlayRef, (snapshot) => {
   currentImageOffsetXPx = sanitizeDuelImageOffsetX(value.imageOffsetXPx);
   currentImageOffsetYPx = sanitizeDuelImageOffsetY(value.imageOffsetYPx);
   currentTextColor = sanitizeTextColor(value.textColor);
+  currentTimerTextColor = sanitizeColor(value.timerTextColor, DEFAULT_DUEL_TIMER_TEXT_COLOR);
+  currentTimerLabelColor = sanitizeColor(value.timerLabelColor, DEFAULT_DUEL_TIMER_LABEL_COLOR);
+  currentCharacterNameColor = sanitizeColor(value.characterNameColor, DEFAULT_DUEL_CHARACTER_NAME_COLOR);
+  currentFighterPseudoColor = sanitizeColor(value.fighterPseudoColor, DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR);
+  currentTextShadow = normalizeTextShadow(value.textShadow);
+  currentFontSizes = normalizeFontSizes(value.fontSizes);
   currentTimerOffsetYPx = sanitizeDuelTimerOffsetY(value.timerOffsetYPx);
   currentTimerProfile = sanitizeTimerProfile(value.timerProfile ?? value.timer?.profile);
   currentTimer = normalizeTimerState(value.timer);
