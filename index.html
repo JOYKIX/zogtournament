@@ -123,18 +123,86 @@
             <section class="app-view" data-view="config" aria-hidden="true">
               <article class="card panel section-card">
                 <header class="section-head">
+                  <p class="eyebrow">Config overlay</p>
+                  <h3>Texte & lisibilité</h3>
+                </header>
+
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="duelTextColor">
+                    Couleur texte global
+                    <input id="duelTextColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelTimerTextColor">
+                    Couleur timer (chiffres)
+                    <input id="duelTimerTextColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelTimerLabelColor">
+                    Couleur pseudo sous barre
+                    <input id="duelTimerLabelColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelCharacterNameColor">
+                    Couleur nom perso
+                    <input id="duelCharacterNameColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelFighterPseudoColor">
+                    Couleur pseudo sous nom perso
+                    <input id="duelFighterPseudoColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field inline-toggle" for="duelTextShadowEnabled">
+                    Activer ombre du texte
+                    <input id="duelTextShadowEnabled" type="checkbox" checked />
+                  </label>
+                </div>
+
+                <div class="settings-grid three-cols">
+                  <label class="setting-field" for="duelTextShadowColor">
+                    Couleur ombre
+                    <input id="duelTextShadowColor" type="color" value="#000000" />
+                  </label>
+                  <label class="setting-field" for="duelTextShadowBlurPx">
+                    Flou ombre (px)
+                    <input id="duelTextShadowBlurPx" type="number" min="0" max="80" step="1" value="12" />
+                  </label>
+                  <label class="setting-field" for="duelTextShadowOffsetXPx">
+                    Décalage X ombre (px)
+                    <input id="duelTextShadowOffsetXPx" type="number" min="-30" max="30" step="1" value="0" />
+                  </label>
+                  <label class="setting-field" for="duelTextShadowOffsetYPx">
+                    Décalage Y ombre (px)
+                    <input id="duelTextShadowOffsetYPx" type="number" min="-30" max="30" step="1" value="3" />
+                  </label>
+                </div>
+
+                <div class="settings-grid three-cols">
+                  <label class="setting-field" for="duelTimerValueFontSizePx">
+                    Taille chiffres timer (px)
+                    <input id="duelTimerValueFontSizePx" type="number" min="12" max="120" step="1" value="48" />
+                  </label>
+                  <label class="setting-field" for="duelTimerLabelFontSizePx">
+                    Taille pseudo sous barre (px)
+                    <input id="duelTimerLabelFontSizePx" type="number" min="10" max="90" step="1" value="24" />
+                  </label>
+                  <label class="setting-field" for="duelCharacterFontSizePx">
+                    Taille nom perso (px)
+                    <input id="duelCharacterFontSizePx" type="number" min="12" max="140" step="1" value="58" />
+                  </label>
+                  <label class="setting-field" for="duelFighterPseudoFontSizePx">
+                    Taille pseudo sous nom perso (px)
+                    <input id="duelFighterPseudoFontSizePx" type="number" min="10" max="100" step="1" value="28" />
+                  </label>
+                </div>
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
                   <p class="eyebrow">Overlay / Apparence</p>
-                  <h3>Style global du duel</h3>
+                  <h3>Placement image & caméra</h3>
                 </header>
 
                 <div class="settings-grid two-cols">
                   <label class="setting-field" for="duelImageHeightPx">
                     Hauteur image duel (px)
                     <input id="duelImageHeightPx" type="number" step="10" value="760" />
-                  </label>
-                  <label class="setting-field" for="duelTextColor">
-                    Couleur de texte
-                    <input id="duelTextColor" type="color" value="#f5f8ff" />
                   </label>
                   <label class="setting-field" for="duelImageOffsetXPx">
                     Décalage horizontal image (px)

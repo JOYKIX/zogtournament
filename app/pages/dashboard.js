@@ -67,6 +67,19 @@ const duelImageHeightInput = document.getElementById('duelImageHeightPx');
 const duelImageOffsetXInput = document.getElementById('duelImageOffsetXPx');
 const duelImageOffsetYInput = document.getElementById('duelImageOffsetYPx');
 const duelTextColorInput = document.getElementById('duelTextColor');
+const duelTimerTextColorInput = document.getElementById('duelTimerTextColor');
+const duelTimerLabelColorInput = document.getElementById('duelTimerLabelColor');
+const duelCharacterNameColorInput = document.getElementById('duelCharacterNameColor');
+const duelFighterPseudoColorInput = document.getElementById('duelFighterPseudoColor');
+const duelTextShadowEnabledInput = document.getElementById('duelTextShadowEnabled');
+const duelTextShadowColorInput = document.getElementById('duelTextShadowColor');
+const duelTextShadowBlurInput = document.getElementById('duelTextShadowBlurPx');
+const duelTextShadowOffsetXInput = document.getElementById('duelTextShadowOffsetXPx');
+const duelTextShadowOffsetYInput = document.getElementById('duelTextShadowOffsetYPx');
+const duelTimerValueFontSizeInput = document.getElementById('duelTimerValueFontSizePx');
+const duelTimerLabelFontSizeInput = document.getElementById('duelTimerLabelFontSizePx');
+const duelCharacterFontSizeInput = document.getElementById('duelCharacterFontSizePx');
+const duelFighterPseudoFontSizeInput = document.getElementById('duelFighterPseudoFontSizePx');
 const guestCamWidthInput = document.getElementById('guestCamWidthPx');
 const guestCamHeightInput = document.getElementById('guestCamHeightPx');
 const guestCamOffsetYInput = document.getElementById('guestCamOffsetYPx');
@@ -111,6 +124,23 @@ const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
 const DEFAULT_DUEL_IMAGE_OFFSET_Y_PX = 0;
 const DEFAULT_DUEL_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_TIMER_TEXT_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_TIMER_LABEL_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_CHARACTER_NAME_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR = '#f5f8ff';
+const DEFAULT_DUEL_TEXT_SHADOW = {
+  enabled: true,
+  color: '#000000',
+  blurPx: 12,
+  offsetXPx: 0,
+  offsetYPx: 3,
+};
+const DEFAULT_DUEL_FONT_SIZES = {
+  timerValuePx: 48,
+  timerLabelPx: 24,
+  characterNamePx: 58,
+  fighterPseudoPx: 28,
+};
 const DEFAULT_GUEST_CAM_WIDTH_PX = 320;
 const DEFAULT_GUEST_CAM_HEIGHT_PX = 180;
 const DEFAULT_GUEST_CAM_OFFSET_Y_PX = 0;
@@ -145,6 +175,12 @@ let currentOverlay = {
   imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
   imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
   textColor: DEFAULT_DUEL_TEXT_COLOR,
+  timerTextColor: DEFAULT_DUEL_TIMER_TEXT_COLOR,
+  timerLabelColor: DEFAULT_DUEL_TIMER_LABEL_COLOR,
+  characterNameColor: DEFAULT_DUEL_CHARACTER_NAME_COLOR,
+  fighterPseudoColor: DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR,
+  textShadow: DEFAULT_DUEL_TEXT_SHADOW,
+  fontSizes: DEFAULT_DUEL_FONT_SIZES,
   guestCamWidthPx: DEFAULT_GUEST_CAM_WIDTH_PX,
   guestCamHeightPx: DEFAULT_GUEST_CAM_HEIGHT_PX,
   guestCamOffsetYPx: DEFAULT_GUEST_CAM_OFFSET_Y_PX,
@@ -229,6 +265,43 @@ function sanitizeTextColor(value) {
   return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : DEFAULT_DUEL_TEXT_COLOR;
 }
 
+function sanitizeBoolean(value, fallback) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function sanitizeColor(value, fallback) {
+  const normalized = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : fallback;
+}
+
+function sanitizeRange(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
+function normalizeDuelTextShadow(value = {}) {
+  return {
+    enabled: sanitizeBoolean(value.enabled, DEFAULT_DUEL_TEXT_SHADOW.enabled),
+    color: sanitizeColor(value.color, DEFAULT_DUEL_TEXT_SHADOW.color),
+    blurPx: sanitizeRange(value.blurPx, DEFAULT_DUEL_TEXT_SHADOW.blurPx, 0, 80),
+    offsetXPx: sanitizeRange(value.offsetXPx, DEFAULT_DUEL_TEXT_SHADOW.offsetXPx, -30, 30),
+    offsetYPx: sanitizeRange(value.offsetYPx, DEFAULT_DUEL_TEXT_SHADOW.offsetYPx, -30, 30),
+  };
+}
+
+function normalizeDuelFontSizes(value = {}) {
+  return {
+    timerValuePx: sanitizeRange(value.timerValuePx, DEFAULT_DUEL_FONT_SIZES.timerValuePx, 12, 120),
+    timerLabelPx: sanitizeRange(value.timerLabelPx, DEFAULT_DUEL_FONT_SIZES.timerLabelPx, 10, 90),
+    characterNamePx: sanitizeRange(value.characterNamePx, DEFAULT_DUEL_FONT_SIZES.characterNamePx, 12, 140),
+    fighterPseudoPx: sanitizeRange(value.fighterPseudoPx, DEFAULT_DUEL_FONT_SIZES.fighterPseudoPx, 10, 100),
+  };
+}
+
 function sanitizeGuestCamWidth(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -286,19 +359,6 @@ function sanitizeTimerProfile(value) {
     : DEFAULT_TIMER_PROFILE;
 }
 
-function sanitizeBoolean(value, fallback) {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-function sanitizeRange(value, fallback, min, max) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  return Math.max(min, Math.min(max, Math.round(parsed)));
-}
-
 function sanitizeInteger(value, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -307,19 +367,14 @@ function sanitizeInteger(value, fallback) {
   return Math.round(parsed);
 }
 
-function sanitizeHealthColor(value, fallback) {
-  const normalized = String(value || '').trim();
-  return /^#[0-9a-fA-F]{6}$/.test(normalized) ? normalized : fallback;
-}
-
 function normalizeTimerHealthConfig(value = {}) {
   return {
     enabled: sanitizeBoolean(value.enabled, DEFAULT_TIMER_HEALTH_CONFIG.enabled),
     barHeightPx: sanitizeInteger(value.barHeightPx, DEFAULT_TIMER_HEALTH_CONFIG.barHeightPx),
     barWidthPercent: sanitizeInteger(value.barWidthPercent, DEFAULT_TIMER_HEALTH_CONFIG.barWidthPercent),
-    mainColor: sanitizeHealthColor(value.mainColor, DEFAULT_TIMER_HEALTH_CONFIG.mainColor),
-    warningColor: sanitizeHealthColor(value.warningColor, DEFAULT_TIMER_HEALTH_CONFIG.warningColor),
-    dangerColor: sanitizeHealthColor(value.dangerColor, DEFAULT_TIMER_HEALTH_CONFIG.dangerColor),
+    mainColor: sanitizeColor(value.mainColor, DEFAULT_TIMER_HEALTH_CONFIG.mainColor),
+    warningColor: sanitizeColor(value.warningColor, DEFAULT_TIMER_HEALTH_CONFIG.warningColor),
+    dangerColor: sanitizeColor(value.dangerColor, DEFAULT_TIMER_HEALTH_CONFIG.dangerColor),
     animationIntensity: sanitizeRange(value.animationIntensity, DEFAULT_TIMER_HEALTH_CONFIG.animationIntensity, 0, 100),
     dangerEffects: sanitizeBoolean(value.dangerEffects, DEFAULT_TIMER_HEALTH_CONFIG.dangerEffects),
   };
@@ -908,6 +963,31 @@ async function setOverlayTextColor(textColor) {
   });
 }
 
+async function setOverlayTextAppearance(patch) {
+  const currentTimerTextColor = sanitizeColor(currentOverlay.timerTextColor, DEFAULT_DUEL_TIMER_TEXT_COLOR);
+  const currentTimerLabelColor = sanitizeColor(currentOverlay.timerLabelColor, DEFAULT_DUEL_TIMER_LABEL_COLOR);
+  const currentCharacterNameColor = sanitizeColor(currentOverlay.characterNameColor, DEFAULT_DUEL_CHARACTER_NAME_COLOR);
+  const currentFighterPseudoColor = sanitizeColor(currentOverlay.fighterPseudoColor, DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR);
+  const nextShadow = normalizeDuelTextShadow({
+    ...currentOverlay.textShadow,
+    ...patch.textShadow,
+  });
+  const nextFontSizes = normalizeDuelFontSizes({
+    ...currentOverlay.fontSizes,
+    ...patch.fontSizes,
+  });
+
+  await update(overlayRef, {
+    timerTextColor: sanitizeColor(patch.timerTextColor, currentTimerTextColor),
+    timerLabelColor: sanitizeColor(patch.timerLabelColor, currentTimerLabelColor),
+    characterNameColor: sanitizeColor(patch.characterNameColor, currentCharacterNameColor),
+    fighterPseudoColor: sanitizeColor(patch.fighterPseudoColor, currentFighterPseudoColor),
+    textShadow: nextShadow,
+    fontSizes: nextFontSizes,
+    updatedAt: Date.now(),
+  });
+}
+
 async function setOverlayGuestCamWidth(widthPx) {
   const safeWidth = sanitizeGuestCamWidth(widthPx);
 
@@ -1336,6 +1416,12 @@ async function ensureDatabaseShape() {
       imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
       imageOffsetYPx: DEFAULT_DUEL_IMAGE_OFFSET_Y_PX,
       textColor: DEFAULT_DUEL_TEXT_COLOR,
+      timerTextColor: DEFAULT_DUEL_TIMER_TEXT_COLOR,
+      timerLabelColor: DEFAULT_DUEL_TIMER_LABEL_COLOR,
+      characterNameColor: DEFAULT_DUEL_CHARACTER_NAME_COLOR,
+      fighterPseudoColor: DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR,
+      textShadow: DEFAULT_DUEL_TEXT_SHADOW,
+      fontSizes: DEFAULT_DUEL_FONT_SIZES,
       guestCamWidthPx: DEFAULT_GUEST_CAM_WIDTH_PX,
       guestCamHeightPx: DEFAULT_GUEST_CAM_HEIGHT_PX,
       guestCamOffsetYPx: DEFAULT_GUEST_CAM_OFFSET_Y_PX,
@@ -1365,6 +1451,24 @@ async function ensureDatabaseShape() {
 
     if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.textColor || '').trim())) {
       patches.textColor = DEFAULT_DUEL_TEXT_COLOR;
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.timerTextColor || '').trim())) {
+      patches.timerTextColor = DEFAULT_DUEL_TIMER_TEXT_COLOR;
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.timerLabelColor || '').trim())) {
+      patches.timerLabelColor = DEFAULT_DUEL_TIMER_LABEL_COLOR;
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.characterNameColor || '').trim())) {
+      patches.characterNameColor = DEFAULT_DUEL_CHARACTER_NAME_COLOR;
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(value.overlay.fighterPseudoColor || '').trim())) {
+      patches.fighterPseudoColor = DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR;
+    }
+    if (!value.overlay.textShadow || typeof value.overlay.textShadow !== 'object') {
+      patches.textShadow = DEFAULT_DUEL_TEXT_SHADOW;
+    }
+    if (!value.overlay.fontSizes || typeof value.overlay.fontSizes !== 'object') {
+      patches.fontSizes = DEFAULT_DUEL_FONT_SIZES;
     }
     if (!Number.isFinite(Number(value.overlay.guestCamWidthPx))) {
       patches.guestCamWidthPx = DEFAULT_GUEST_CAM_WIDTH_PX;
@@ -1489,6 +1593,12 @@ function bindRealtimeSubscriptions() {
       imageOffsetXPx: sanitizeDuelImageOffsetX(value.imageOffsetXPx),
       imageOffsetYPx: sanitizeDuelImageOffsetY(value.imageOffsetYPx),
       textColor: sanitizeTextColor(value.textColor),
+      timerTextColor: sanitizeColor(value.timerTextColor, DEFAULT_DUEL_TIMER_TEXT_COLOR),
+      timerLabelColor: sanitizeColor(value.timerLabelColor, DEFAULT_DUEL_TIMER_LABEL_COLOR),
+      characterNameColor: sanitizeColor(value.characterNameColor, DEFAULT_DUEL_CHARACTER_NAME_COLOR),
+      fighterPseudoColor: sanitizeColor(value.fighterPseudoColor, DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR),
+      textShadow: normalizeDuelTextShadow(value.textShadow),
+      fontSizes: normalizeDuelFontSizes(value.fontSizes),
       guestCamWidthPx: sanitizeGuestCamWidth(value.guestCamWidthPx),
       guestCamHeightPx: sanitizeGuestCamHeight(value.guestCamHeightPx),
       guestCamOffsetYPx: sanitizeGuestCamOffsetY(value.guestCamOffsetYPx),
@@ -1508,6 +1618,45 @@ function bindRealtimeSubscriptions() {
     }
     if (duelTextColorInput) {
       duelTextColorInput.value = currentOverlay.textColor;
+    }
+    if (duelTimerTextColorInput) {
+      duelTimerTextColorInput.value = currentOverlay.timerTextColor;
+    }
+    if (duelTimerLabelColorInput) {
+      duelTimerLabelColorInput.value = currentOverlay.timerLabelColor;
+    }
+    if (duelCharacterNameColorInput) {
+      duelCharacterNameColorInput.value = currentOverlay.characterNameColor;
+    }
+    if (duelFighterPseudoColorInput) {
+      duelFighterPseudoColorInput.value = currentOverlay.fighterPseudoColor;
+    }
+    if (duelTextShadowEnabledInput) {
+      duelTextShadowEnabledInput.checked = currentOverlay.textShadow.enabled;
+    }
+    if (duelTextShadowColorInput) {
+      duelTextShadowColorInput.value = currentOverlay.textShadow.color;
+    }
+    if (duelTextShadowBlurInput) {
+      duelTextShadowBlurInput.value = String(currentOverlay.textShadow.blurPx);
+    }
+    if (duelTextShadowOffsetXInput) {
+      duelTextShadowOffsetXInput.value = String(currentOverlay.textShadow.offsetXPx);
+    }
+    if (duelTextShadowOffsetYInput) {
+      duelTextShadowOffsetYInput.value = String(currentOverlay.textShadow.offsetYPx);
+    }
+    if (duelTimerValueFontSizeInput) {
+      duelTimerValueFontSizeInput.value = String(currentOverlay.fontSizes.timerValuePx);
+    }
+    if (duelTimerLabelFontSizeInput) {
+      duelTimerLabelFontSizeInput.value = String(currentOverlay.fontSizes.timerLabelPx);
+    }
+    if (duelCharacterFontSizeInput) {
+      duelCharacterFontSizeInput.value = String(currentOverlay.fontSizes.characterNamePx);
+    }
+    if (duelFighterPseudoFontSizeInput) {
+      duelFighterPseudoFontSizeInput.value = String(currentOverlay.fontSizes.fighterPseudoPx);
     }
     if (guestCamWidthInput) {
       guestCamWidthInput.value = String(currentOverlay.guestCamWidthPx);
@@ -1813,6 +1962,152 @@ duelTextColorInput?.addEventListener('change', async (event) => {
   const safeColor = sanitizeTextColor(target.value);
   target.value = safeColor;
   await setOverlayTextColor(safeColor);
+});
+
+duelTimerTextColorInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeColor = sanitizeColor(target.value, DEFAULT_DUEL_TIMER_TEXT_COLOR);
+  target.value = safeColor;
+  await setOverlayTextAppearance({ timerTextColor: safeColor });
+});
+
+duelTimerLabelColorInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeColor = sanitizeColor(target.value, DEFAULT_DUEL_TIMER_LABEL_COLOR);
+  target.value = safeColor;
+  await setOverlayTextAppearance({ timerLabelColor: safeColor });
+});
+
+duelCharacterNameColorInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeColor = sanitizeColor(target.value, DEFAULT_DUEL_CHARACTER_NAME_COLOR);
+  target.value = safeColor;
+  await setOverlayTextAppearance({ characterNameColor: safeColor });
+});
+
+duelFighterPseudoColorInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeColor = sanitizeColor(target.value, DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR);
+  target.value = safeColor;
+  await setOverlayTextAppearance({ fighterPseudoColor: safeColor });
+});
+
+duelTextShadowEnabledInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  await setOverlayTextAppearance({
+    textShadow: { enabled: target.checked },
+  });
+});
+
+duelTextShadowColorInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeColor = sanitizeColor(target.value, DEFAULT_DUEL_TEXT_SHADOW.color);
+  target.value = safeColor;
+  await setOverlayTextAppearance({
+    textShadow: { color: safeColor },
+  });
+});
+
+duelTextShadowBlurInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_TEXT_SHADOW.blurPx, 0, 80);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    textShadow: { blurPx: safeValue },
+  });
+});
+
+duelTextShadowOffsetXInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_TEXT_SHADOW.offsetXPx, -30, 30);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    textShadow: { offsetXPx: safeValue },
+  });
+});
+
+duelTextShadowOffsetYInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_TEXT_SHADOW.offsetYPx, -30, 30);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    textShadow: { offsetYPx: safeValue },
+  });
+});
+
+duelTimerValueFontSizeInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_FONT_SIZES.timerValuePx, 12, 120);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    fontSizes: { timerValuePx: safeValue },
+  });
+});
+
+duelTimerLabelFontSizeInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_FONT_SIZES.timerLabelPx, 10, 90);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    fontSizes: { timerLabelPx: safeValue },
+  });
+});
+
+duelCharacterFontSizeInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_FONT_SIZES.characterNamePx, 12, 140);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    fontSizes: { characterNamePx: safeValue },
+  });
+});
+
+duelFighterPseudoFontSizeInput?.addEventListener('change', async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  const safeValue = sanitizeRange(target.value, DEFAULT_DUEL_FONT_SIZES.fighterPseudoPx, 10, 100);
+  target.value = String(safeValue);
+  await setOverlayTextAppearance({
+    fontSizes: { fighterPseudoPx: safeValue },
+  });
 });
 
 guestCamWidthInput?.addEventListener('change', async (event) => {
