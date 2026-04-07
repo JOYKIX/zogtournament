@@ -173,6 +173,10 @@ button.danger { background: linear-gradient(120deg, #95405d, #6c2b43); color: #f
 .winner-controls-grid { display: grid; grid-template-columns: repeat(2, minmax(180px,1fr)); gap: .55rem; }
 .countdown-pill { margin: 0; text-align: center; font-weight: 700; border: 1px solid var(--line); border-radius: 12px; padding: .75rem; background: rgba(18, 27, 48, 0.84); }
 
+
+.quiz-metrics { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.quiz-metrics .countdown-pill { display: flex; justify-content: space-between; align-items: center; }
+.quiz-metrics strong { font-size: 1.15rem; }
 .quiz-round-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: .5rem; }
 .quiz-round-tab.is-active { background: linear-gradient(115deg, #8296ff, #6fd9ff); color: #06111f; border-color: rgba(203,233,255,.85); }
 .quiz-round-panel { display: none; gap: .8rem; }
