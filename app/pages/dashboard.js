@@ -1,19 +1,16 @@
 import {
   connectedRef,
+  DEFAULT_PRODUCT_KEY,
   get,
-  matchesRef,
+  getAuthRefs,
+  getProductRefsBySlug,
+  legacyRootRef,
   onValue,
-  overlayRef,
-  participantImagesRef,
-  participantsRef,
-  profileRef,
   push,
   ref,
   remove,
-  rootRef,
   set,
   update,
-  usersRef,
 } from '../shared/firebase.js';
 import {
   BRACKET_SIZE,
@@ -38,6 +35,10 @@ import {
 } from '../shared/timer-state.js';
 
 const MAX_ACCOUNTS = 2;
+const authRefs = getAuthRefs();
+let activeProductRefs = getProductRefsBySlug(DEFAULT_PRODUCT_KEY);
+const pageParams = new URLSearchParams(window.location.search);
+activeProductRefs = getProductRefsBySlug(pageParams.get('product'));
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
@@ -642,7 +643,7 @@ async function loadParticipantImagePresets() {
   }
 
   try {
-    const snapshot = await get(participantImagesRef);
+    const snapshot = await get(activeProductRefs.participantImagesRef);
     const payload = snapshot.exists() ? snapshot.val() : [];
 
     const rawEntries = Array.isArray(payload)
@@ -861,7 +862,7 @@ async function setOverlayMatch(index) {
     payload.timer = resetTimerState(currentOverlay.timer, now, getTimerParticipantLabels());
   }
 
-  await update(overlayRef, payload);
+  await update(activeProductRefs.overlayRef, payload);
 }
 
 async function shiftOverlayMatch(delta) {
@@ -876,7 +877,7 @@ async function shiftOverlayMatch(delta) {
 async function setOverlayImageHeight(heightPx) {
   const safeHeight = sanitizeDuelImageHeight(heightPx);
 
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     imageHeightPx: safeHeight,
     updatedAt: Date.now(),
   });
@@ -885,7 +886,7 @@ async function setOverlayImageHeight(heightPx) {
 async function setOverlayImageOffsetX(offsetXPx) {
   const safeOffset = sanitizeDuelImageOffsetX(offsetXPx);
 
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     imageOffsetXPx: safeOffset,
     updatedAt: Date.now(),
   });
@@ -894,7 +895,7 @@ async function setOverlayImageOffsetX(offsetXPx) {
 async function setOverlayImageOffsetY(offsetYPx) {
   const safeOffset = sanitizeDuelImageOffsetY(offsetYPx);
 
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     imageOffsetYPx: safeOffset,
     updatedAt: Date.now(),
   });
@@ -903,7 +904,7 @@ async function setOverlayImageOffsetY(offsetYPx) {
 async function setOverlayTextColor(textColor) {
   const safeColor = sanitizeTextColor(textColor);
 
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     textColor: safeColor,
     updatedAt: Date.now(),
   });
@@ -923,7 +924,7 @@ async function setOverlayTextAppearance(patch) {
     ...patch.fontSizes,
   });
 
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     timerTextColor: sanitizeColor(patch.timerTextColor, currentTimerTextColor),
     timerLabelColor: sanitizeColor(patch.timerLabelColor, currentTimerLabelColor),
     characterNameColor: sanitizeColor(patch.characterNameColor, currentCharacterNameColor),
@@ -937,7 +938,7 @@ async function setOverlayTextAppearance(patch) {
 async function setOverlayTimerOffsetY(timerOffsetYPx) {
   const safeOffset = sanitizeDuelTimerOffsetY(timerOffsetYPx);
 
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     timerOffsetYPx: safeOffset,
     updatedAt: Date.now(),
   });
@@ -945,7 +946,7 @@ async function setOverlayTimerOffsetY(timerOffsetYPx) {
 
 async function setOverlayTimer(timer) {
   const normalizedTimer = normalizeTimerState(timer);
-  await update(overlayRef, {
+  await update(activeProductRefs.overlayRef, {
     timerProfile: normalizedTimer.profile,
     timer: normalizedTimer,
     updatedAt: Date.now(),
@@ -1025,7 +1026,7 @@ async function generateMatches() {
   }
 
   const tournament = createTournament(participantsCache);
-  await set(matchesRef, tournament);
+  await set(activeProductRefs.matchesRef, tournament);
   await setOverlayMatch(0);
 }
 
@@ -1039,7 +1040,7 @@ async function setWinner(roundIndex, matchIndex, side) {
     return;
   }
 
-  await set(matchesRef, rebuilt);
+  await set(activeProductRefs.matchesRef, rebuilt);
 }
 
 async function setCurrentMatchWinner(side) {
@@ -1052,11 +1053,11 @@ async function setCurrentMatchWinner(side) {
 }
 
 function openDuelOverlayWindow() {
-  window.open('overlays/duel-overlay.html', '_blank', 'width=1600,height=900');
+  window.open(`overlays/duel-overlay.html?product=${activeProductRefs.productKey}`, '_blank', 'width=1600,height=900');
 }
 
 function openTreeOverlayWindow() {
-  window.open('overlays/tree-overlay.html', '_blank', 'width=1600,height=900');
+  window.open(`overlays/tree-overlay.html?product=${activeProductRefs.productKey}`, '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
@@ -1077,7 +1078,7 @@ async function login(username, password) {
     return false;
   }
 
-  await set(profileRef, {
+  await set(authRefs.profileRef, {
     uid: user.id,
     username: user.username,
     loggedAt: Date.now(),
@@ -1110,7 +1111,7 @@ async function createProfile(username, password) {
     return { ok: false, message: 'Limite atteinte : 2 comptes maximum.' };
   }
 
-  const userRef = push(usersRef);
+  const userRef = push(authRefs.usersRef);
   const uid = userRef.key;
 
   if (!uid) {
@@ -1140,8 +1141,8 @@ async function createProfile(username, password) {
 }
 
 async function logout() {
-  await set(profileRef, null);
-  await update(overlayRef, {
+  await set(authRefs.profileRef, null);
+  await update(activeProductRefs.overlayRef, {
     matchIndex: 0,
     updatedAt: Date.now(),
   });
@@ -1175,29 +1176,68 @@ function renderConnectionStatus() {
 }
 
 async function refreshUsersCache() {
-  const snapshot = await get(usersRef);
+  const snapshot = await get(authRefs.usersRef);
   usersCache = normalizeUsers(snapshot.val() || {});
   usersLoaded = true;
 }
 
 async function ensureDatabaseShape() {
-  const snapshot = await get(rootRef);
+  const legacySnapshot = await get(legacyRootRef);
+  const legacyValue = legacySnapshot.val() || {};
+
+  const authSnapshot = await get(authRefs.authRootRef);
+  const authValue = authSnapshot.val() || {};
+
+  if ((!authValue.users || typeof authValue.users !== 'object') && legacyValue.users && typeof legacyValue.users === 'object') {
+    await set(authRefs.usersRef, legacyValue.users);
+  }
+  if (!authValue.users || typeof authValue.users !== 'object') {
+    await set(authRefs.usersRef, {});
+  }
+  if (authValue.profile === undefined && legacyValue.profile !== undefined) {
+    await set(authRefs.profileRef, legacyValue.profile ?? null);
+  }
+  if (authValue.profile === undefined) {
+    await set(authRefs.profileRef, null);
+  }
+
+  const snapshot = await get(activeProductRefs.productRootRef);
   const value = snapshot.val() || {};
 
-  if (!value.users || typeof value.users !== 'object') {
-    await set(usersRef, {});
+  if (
+    (!value.participants || typeof value.participants !== 'object') &&
+    legacyValue.participants &&
+    typeof legacyValue.participants === 'object'
+  ) {
+    await set(activeProductRefs.participantsRef, legacyValue.participants);
+  }
+
+  if (!value.matches && legacyValue.matches !== undefined) {
+    await set(activeProductRefs.matchesRef, legacyValue.matches ?? null);
+  }
+
+  if ((!value.overlay || typeof value.overlay !== 'object') && legacyValue.overlay && typeof legacyValue.overlay === 'object') {
+    await set(activeProductRefs.overlayRef, legacyValue.overlay);
+  }
+
+  if (
+    (!value.participantImages || typeof value.participantImages !== 'object') &&
+    legacyValue.participantImages &&
+    typeof legacyValue.participantImages === 'object'
+  ) {
+    await set(activeProductRefs.participantImagesRef, legacyValue.participantImages);
   }
 
   if (!value.participants || typeof value.participants !== 'object') {
-    await set(participantsRef, {});
+    await set(activeProductRefs.participantsRef, {});
   }
 
   if (!value.matches) {
-    await set(matchesRef, null);
+    await set(activeProductRefs.matchesRef, null);
   }
 
   if (!value.overlay || typeof value.overlay !== 'object') {
-    await set(overlayRef, {
+    await set(activeProductRefs.overlayRef, {
       matchIndex: 0,
       imageHeightPx: DEFAULT_DUEL_IMAGE_HEIGHT_PX,
       imageOffsetXPx: DEFAULT_DUEL_IMAGE_OFFSET_X_PX,
@@ -1273,17 +1313,10 @@ async function ensureDatabaseShape() {
 
     if (Object.keys(patches).length) {
       patches.updatedAt = Date.now();
-      await update(overlayRef, patches);
+      await update(activeProductRefs.overlayRef, patches);
     }
   }
 
-  if (value.profile === undefined) {
-    await set(profileRef, null);
-  }
-
-  if (value.profiles !== undefined) {
-    await remove(ref(rootRef, 'profiles'));
-  }
 }
 
 function bindRealtimeSubscriptions() {
@@ -1292,7 +1325,7 @@ function bindRealtimeSubscriptions() {
     renderConnectionStatus();
   });
 
-  onValue(usersRef, async (snapshot) => {
+  onValue(authRefs.usersRef, async (snapshot) => {
     const usersMap = snapshot.val() || {};
     usersCache = normalizeUsers(usersMap);
     usersLoaded = true;
@@ -1302,7 +1335,7 @@ function bindRealtimeSubscriptions() {
     }
   });
 
-  onValue(profileRef, (snapshot) => {
+  onValue(authRefs.profileRef, (snapshot) => {
     currentProfile = snapshot.val();
 
     if (currentProfile?.username) {
@@ -1313,19 +1346,19 @@ function bindRealtimeSubscriptions() {
     showLogin();
   });
 
-  onValue(participantsRef, (snapshot) => {
+  onValue(activeProductRefs.participantsRef, (snapshot) => {
     participantsCache = normalizeParticipants(snapshot.val());
     renderParticipants();
   });
 
-  onValue(matchesRef, (snapshot) => {
+  onValue(activeProductRefs.matchesRef, (snapshot) => {
     tournamentCache = normalizeTournament(snapshot.val());
     renderBracket();
     renderLiveWinnerControls();
     syncTimerParticipantLabels();
   });
 
-  onValue(overlayRef, (snapshot) => {
+  onValue(activeProductRefs.overlayRef, (snapshot) => {
     const value = snapshot.val() || {};
     const normalizedTimer = normalizeTimerState({
       ...value.timer,
@@ -1527,13 +1560,13 @@ participantForm.addEventListener('submit', async (event) => {
   const editId = String(formData.get('editParticipantId') || '').trim();
 
   if (editId) {
-    await update(ref(participantsRef, editId), participant);
+    await update(ref(activeProductRefs.participantsRef, editId), participant);
     participantMessage.textContent = 'Participant modifié ✅';
     toggleEditMode();
     return;
   }
 
-  const newParticipantRef = push(participantsRef);
+  const newParticipantRef = push(activeProductRefs.participantsRef);
   await set(newParticipantRef, participant);
 
   participantMessage.textContent = 'Participant ajouté ✅';
@@ -1595,7 +1628,7 @@ participantsList.addEventListener('click', async (event) => {
     return;
   }
 
-  const participantRef = ref(participantsRef, participantId);
+  const participantRef = ref(activeProductRefs.participantsRef, participantId);
   await remove(participantRef);
 
   participantMessage.textContent = `${participant.pseudo} supprimé ✅`;
@@ -1616,8 +1649,8 @@ clearParticipantsBtn.addEventListener('click', async () => {
     return;
   }
 
-  await set(participantsRef, {});
-  await set(matchesRef, null);
+  await set(activeProductRefs.participantsRef, {});
+  await set(activeProductRefs.matchesRef, null);
   await setOverlayMatch(0);
   participantMessage.textContent = 'Participants vidés.';
 });
@@ -2031,11 +2064,26 @@ function renderActiveProductView(viewName) {
   });
 }
 
+function getCurrentProductTab() {
+  return activeProductRefs.productKey === 'zogquiz' ? 'quiz' : 'tournament';
+}
+
 productTabs.forEach((tab) => {
   tab.addEventListener('click', () => {
-    renderActiveProductView(String(tab.dataset.productTab || 'tournament'));
+    const nextTab = String(tab.dataset.productTab || 'tournament');
+    if (nextTab === getCurrentProductTab()) {
+      renderActiveProductView(nextTab);
+      return;
+    }
+
+    const nextProduct = nextTab === 'quiz' ? 'quiz' : 'tournament';
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('product', nextProduct);
+    window.location.href = nextUrl.toString();
   });
 });
+
+renderActiveProductView(getCurrentProductTab());
 
 try {
   await ensureDatabaseShape();
