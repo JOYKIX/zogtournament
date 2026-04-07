@@ -84,7 +84,7 @@ const createProfileMessage = document.getElementById('createProfileMessage');
 const loginForm = document.getElementById('loginForm');
 const loginMessage = document.getElementById('loginMessage');
 const logoutBtn = document.getElementById('logoutBtn');
-const navItems = Array.from(document.querySelectorAll('.app-nav-item'));
+const navItems = Array.from(document.querySelectorAll('.app-nav-item[data-target-view]'));
 const appViews = Array.from(document.querySelectorAll('.app-view'));
 
 const participantForm = document.getElementById('participantForm');
