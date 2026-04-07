@@ -1,4 +1,4 @@
-import { matchesRef, onValue, overlayRef } from '../shared/firebase.js';
+import { getProductRefsBySlug, onValue } from '../shared/firebase.js';
 import { computeWinner, getOverlayMatches, getRoundTitle, normalizeTournament } from '../shared/tournament.js';
 import { escapeHtml } from '../shared/view-helpers.js';
 
@@ -8,6 +8,8 @@ const BASE_MATCH_CENTER = 176;
 
 let tournamentCache = null;
 let currentMatchIndex = 0;
+const pageParams = new URLSearchParams(window.location.search);
+const activeProductRefs = getProductRefsBySlug(pageParams.get('product'));
 
 function createMatchCard(match, roundIndex, matchIndex, flatMatches, hasNextRound) {
   const winner = computeWinner(match);
@@ -88,12 +90,12 @@ function renderTree() {
 
 }
 
-onValue(matchesRef, (snapshot) => {
+onValue(activeProductRefs.matchesRef, (snapshot) => {
   tournamentCache = normalizeTournament(snapshot.val());
   renderTree();
 });
 
-onValue(overlayRef, (snapshot) => {
+onValue(activeProductRefs.overlayRef, (snapshot) => {
   const value = snapshot.val() || {};
   currentMatchIndex = Number(value.matchIndex || 0);
   renderTree();

@@ -1,4 +1,4 @@
-import { matchesRef, onValue, overlayRef } from '../shared/firebase.js';
+import { getProductRefsBySlug, onValue } from '../shared/firebase.js';
 import { getOverlayMatches, normalizeTournament } from '../shared/tournament.js';
 import { normalizeTimerState as normalizeSharedTimerState } from '../shared/timer-state.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
@@ -72,6 +72,8 @@ let currentFontSizes = DEFAULT_DUEL_FONT_SIZES;
 let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
+const pageParams = new URLSearchParams(window.location.search);
+const activeProductRefs = getProductRefsBySlug(pageParams.get('product'));
 
 function sanitizeDuelImageHeight(value) {
   const parsed = Number(value);
@@ -325,12 +327,12 @@ function render() {
   }
 }
 
-onValue(matchesRef, (snapshot) => {
+onValue(activeProductRefs.matchesRef, (snapshot) => {
   tournamentCache = normalizeTournament(snapshot.val());
   render();
 });
 
-onValue(overlayRef, (snapshot) => {
+onValue(activeProductRefs.overlayRef, (snapshot) => {
   const value = snapshot.val() || {};
   currentMatchIndex = Number(value.matchIndex || 0);
   currentImageHeightPx = sanitizeDuelImageHeight(value.imageHeightPx);
