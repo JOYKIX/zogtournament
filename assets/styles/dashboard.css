@@ -72,6 +72,26 @@ body {
   gap: 1rem;
 }
 
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.product-view {
+  display: none;
+}
+
+.product-view.is-active {
+  display: block;
+}
+
+.product-tab {
+  border: 1px solid rgba(124, 149, 245, 0.55);
+}
+
 .app-layout {
   display: grid;
   gap: 1rem;

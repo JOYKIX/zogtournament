@@ -8,6 +8,18 @@
   </head>
   <body>
     <main class="container">
+      <header class="card product-header">
+        <div>
+          <p class="eyebrow">Plateforme Zog</p>
+          <h1>ZogTournament / ZogQuiz</h1>
+        </div>
+        <div class="actions wrap">
+          <button type="button" class="product-tab is-active" data-product-tab="tournament">ZogTournament</button>
+          <button type="button" class="product-tab secondary" data-product-tab="quiz">ZogQuiz (bientôt)</button>
+        </div>
+      </header>
+
+      <section class="product-view is-active" data-product-view="tournament">
       <section id="loginSection" class="card auth-card">
         <header class="auth-header">
           <p class="eyebrow">Zog Tournament</p>
@@ -54,7 +66,6 @@
           <div class="actions wrap top-actions">
             <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
             <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
-            <button id="openCamOverlayBtn" class="secondary">Ouvrir cam</button>
             <button id="logoutBtn" class="ghost">Déconnexion</button>
           </div>
         </header>
@@ -65,7 +76,6 @@
             <a href="#config" class="app-nav-item" data-target-view="config">Config</a>
             <a href="#keybinds" class="app-nav-item" data-target-view="keybinds">Keybinds</a>
             <a href="#live" class="app-nav-item" data-target-view="live">Live</a>
-            <a href="#cam" class="app-nav-item" data-target-view="cam">Cam</a>
           </nav>
 
           <section class="app-content">
@@ -196,7 +206,7 @@
               <article class="card panel section-card">
                 <header class="section-head">
                   <p class="eyebrow">Overlay / Apparence</p>
-                  <h3>Placement image & caméra</h3>
+                  <h3>Placement image duel</h3>
                 </header>
 
                 <div class="settings-grid two-cols">
@@ -214,20 +224,6 @@
                   </label>
                 </div>
 
-                <div class="settings-grid three-cols">
-                  <label class="setting-field" for="guestCamWidthPx">
-                    Largeur cam (px)
-                    <input id="guestCamWidthPx" type="number" step="10" value="320" />
-                  </label>
-                  <label class="setting-field" for="guestCamHeightPx">
-                    Hauteur cam (px)
-                    <input id="guestCamHeightPx" type="number" step="10" value="180" />
-                  </label>
-                  <label class="setting-field" for="guestCamOffsetYPx">
-                    Position verticale cam (px)
-                    <input id="guestCamOffsetYPx" type="number" step="2" value="0" />
-                  </label>
-                </div>
               </article>
 
               <article class="card panel section-card">
@@ -403,19 +399,17 @@
               </article>
             </section>
 
-            <section class="app-view" data-view="cam" aria-hidden="true">
-              <article class="card panel section-card">
-                <header class="section-head">
-                  <p class="eyebrow">Caméras invitées</p>
-                  <h3>Régie WebRTC</h3>
-                  <p class="hint">Lien invité: <a id="guestPageLink" href="guest.html" target="_blank" rel="noopener">ouvrir page invité</a></p>
-                </header>
-                <p id="camStatus" class="message no-margin">En attente d'invités.</p>
-                <div id="camGuestsList" class="split-grid"></div>
-              </article>
-            </section>
           </section>
         </div>
+      </section>
+      </section>
+
+      <section class="card product-view" data-product-view="quiz" aria-hidden="true">
+        <header class="section-head">
+          <p class="eyebrow">ZogQuiz</p>
+          <h3>Section en préparation</h3>
+          <p class="hint">Le socle est prêt pour intégrer ZogQuiz ici (routing, UI et séparation des sections).</p>
+        </header>
       </section>
     </main>
 
