@@ -36,9 +36,10 @@ import {
 
 const MAX_ACCOUNTS = 2;
 const authRefs = getAuthRefs();
-let activeProductRefs = getProductRefsBySlug(DEFAULT_PRODUCT_KEY);
 const pageParams = new URLSearchParams(window.location.search);
-activeProductRefs = getProductRefsBySlug(pageParams.get('product'));
+const activeProductSlug = pageParams.get('product');
+let activeProfileId = String(pageParams.get('profile') || '').trim() || null;
+let activeProductRefs = getProductRefsBySlug(activeProductSlug || DEFAULT_PRODUCT_KEY, activeProfileId);
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
@@ -1053,11 +1054,23 @@ async function setCurrentMatchWinner(side) {
 }
 
 function openDuelOverlayWindow() {
-  window.open(`overlays/duel-overlay.html?product=${activeProductRefs.productKey}`, '_blank', 'width=1600,height=900');
+  const params = new URLSearchParams({
+    product: activeProductRefs.productKey,
+  });
+  if (activeProfileId) {
+    params.set('profile', activeProfileId);
+  }
+  window.open(`overlays/duel-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
 }
 
 function openTreeOverlayWindow() {
-  window.open(`overlays/tree-overlay.html?product=${activeProductRefs.productKey}`, '_blank', 'width=1600,height=900');
+  const params = new URLSearchParams({
+    product: activeProductRefs.productKey,
+  });
+  if (activeProfileId) {
+    params.set('profile', activeProfileId);
+  }
+  window.open(`overlays/tree-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
@@ -1142,6 +1155,7 @@ async function createProfile(username, password) {
 
 async function logout() {
   await set(authRefs.profileRef, null);
+  activeProfileId = null;
   await update(activeProductRefs.overlayRef, {
     matchIndex: 0,
     updatedAt: Date.now(),
@@ -1337,6 +1351,22 @@ function bindRealtimeSubscriptions() {
 
   onValue(authRefs.profileRef, (snapshot) => {
     currentProfile = snapshot.val();
+    const currentUid = String(currentProfile?.uid || '').trim() || null;
+    const currentUrl = new URL(window.location.href);
+    const expectedRefs = getProductRefsBySlug(activeProductSlug || DEFAULT_PRODUCT_KEY, currentUid);
+    const currentPath = String(activeProductRefs.productRootRef.toString());
+    const expectedPath = String(expectedRefs.productRootRef.toString());
+
+    if (currentPath !== expectedPath) {
+      currentUrl.searchParams.set('product', expectedRefs.productKey);
+      if (currentUid) {
+        currentUrl.searchParams.set('profile', currentUid);
+      } else {
+        currentUrl.searchParams.delete('profile');
+      }
+      window.location.href = currentUrl.toString();
+      return;
+    }
 
     if (currentProfile?.username) {
       showApp();
@@ -1533,6 +1563,12 @@ loginForm.addEventListener('submit', async (event) => {
     if (await login(username, password)) {
       loginMessage.textContent = '';
       loginForm.reset();
+      const user = findUserByUsername(username);
+      if (user?.id) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('profile', user.id);
+        window.location.href = nextUrl.toString();
+      }
     } else {
       loginMessage.textContent = 'Identifiants invalides.';
     }

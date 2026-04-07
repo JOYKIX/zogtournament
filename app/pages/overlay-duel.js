@@ -73,7 +73,7 @@ let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
 const pageParams = new URLSearchParams(window.location.search);
-const activeProductRefs = getProductRefsBySlug(pageParams.get('product'));
+const activeProductRefs = getProductRefsBySlug(pageParams.get('product'), pageParams.get('profile'));
 
 function sanitizeDuelImageHeight(value) {
   const parsed = Number(value);

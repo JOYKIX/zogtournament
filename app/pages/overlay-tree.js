@@ -9,7 +9,7 @@ const BASE_MATCH_CENTER = 176;
 let tournamentCache = null;
 let currentMatchIndex = 0;
 const pageParams = new URLSearchParams(window.location.search);
-const activeProductRefs = getProductRefsBySlug(pageParams.get('product'));
+const activeProductRefs = getProductRefsBySlug(pageParams.get('product'), pageParams.get('profile'));
 
 function createMatchCard(match, roundIndex, matchIndex, flatMatches, hasNextRound) {
   const winner = computeWinner(match);
