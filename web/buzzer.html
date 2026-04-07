@@ -8,10 +8,11 @@
   </head>
   <body>
     <main class="container">
-      <section class="card" style="max-width: 760px; margin: 0 auto; display:grid; gap:.8rem;">
+      <section class="card narrow-shell">
         <header class="section-head">
           <p class="eyebrow">ZogQuiz</p>
           <h3>Buzzer invité</h3>
+          <p class="hint no-margin">Rejoignez une session en entrant votre code d'invitation.</p>
         </header>
 
         <form id="buzzerJoinForm" class="sub-card">
@@ -25,7 +26,7 @@
 
         <section id="buzzerPanel" class="sub-card hidden">
           <p id="buzzerStatus" class="countdown-pill">Prêt à buzzer.</p>
-          <button id="buzzBtn" type="button" style="font-size:1.3rem; padding:1rem;">BUZZ (Espace)</button>
+          <button id="buzzBtn" type="button" class="buzz-btn">BUZZ (Espace)</button>
         </section>
       </section>
     </main>

@@ -1,0 +1,19 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, 'Segoe UI', sans-serif;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #f2f6ff;
+  background: radial-gradient(circle at 15% 10%, rgba(124, 143, 255, 0.24), transparent 38%), linear-gradient(145deg, #06070b, #0c1120 56%, #0f1730);
+}
+.hub { max-width: 1100px; margin: 0 auto; padding: clamp(1rem, 4vw, 3rem); display: grid; gap: 1.2rem; }
+.hero { padding: clamp(1rem, 2vw, 1.5rem); border: 1px solid rgba(169, 192, 255, 0.3); border-radius: 18px; background: rgba(19, 27, 49, 0.65); }
+.kicker { margin: 0; font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: #9cb6ff; }
+.hero h1 { margin: .3rem 0; }
+.grid { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); }
+.card { text-decoration: none; color: inherit; padding: 1rem; border-radius: 14px; border: 1px solid rgba(164, 187, 255, 0.26); background: rgba(14, 22, 41, 0.8); }
+.card:hover { border-color: rgba(188, 216, 255, 0.62); transform: translateY(-1px); }
+.card h2 { margin: 0 0 .35rem; font-size: 1.08rem; }
+.card p { margin: 0; color: #b5c2e2; }

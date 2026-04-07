@@ -2,11 +2,36 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=web/dashboard.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZogTournament</title>
+    <title>ZogSuite · Hub</title>
+    <link rel="stylesheet" href="assets/styles/site.css" />
   </head>
   <body>
-    <p>Redirection… <a href="web/dashboard.html">Ouvrir le tableau de bord</a></p>
+    <main class="hub">
+      <header class="hero">
+        <p class="kicker">Production Toolkit</p>
+        <h1>ZogSuite</h1>
+        <p>Un point d'entrée unique pour piloter vos tournois, manches quiz et overlays live.</p>
+      </header>
+
+      <section class="grid">
+        <a class="card" href="web/dashboard.html">
+          <h2>Dashboard principal</h2>
+          <p>Gestion des participants, arbre, overlays et régie live.</p>
+        </a>
+        <a class="card" href="web/buzzer.html">
+          <h2>Page buzzer</h2>
+          <p>Accès invité pour rejoindre une manche et buzzer.</p>
+        </a>
+        <a class="card" href="web/overlays/duel-overlay.html">
+          <h2>Overlay Duel</h2>
+          <p>Overlay match à afficher en stream.</p>
+        </a>
+        <a class="card" href="web/overlays/tree-overlay.html">
+          <h2>Overlay Arbre</h2>
+          <p>Visualisation live du bracket.</p>
+        </a>
+      </section>
+    </main>
   </body>
 </html>
