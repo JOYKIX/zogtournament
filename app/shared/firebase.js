@@ -52,26 +52,34 @@ function getAuthRefs() {
   };
 }
 
-function getProductRefs(productKey = DEFAULT_PRODUCT_KEY) {
+function normalizeProfileId(value) {
+  const normalized = String(value || '').trim();
+  return normalized || null;
+}
+
+function getProductRefs(productKey = DEFAULT_PRODUCT_KEY, profileId = null) {
   const normalizedProductKey = normalizeProductKey(productKey);
-  const productRootRef = ref(db, `zog/apps/${normalizedProductKey}`);
+  const normalizedProfileId = normalizeProfileId(profileId);
+  const basePath = normalizedProfileId ? `zog/profiles/${normalizedProfileId}/apps` : 'zog/apps';
+  const productRootRef = ref(db, `${basePath}/${normalizedProductKey}`);
 
   return {
     productKey: normalizedProductKey,
+    profileId: normalizedProfileId,
     productRootRef,
-    participantsRef: ref(db, `zog/apps/${normalizedProductKey}/participants`),
-    participantImagesRef: ref(db, `zog/apps/${normalizedProductKey}/participantImages`),
-    matchesRef: ref(db, `zog/apps/${normalizedProductKey}/matches`),
-    overlayRef: ref(db, `zog/apps/${normalizedProductKey}/overlay`),
+    participantsRef: ref(db, `${basePath}/${normalizedProductKey}/participants`),
+    participantImagesRef: ref(db, `${basePath}/${normalizedProductKey}/participantImages`),
+    matchesRef: ref(db, `${basePath}/${normalizedProductKey}/matches`),
+    overlayRef: ref(db, `${basePath}/${normalizedProductKey}/overlay`),
   };
 }
 
-function getProductRefsBySlug(slug) {
+function getProductRefsBySlug(slug, profileId = null) {
   if (String(slug || '').trim().toLowerCase() === 'quiz') {
-    return getProductRefs(PRODUCT_KEYS.quiz);
+    return getProductRefs(PRODUCT_KEYS.quiz, profileId);
   }
 
-  return getProductRefs(PRODUCT_KEYS.tournament);
+  return getProductRefs(PRODUCT_KEYS.tournament, profileId);
 }
 
 export {
@@ -85,6 +93,7 @@ export {
   getProductRefs,
   getProductRefsBySlug,
   normalizeProductKey,
+  normalizeProfileId,
   onDisconnect,
   onValue,
   push,
