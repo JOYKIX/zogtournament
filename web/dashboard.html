@@ -429,6 +429,29 @@
 
             <div class="quiz-grid">
               <article class="sub-card">
+                <h4>Zone Q/R overlay (1920×1080)</h4>
+                <p class="hint no-margin">Définissez le rectangle avec les points haut-gauche et bas-droite en pixels.</p>
+                <div class="settings-grid three-columns">
+                  <label class="setting-field" for="quizQaRectX1">
+                    X haut-gauche
+                    <input id="quizQaRectX1" type="number" min="0" max="1919" step="1" value="560" />
+                  </label>
+                  <label class="setting-field" for="quizQaRectY1">
+                    Y haut-gauche
+                    <input id="quizQaRectY1" type="number" min="0" max="1079" step="1" value="260" />
+                  </label>
+                  <label class="setting-field" for="quizQaRectX2">
+                    X bas-droite
+                    <input id="quizQaRectX2" type="number" min="1" max="1920" step="1" value="1360" />
+                  </label>
+                  <label class="setting-field" for="quizQaRectY2">
+                    Y bas-droite
+                    <input id="quizQaRectY2" type="number" min="1" max="1080" step="1" value="760" />
+                  </label>
+                </div>
+              </article>
+
+              <article class="sub-card">
                 <h4>Questions manche 1</h4>
                 <form id="quizQuestionForm">
                   <label for="quizQuestionType">Type de question</label>

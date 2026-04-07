@@ -160,6 +160,14 @@ const DEFAULT_TIMER_HEALTH_CONFIG = {
   animationIntensity: 80,
   dangerEffects: true,
 };
+const QUIZ_OVERLAY_WIDTH_PX = 1920;
+const QUIZ_OVERLAY_HEIGHT_PX = 1080;
+const DEFAULT_QUIZ_QA_RECT = {
+  x1: 560,
+  y1: 260,
+  x2: 1360,
+  y2: 760,
+};
 const MIN_TIMER_INITIAL_SECONDS = 10;
 const MAX_TIMER_INITIAL_SECONDS = 7200;
 const TIMER_TICK_INTERVAL_MS = 250;
@@ -1501,6 +1509,7 @@ function bindRealtimeSubscriptions() {
     if (timerStartParticipantSelect?.options?.[1]) {
       timerStartParticipantSelect.options[1].textContent = currentOverlay.timer.participant2Label;
     }
+    renderQuizQaRectInputs(normalizeQuizQaRect(value.quizLayout?.questionAnswerRect));
 
     renderBracket();
     renderLiveTimerPanel();
@@ -2109,6 +2118,10 @@ const quizInviteCodesList = document.getElementById('quizInviteCodesList');
 const quizBuzzerLiveStatus = document.getElementById('quizBuzzerLiveStatus');
 const quizResetBuzzBtn = document.getElementById('quizResetBuzzBtn');
 const quizBuzzParticipantsList = document.getElementById('quizBuzzParticipantsList');
+const quizQaRectX1Input = document.getElementById('quizQaRectX1');
+const quizQaRectY1Input = document.getElementById('quizQaRectY1');
+const quizQaRectX2Input = document.getElementById('quizQaRectX2');
+const quizQaRectY2Input = document.getElementById('quizQaRectY2');
 
 let quizRound1State = {
   questions: [],
@@ -2146,6 +2159,61 @@ function normalizeAnswers(rawValue) {
     .split(',')
     .map((answer) => answer.trim().toLowerCase())
     .filter(Boolean);
+}
+
+function sanitizeQuizOverlayCoord(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  const rounded = Math.round(parsed);
+  return Math.min(max, Math.max(min, rounded));
+}
+
+function normalizeQuizQaRect(value) {
+  const raw = value || {};
+  const x1 = sanitizeQuizOverlayCoord(raw.x1, DEFAULT_QUIZ_QA_RECT.x1, 0, QUIZ_OVERLAY_WIDTH_PX - 1);
+  const y1 = sanitizeQuizOverlayCoord(raw.y1, DEFAULT_QUIZ_QA_RECT.y1, 0, QUIZ_OVERLAY_HEIGHT_PX - 1);
+  const x2Raw = sanitizeQuizOverlayCoord(raw.x2, DEFAULT_QUIZ_QA_RECT.x2, 1, QUIZ_OVERLAY_WIDTH_PX);
+  const y2Raw = sanitizeQuizOverlayCoord(raw.y2, DEFAULT_QUIZ_QA_RECT.y2, 1, QUIZ_OVERLAY_HEIGHT_PX);
+  const x2 = Math.max(x1 + 1, x2Raw);
+  const y2 = Math.max(y1 + 1, y2Raw);
+  return { x1, y1, x2, y2 };
+}
+
+function readQuizQaRectFromInputs() {
+  return normalizeQuizQaRect({
+    x1: quizQaRectX1Input?.value,
+    y1: quizQaRectY1Input?.value,
+    x2: quizQaRectX2Input?.value,
+    y2: quizQaRectY2Input?.value,
+  });
+}
+
+function renderQuizQaRectInputs(rect = DEFAULT_QUIZ_QA_RECT) {
+  if (quizQaRectX1Input) {
+    quizQaRectX1Input.value = String(rect.x1);
+  }
+  if (quizQaRectY1Input) {
+    quizQaRectY1Input.value = String(rect.y1);
+  }
+  if (quizQaRectX2Input) {
+    quizQaRectX2Input.value = String(rect.x2);
+  }
+  if (quizQaRectY2Input) {
+    quizQaRectY2Input.value = String(rect.y2);
+  }
+}
+
+async function setQuizQaRect(rect) {
+  const normalized = normalizeQuizQaRect(rect);
+  renderQuizQaRectInputs(normalized);
+  await update(activeProductRefs.overlayRef, {
+    quizLayout: {
+      questionAnswerRect: normalized,
+    },
+    updatedAt: Date.now(),
+  });
 }
 
 function renderQuizQuestions() {
@@ -2196,6 +2264,7 @@ function renderQuizQuestions() {
           id,
           type: question.type,
           text: question.text,
+          answers: Array.isArray(question.answers) ? question.answers : [],
         },
       });
       showQuizMessage("Question envoyée vers l'overlay.");
@@ -2422,13 +2491,19 @@ function bindQuizActions() {
     });
   });
 
+  [quizQaRectX1Input, quizQaRectY1Input, quizQaRectX2Input, quizQaRectY2Input].forEach((input) => {
+    input?.addEventListener('change', async () => {
+      await setQuizQaRect(readQuizQaRectFromInputs());
+    });
+  });
+
   openQuizOverlayBtn?.addEventListener('click', () => {
     const params = new URLSearchParams();
     if (activeProductRefs.profileId) {
       params.set('profile', activeProductRefs.profileId);
     }
     params.set('product', 'quiz');
-    window.open(`overlays/quiz-round1-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
+    window.open(`overlays/quiz-round1-overlay.html?${params.toString()}`, '_blank', 'width=1920,height=1080');
   });
 
   openBuzzerPageBtn?.addEventListener('click', () => {
