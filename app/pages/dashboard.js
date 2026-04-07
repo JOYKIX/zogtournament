@@ -24,6 +24,7 @@ import {
 } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 import { createKeybindingManager, formatBinding } from '../shared/keybindings.js';
+import { USERNAME_REGEX } from '../shared/validation.js';
 import {
   normalizeTimerState as normalizeSharedTimerState,
   resetTimerState as resetSharedTimerState,
@@ -40,7 +41,6 @@ const pageParams = new URLSearchParams(window.location.search);
 const activeProductSlug = pageParams.get('product');
 let activeProfileId = String(pageParams.get('profile') || '').trim() || null;
 let activeProductRefs = getProductRefsBySlug(activeProductSlug || DEFAULT_PRODUCT_KEY, activeProfileId);
-const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
 const productTabs = Array.from(document.querySelectorAll('[data-product-tab]'));

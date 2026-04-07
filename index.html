@@ -3,33 +3,56 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZogSuite · Hub</title>
+    <meta
+      name="description"
+      content="Cockpit central ZogSuite pour piloter les tournois, manches quiz et overlays live."
+    />
+    <title>ZogSuite · Hub Opérations Live</title>
     <link rel="stylesheet" href="assets/styles/site.css" />
   </head>
   <body>
-    <main class="hub">
+    <main class="hub" aria-label="Hub de navigation">
       <header class="hero">
-        <p class="kicker">Production Toolkit</p>
-        <h1>ZogSuite</h1>
-        <p>Un point d'entrée unique pour piloter vos tournois, manches quiz et overlays live.</p>
+        <div>
+          <p class="kicker">Production Toolkit</p>
+          <h1>ZogSuite Control Hub</h1>
+          <p class="hero-text">
+            Accès unifié pour la régie tournoi, le back-office quiz et les overlays stream.
+            Architecture claire, démarrage rapide et navigation cohérente.
+          </p>
+        </div>
+        <a class="hero-cta" href="web/dashboard.html">Ouvrir le cockpit principal</a>
       </header>
 
-      <section class="grid">
+      <section class="grid" aria-label="Applications disponibles">
         <a class="card" href="web/dashboard.html">
+          <p class="card-tag">Administration</p>
           <h2>Dashboard principal</h2>
-          <p>Gestion des participants, arbre, overlays et régie live.</p>
+          <p>Gestion du roster, bracket, overlays, quiz et régie live depuis une seule interface.</p>
         </a>
+
         <a class="card" href="web/buzzer.html">
+          <p class="card-tag">Participant</p>
           <h2>Page buzzer</h2>
-          <p>Accès invité pour rejoindre une manche et buzzer.</p>
+          <p>Accès invité optimisé mobile pour rejoindre une manche et buzzer en temps réel.</p>
         </a>
+
         <a class="card" href="web/overlays/duel-overlay.html">
-          <h2>Overlay Duel</h2>
-          <p>Overlay match à afficher en stream.</p>
+          <p class="card-tag">Overlay</p>
+          <h2>Duel overlay</h2>
+          <p>Affichage match avec timer, scores et identité visuelle adaptée au stream.</p>
         </a>
+
         <a class="card" href="web/overlays/tree-overlay.html">
-          <h2>Overlay Arbre</h2>
-          <p>Visualisation live du bracket.</p>
+          <p class="card-tag">Overlay</p>
+          <h2>Bracket overlay</h2>
+          <p>Visualisation du tableau de tournoi pour diffusion live.</p>
+        </a>
+
+        <a class="card" href="web/overlays/quiz-round1-overlay.html">
+          <p class="card-tag">Overlay</p>
+          <h2>Quiz manche 1</h2>
+          <p>Overlay question/réponse et suivi des interactions buzzer pour la manche quiz.</p>
         </a>
       </section>
     </main>
