@@ -72,6 +72,26 @@ body {
   gap: 1rem;
 }
 
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.product-view {
+  display: none;
+}
+
+.product-view.is-active {
+  display: block;
+}
+
+.product-tab {
+  border: 1px solid rgba(124, 149, 245, 0.55);
+}
+
 .app-layout {
   display: grid;
   gap: 1rem;
@@ -172,14 +192,6 @@ body {
 
 .sub-card h4 {
   margin: 0 0 0.2rem;
-}
-
-.cam-preview {
-  width: 100%;
-  border-radius: 10px;
-  background: rgba(6, 11, 24, 0.95);
-  min-height: 150px;
-  margin-top: 0.5rem;
 }
 
 .participants-block {
