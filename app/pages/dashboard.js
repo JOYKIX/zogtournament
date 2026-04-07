@@ -1052,11 +1052,11 @@ async function setCurrentMatchWinner(side) {
 }
 
 function openDuelOverlayWindow() {
-  window.open('overlay.html', '_blank', 'width=1600,height=900');
+  window.open('overlays/duel-overlay.html', '_blank', 'width=1600,height=900');
 }
 
 function openTreeOverlayWindow() {
-  window.open('overlay-tree.html', '_blank', 'width=1600,height=900');
+  window.open('overlays/tree-overlay.html', '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {

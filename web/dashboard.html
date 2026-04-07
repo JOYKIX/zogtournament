@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionnaire de tournoi</title>
+    <link rel="stylesheet" href="../assets/styles/dashboard.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="card product-header">
+        <div>
+          <p class="eyebrow">Gestionnaire de tournoi</p>
+          <h1>Panneau tournoi</h1>
+        </div>
+        <div class="actions wrap">
+          <button type="button" class="product-tab is-active" data-product-tab="tournament">ZogTournament</button>
+          <button type="button" class="product-tab secondary" data-product-tab="quiz">Mode alternatif</button>
+        </div>
+      </header>
+
+      <section class="product-view is-active" data-product-view="tournament">
+      <section id="loginSection" class="card auth-card">
+        <header class="auth-header">
+          <p class="eyebrow">Connexion</p>
+          <h1>Gérer votre tournoi</h1>
+          <p id="connectionStatus" class="message"></p>
+        </header>
+
+        <div class="grid two-columns auth-grid">
+          <form id="createProfileForm" class="panel glass-panel">
+            <h2>Créer un profil</h2>
+            <p class="hint">Maximum 2 comptes sur le site.</p>
+
+            <label for="newUsername">Identifiant</label>
+            <input id="newUsername" name="newUsername" type="text" required />
+
+            <label for="newPassword">Mot de passe</label>
+            <input id="newPassword" name="newPassword" type="password" required />
+
+            <button type="submit">Créer le compte</button>
+            <p id="createProfileMessage" class="message"></p>
+          </form>
+
+          <form id="loginForm" class="panel glass-panel">
+            <h2>Connexion</h2>
+
+            <label for="username">Identifiant</label>
+            <input id="username" name="username" type="text" required />
+
+            <label for="password">Mot de passe</label>
+            <input id="password" name="password" type="password" required />
+
+            <button type="submit">Se connecter</button>
+            <p id="loginMessage" class="message"></p>
+          </form>
+        </div>
+      </section>
+
+      <section id="appSection" class="hidden app-shell">
+        <header class="card app-header">
+          <div>
+            <p class="eyebrow">Gestion en direct</p>
+            <h2>Contrôle du tournoi</h2>
+          </div>
+          <div class="actions wrap top-actions">
+            <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
+            <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
+            <button id="logoutBtn" class="ghost">Déconnexion</button>
+          </div>
+        </header>
+
+        <div class="app-layout">
+          <nav class="card app-nav" aria-label="Navigation principale">
+            <a href="#participants" class="app-nav-item is-active" data-target-view="participants">Participants</a>
+            <a href="#config" class="app-nav-item" data-target-view="config">Paramètres</a>
+            <a href="#keybinds" class="app-nav-item" data-target-view="keybinds">Raccourcis</a>
+            <a href="#live" class="app-nav-item" data-target-view="live">Diffusion</a>
+          </nav>
+
+          <section class="app-content">
+            <section class="app-view is-active" data-view="participants">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Participants / Duel</p>
+                  <h3>Roster et préparation des affrontements</h3>
+                </header>
+
+                <div class="split-grid">
+                  <form id="participantForm" class="sub-card">
+                    <h4 id="participantFormTitle">Ajouter un participant</h4>
+                    <input id="editParticipantId" name="editParticipantId" type="hidden" />
+
+                    <label for="pseudo">Pseudo</label>
+                    <input id="pseudo" name="pseudo" type="text" required />
+
+                    <label for="character">Personnage</label>
+                    <input id="character" name="character" type="text" required />
+
+                    <label for="image">Image (URL)</label>
+                    <input id="image" name="image" type="url" placeholder="https://..." />
+                    <label for="participantImagePreset">...ou image depuis Firebase (nom/fichier enregistré)</label>
+                    <select id="participantImagePreset" name="participantImagePreset">
+                      <option value="">Chargement des images...</option>
+                    </select>
+
+                    <div class="actions stacked-mobile">
+                      <button id="participantSubmitBtn" type="submit">Enregistrer</button>
+                      <button id="cancelEditBtn" type="button" class="secondary hidden">Annuler modification</button>
+                    </div>
+                    <p id="participantMessage" class="message"></p>
+                  </form>
+
+                  <section class="sub-card participants-block">
+                    <header class="toolbar compact">
+                      <h4>Participants</h4>
+                      <button id="clearParticipantsBtn" type="button" class="danger ghost">Vider la liste</button>
+                    </header>
+                    <ul id="participantsList" class="list"></ul>
+                  </section>
+                </div>
+              </article>
+
+              <article class="card panel section-card bracket-panel">
+                <header class="section-head">
+                  <p class="eyebrow">Duel</p>
+                  <h3>Arbre de tournoi</h3>
+                </header>
+                <div id="bracketContainer" class="bracket"></div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="config" aria-hidden="true">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Paramètres overlay</p>
+                  <h3>Texte & lisibilité</h3>
+                </header>
+
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="duelTextColor">
+                    Couleur texte global
+                    <input id="duelTextColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelTimerTextColor">
+                    Couleur timer (chiffres)
+                    <input id="duelTimerTextColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelTimerLabelColor">
+                    Couleur pseudo sous barre
+                    <input id="duelTimerLabelColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelCharacterNameColor">
+                    Couleur nom perso
+                    <input id="duelCharacterNameColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field" for="duelFighterPseudoColor">
+                    Couleur pseudo sous nom perso
+                    <input id="duelFighterPseudoColor" type="color" value="#f5f8ff" />
+                  </label>
+                  <label class="setting-field inline-toggle" for="duelTextShadowEnabled">
+                    Activer ombre du texte
+                    <input id="duelTextShadowEnabled" type="checkbox" checked />
+                  </label>
+                </div>
+
+                <div class="settings-grid three-cols">
+                  <label class="setting-field" for="duelTextShadowColor">
+                    Couleur ombre
+                    <input id="duelTextShadowColor" type="color" value="#000000" />
+                  </label>
+                  <label class="setting-field" for="duelTextShadowBlurPx">
+                    Flou ombre (px)
+                    <input id="duelTextShadowBlurPx" type="number" min="0" max="80" step="1" value="12" />
+                  </label>
+                  <label class="setting-field" for="duelTextShadowOffsetXPx">
+                    Décalage X ombre (px)
+                    <input id="duelTextShadowOffsetXPx" type="number" min="-30" max="30" step="1" value="0" />
+                  </label>
+                  <label class="setting-field" for="duelTextShadowOffsetYPx">
+                    Décalage Y ombre (px)
+                    <input id="duelTextShadowOffsetYPx" type="number" min="-30" max="30" step="1" value="3" />
+                  </label>
+                </div>
+
+                <div class="settings-grid three-cols">
+                  <label class="setting-field" for="duelTimerValueFontSizePx">
+                    Taille chiffres timer (px)
+                    <input id="duelTimerValueFontSizePx" type="number" min="12" max="120" step="1" value="48" />
+                  </label>
+                  <label class="setting-field" for="duelTimerLabelFontSizePx">
+                    Taille pseudo sous barre (px)
+                    <input id="duelTimerLabelFontSizePx" type="number" min="10" max="90" step="1" value="24" />
+                  </label>
+                  <label class="setting-field" for="duelCharacterFontSizePx">
+                    Taille nom perso (px)
+                    <input id="duelCharacterFontSizePx" type="number" min="12" max="140" step="1" value="58" />
+                  </label>
+                  <label class="setting-field" for="duelFighterPseudoFontSizePx">
+                    Taille pseudo sous nom perso (px)
+                    <input id="duelFighterPseudoFontSizePx" type="number" min="10" max="100" step="1" value="28" />
+                  </label>
+                </div>
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Overlay / Apparence</p>
+                  <h3>Placement image duel</h3>
+                </header>
+
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="duelImageHeightPx">
+                    Hauteur image duel (px)
+                    <input id="duelImageHeightPx" type="number" step="10" value="760" />
+                  </label>
+                  <label class="setting-field" for="duelImageOffsetXPx">
+                    Décalage horizontal image (px)
+                    <input id="duelImageOffsetXPx" type="number" step="2" value="18" />
+                  </label>
+                  <label class="setting-field" for="duelImageOffsetYPx">
+                    Décalage vertical image (px)
+                    <input id="duelImageOffsetYPx" type="number" step="2" value="0" />
+                  </label>
+                </div>
+
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Timer</p>
+                  <h3>Réglages du timer</h3>
+                </header>
+
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="duelTimerOffsetYPx">
+                    Position verticale timer (px)
+                    <input id="duelTimerOffsetYPx" type="number" step="2" value="0" />
+                  </label>
+                  <label class="setting-field" for="duelTimerProfile">
+                    Profil de timer
+                    <select id="duelTimerProfile">
+                      <option value="classic">Classique (actuel)</option>
+                      <option value="healthbar">Fighting / barres de vie</option>
+                    </select>
+                  </label>
+                </div>
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Profil / Mode d'affichage</p>
+                  <h3>Réglages avancés Fighting / Barres de vie</h3>
+                </header>
+
+                <div class="settings-grid three-cols">
+                  <label class="setting-field inline-toggle" for="duelHealthBarsEnabled">
+                    Activer barres de vie
+                    <input id="duelHealthBarsEnabled" type="checkbox" checked />
+                  </label>
+                  <label class="setting-field" for="duelHealthBarHeightPx">
+                    Hauteur barre (px)
+                    <input id="duelHealthBarHeightPx" type="number" step="1" value="26" />
+                  </label>
+                  <label class="setting-field" for="duelHealthBarWidthPercent">
+                    Largeur barre (%)
+                    <input id="duelHealthBarWidthPercent" type="number" step="1" value="40" />
+                  </label>
+                  <label class="setting-field" for="duelHealthMainColor">
+                    Couleur principale
+                    <input id="duelHealthMainColor" type="color" value="#3ef784" />
+                  </label>
+                  <label class="setting-field" for="duelHealthWarningColor">
+                    Couleur warning
+                    <input id="duelHealthWarningColor" type="color" value="#ff9f1a" />
+                  </label>
+                  <label class="setting-field" for="duelHealthDangerColor">
+                    Couleur danger
+                    <input id="duelHealthDangerColor" type="color" value="#ff3a39" />
+                  </label>
+                  <label class="setting-field" for="duelHealthAnimationIntensity">
+                    Intensité animation (0-100)
+                    <input id="duelHealthAnimationIntensity" type="number" min="0" max="100" step="5" value="80" />
+                  </label>
+                  <label class="setting-field inline-toggle" for="duelHealthDangerEffects">
+                    Effets danger
+                    <input id="duelHealthDangerEffects" type="checkbox" checked />
+                  </label>
+                </div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="keybinds" aria-hidden="true">
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Raccourcis / Contrôles</p>
+                  <h3>Keybindings live (clavier, souris, Stream Deck)</h3>
+                </header>
+
+                <div id="keybindingStatus" class="message no-margin"></div>
+                <div class="keybindings-list">
+                  <div class="keybinding-row" data-action="start">
+                    <p class="keybinding-label">Démarrer le timer</p>
+                    <p id="bindingDisplayStart" class="keybinding-value">S</p>
+                    <button id="bindStartBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="stop">
+                    <p class="keybinding-label">Arrêter le timer</p>
+                    <p id="bindingDisplayStop" class="keybinding-value">A</p>
+                    <button id="bindStopBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="switch">
+                    <p class="keybinding-label">Basculer le timer</p>
+                    <p id="bindingDisplaySwitch" class="keybinding-value">D</p>
+                    <button id="bindSwitchBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="nextMatch">
+                    <p class="keybinding-label">Passer au duel suivant</p>
+                    <p id="bindingDisplayNextMatch" class="keybinding-value">F</p>
+                    <button id="bindNextMatchBtn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="winParticipant1">
+                    <p class="keybinding-label">Victoire participant 1</p>
+                    <p id="bindingDisplayWinParticipant1" class="keybinding-value">Q</p>
+                    <button id="bindWinParticipant1Btn" type="button" class="ghost">Binder</button>
+                  </div>
+                  <div class="keybinding-row" data-action="winParticipant2">
+                    <p class="keybinding-label">Victoire participant 2</p>
+                    <p id="bindingDisplayWinParticipant2" class="keybinding-value">E</p>
+                    <button id="bindWinParticipant2Btn" type="button" class="ghost">Binder</button>
+                  </div>
+                </div>
+
+                <div class="actions">
+                  <button id="resetBindingsBtn" type="button" class="secondary">Reset bindings</button>
+                </div>
+              </article>
+            </section>
+
+            <section class="app-view" data-view="live" aria-hidden="true">
+              <article class="card panel section-card bracket-panel">
+                <header class="section-head">
+                  <p class="eyebrow">Diffusion</p>
+                  <h3>Duel - Arbre de tournoi</h3>
+                </header>
+                <div id="liveBracketContainer" class="bracket"></div>
+              </article>
+
+              <article class="card panel section-card">
+                <header class="section-head">
+                  <p class="eyebrow">Contrôles live</p>
+                  <h3>Pilotage du tournoi en direct</h3>
+                </header>
+
+                <div class="live-controls">
+                  <button id="generateBracketBtn" class="secondary">Créer / régénérer le tournoi</button>
+                  <div class="duel-nav">
+                    <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
+                    <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card panel section-card live-countdown-card">
+                <header class="section-head">
+                  <p class="eyebrow">Timer</p>
+                  <h3>Timer</h3>
+                </header>
+                <p id="liveTimerStatus" class="message no-margin">Timer en pause.</p>
+                <div class="live-countdown-grid">
+                  <p id="liveCountdownP1" class="countdown-pill">Joueur 1: 05:00</p>
+                  <p id="liveCountdownP2" class="countdown-pill">Joueur 2: 05:00</p>
+                </div>
+                <div class="settings-grid two-cols">
+                  <label class="setting-field" for="liveTimerInitialSeconds">
+                    Durée timer (secondes)
+                    <input id="liveTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" />
+                  </label>
+                  <label class="setting-field" for="timerStartParticipant">
+                    Joueur de départ
+                    <select id="timerStartParticipant">
+                      <option value="1">Joueur 1</option>
+                      <option value="2">Joueur 2</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="timer-controls">
+                  <button id="timerStartBtn" type="button">Démarrer</button>
+                  <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
+                  <button id="timerSwitchBtn" type="button" class="secondary">Basculer le timer</button>
+                </div>
+                <div class="winner-controls">
+                  <p class="winner-controls-label">Vainqueur du match en cours</p>
+                  <div class="winner-controls-grid">
+                    <button id="liveWinnerParticipant1Btn" type="button" class="secondary">Joueur 1</button>
+                    <button id="liveWinnerParticipant2Btn" type="button" class="secondary">Joueur 2</button>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+          </section>
+        </div>
+      </section>
+      </section>
+
+      <section class="card product-view" data-product-view="quiz" aria-hidden="true">
+        <header class="section-head">
+          <p class="eyebrow">ZogQuiz</p>
+          <h3>Section en préparation</h3>
+          <p class="hint">Le socle est prêt pour intégrer ZogQuiz ici (routing, UI et séparation des sections).</p>
+        </header>
+      </section>
+    </main>
+
+    <script type="module" src="../app/pages/dashboard.js"></script>
+  </body>
+</html>
