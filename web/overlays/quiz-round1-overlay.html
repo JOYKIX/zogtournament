@@ -7,17 +7,18 @@
     <link rel="stylesheet" href="../../assets/styles/overlay-quiz-round1.css" />
   </head>
   <body>
-    <main class="overlay-layout">
-      <section class="board">
+    <main class="overlay-stage">
+      <section class="board board-left">
         <h1>Classement Streamer</h1>
         <ol id="streamerLeaderboard"></ol>
       </section>
-      <section class="center">
+      <section id="qaZone" class="qa-zone">
         <h2 id="questionType">Question streamer</h2>
         <p id="questionText">En attente d'une question…</p>
+        <p id="answerText">Réponse : —</p>
         <p id="buzzStatus">Aucun buzz.</p>
       </section>
-      <section class="board">
+      <section class="board board-right">
         <h1>Classement Viewers</h1>
         <ol id="viewerLeaderboard"></ol>
       </section>
