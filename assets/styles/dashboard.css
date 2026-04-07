@@ -656,3 +656,58 @@ button.danger {
     grid-template-columns: 1fr;
   }
 }
+
+.quiz-view {
+  display: grid;
+  gap: 1rem;
+}
+
+.quiz-layout {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.quiz-round-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.quiz-round-tab {
+  font-weight: 700;
+}
+
+.quiz-round-tab.is-active {
+  background: linear-gradient(120deg, #5f75ff, #8a9eff);
+  border-color: rgba(145, 168, 255, 0.85);
+}
+
+.quiz-round-panel {
+  display: none;
+  gap: 0.8rem;
+}
+
+.quiz-round-panel.is-active {
+  display: grid;
+}
+
+.quiz-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.compact-list {
+  max-height: 280px;
+  overflow: auto;
+}
+
+textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(124, 149, 245, 0.52);
+  background: rgba(26, 37, 71, 0.88);
+  color: var(--text);
+  padding: 0.72rem 0.88rem;
+  resize: vertical;
+}
