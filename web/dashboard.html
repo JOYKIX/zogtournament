@@ -291,6 +291,16 @@
             <div class="actions wrap">
               <button id="openQuizOverlayBtn" type="button">Ouvrir overlay manche 1</button>
               <button id="openBuzzerPageBtn" type="button" class="secondary">Ouvrir page buzzer</button>
+              <button id="quizCloseQuestionBtn" type="button" class="ghost">Verrouiller question</button>
+              <button id="quizOpenQuestionBtn" type="button" class="ghost">Déverrouiller question</button>
+              <button id="quizResetRoundBtn" type="button" class="danger ghost">Reset complet manche 1</button>
+            </div>
+
+            <div class="quiz-metrics" id="quizMetrics">
+              <p class="countdown-pill">Questions: <strong id="quizMetricQuestions">0</strong></p>
+              <p class="countdown-pill">Streamers: <strong id="quizMetricStreamers">0</strong></p>
+              <p class="countdown-pill">Viewers: <strong id="quizMetricViewers">0</strong></p>
+              <p class="countdown-pill">Participants buzzer: <strong id="quizMetricBuzzer">0</strong></p>
             </div>
 
             <div class="quiz-grid">
@@ -306,7 +316,10 @@
               </article>
 
               <article class="sub-card">
-                <h4>Questions manche 1</h4>
+                <div class="toolbar compact">
+                  <h4>Questions manche 1</h4>
+                  <button id="quizClearQuestionsBtn" type="button" class="danger ghost">Tout supprimer</button>
+                </div>
                 <form id="quizQuestionForm">
                   <label for="quizQuestionType">Type de question</label>
                   <select id="quizQuestionType" required>
@@ -317,7 +330,7 @@
                   <textarea id="quizQuestionText" rows="3" required placeholder="Ex: Quel est le plus grand océan ?"></textarea>
                   <label for="quizQuestionAnswers">Réponse(s)</label>
                   <input id="quizQuestionAnswers" type="text" required placeholder="Ex: pacifique, ocean pacifique" />
-                  <p class="hint no-margin">Questions viewers: séparez les variantes par une virgule.</p>
+                  <p class="hint no-margin">Séparez les variantes de réponses par une virgule.</p>
                   <button type="submit">Ajouter la question</button>
                   <p id="quizQuestionMessage" class="message"></p>
                 </form>
@@ -325,7 +338,10 @@
               </article>
 
               <article class="sub-card">
-                <h4>Leaderboard streamer</h4>
+                <div class="toolbar compact">
+                  <h4>Leaderboard streamer</h4>
+                  <button id="quizResetStreamerScoresBtn" type="button" class="ghost">Reset scores</button>
+                </div>
                 <form id="quizStreamerForm">
                   <label for="quizStreamerName">Pseudo participant</label>
                   <input id="quizStreamerName" type="text" required />
@@ -335,7 +351,10 @@
               </article>
 
               <article class="sub-card">
-                <h4>Leaderboard viewers</h4>
+                <div class="toolbar compact">
+                  <h4>Leaderboard viewers</h4>
+                  <button id="quizResetViewerScoresBtn" type="button" class="ghost">Reset scores</button>
+                </div>
                 <form id="quizViewerForm">
                   <label for="quizViewerName">Nom équipe viewers</label>
                   <input id="quizViewerName" type="text" placeholder="Chat" required />
@@ -346,7 +365,10 @@
 
               <article class="sub-card">
                 <h4>Codes d'invitation buzzer</h4>
-                <div class="actions"><button id="quizGenerateCodeBtn" type="button">Générer un code</button></div>
+                <div class="actions wrap">
+                  <button id="quizGenerateCodeBtn" type="button">Générer un code</button>
+                  <button id="quizClearInviteCodesBtn" type="button" class="danger ghost">Vider les codes</button>
+                </div>
                 <ul id="quizInviteCodesList" class="list compact-list"></ul>
               </article>
 

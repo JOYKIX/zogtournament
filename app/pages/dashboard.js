@@ -1969,10 +1969,21 @@ const quizViewerForm = document.getElementById('quizViewerForm');
 const quizViewerNameInput = document.getElementById('quizViewerName');
 const quizViewerList = document.getElementById('quizViewerList');
 const quizGenerateCodeBtn = document.getElementById('quizGenerateCodeBtn');
+const quizClearInviteCodesBtn = document.getElementById('quizClearInviteCodesBtn');
 const quizInviteCodesList = document.getElementById('quizInviteCodesList');
 const quizBuzzerLiveStatus = document.getElementById('quizBuzzerLiveStatus');
 const quizResetBuzzBtn = document.getElementById('quizResetBuzzBtn');
+const quizCloseQuestionBtn = document.getElementById('quizCloseQuestionBtn');
+const quizOpenQuestionBtn = document.getElementById('quizOpenQuestionBtn');
+const quizResetRoundBtn = document.getElementById('quizResetRoundBtn');
+const quizClearQuestionsBtn = document.getElementById('quizClearQuestionsBtn');
+const quizResetStreamerScoresBtn = document.getElementById('quizResetStreamerScoresBtn');
+const quizResetViewerScoresBtn = document.getElementById('quizResetViewerScoresBtn');
 const quizBuzzParticipantsList = document.getElementById('quizBuzzParticipantsList');
+const quizMetricQuestions = document.getElementById('quizMetricQuestions');
+const quizMetricStreamers = document.getElementById('quizMetricStreamers');
+const quizMetricViewers = document.getElementById('quizMetricViewers');
+const quizMetricBuzzer = document.getElementById('quizMetricBuzzer');
 const quizQaRectX1Input = document.getElementById('quizQaRectX1');
 const quizQaRectY1Input = document.getElementById('quizQaRectY1');
 const quizQaRectX2Input = document.getElementById('quizQaRectX2');
@@ -2071,6 +2082,37 @@ async function setQuizQaRect(rect) {
   });
 }
 
+function updateQuizMetrics() {
+  if (quizMetricQuestions) {
+    quizMetricQuestions.textContent = String(quizRound1State.questions.length);
+  }
+  if (quizMetricStreamers) {
+    quizMetricStreamers.textContent = String(quizRound1State.streamerScores.length);
+  }
+  if (quizMetricViewers) {
+    quizMetricViewers.textContent = String(quizRound1State.viewerScores.length);
+  }
+  if (quizMetricBuzzer) {
+    quizMetricBuzzer.textContent = String(quizRound1State.buzzerParticipants.length);
+  }
+}
+
+function formatQuizDate(value) {
+  if (!value) {
+    return 'N/A';
+  }
+  return new Date(value).toLocaleString('fr-FR');
+}
+
+async function resetScores(group) {
+  const refs = getQuizRound1Refs();
+  const source = group === 'viewers' ? quizRound1State.viewerScores : quizRound1State.streamerScores;
+  const target = group === 'viewers' ? refs.viewerScoresRef : refs.streamerScoresRef;
+  await Promise.all(
+    source.map((entry) => update(ref(target, entry.id), { points: 0, updatedAt: Date.now() }))
+  );
+}
+
 function renderQuizQuestions() {
   if (!quizQuestionsList) {
     return;
@@ -2087,7 +2129,7 @@ function renderQuizQuestions() {
       return `
       <li>
         <div><strong>Q${index + 1}</strong> · ${escapeHtml(item.type || 'streamer')}<br />${escapeHtml(item.text || '')}</div>
-        <small>Réponses: ${escapeHtml(answers)}</small>
+        <small>Réponses: ${escapeHtml(answers)} · Créée: ${escapeHtml(formatQuizDate(item.createdAt))}</small>
         <div class="actions">
           <button type="button" class="secondary" data-quiz-ask="${escapeHtml(item.id)}">Afficher</button>
           <button type="button" class="danger ghost" data-quiz-delete="${escapeHtml(item.id)}">Supprimer</button>
@@ -2183,9 +2225,23 @@ function renderInviteCodes() {
   }
 
   quizInviteCodesList.innerHTML = quizRound1State.inviteCodes
-    .map((entry) => `<li><div><strong>${escapeHtml(entry.code || '')}</strong></div><small>Créé le ${new Date(entry.createdAt || Date.now()).toLocaleString('fr-FR')}</small></li>`)
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+    .map(
+      (entry) => `<li><div><strong>${escapeHtml(entry.code || '')}</strong></div><div class="actions wrap"><small>Créé le ${escapeHtml(formatQuizDate(entry.createdAt))}</small><button type="button" class="danger ghost" data-quiz-code-delete="${escapeHtml(entry.id)}">Suppr.</button></div></li>`
+    )
     .join('');
+
+  quizInviteCodesList.querySelectorAll('[data-quiz-code-delete]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const id = button.getAttribute('data-quiz-code-delete');
+      if (!id) {
+        return;
+      }
+      await remove(ref(getQuizRound1Refs().inviteCodesRef, id));
+    });
+  });
 }
+
 
 function renderBuzzerLive() {
   if (!quizBuzzerLiveStatus || !quizBuzzParticipantsList) {
@@ -2251,16 +2307,19 @@ function bindQuizRealtime() {
     const value = snapshot.val() || {};
     quizRound1State.questions = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
     renderQuizQuestions();
+    updateQuizMetrics();
   });
   onValue(refs.streamerScoresRef, (snapshot) => {
     const value = snapshot.val() || {};
     quizRound1State.streamerScores = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
     renderScoreList(quizStreamerList, quizRound1State.streamerScores, 'streamers');
+    updateQuizMetrics();
   });
   onValue(refs.viewerScoresRef, (snapshot) => {
     const value = snapshot.val() || {};
     quizRound1State.viewerScores = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
     renderScoreList(quizViewerList, quizRound1State.viewerScores, 'viewers');
+    updateQuizMetrics();
   });
   onValue(refs.inviteCodesRef, (snapshot) => {
     const value = snapshot.val() || {};
@@ -2271,6 +2330,7 @@ function bindQuizRealtime() {
     const value = snapshot.val() || {};
     quizRound1State.buzzerParticipants = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
     renderBuzzerLive();
+    updateQuizMetrics();
   });
   onValue(refs.currentBuzzRef, (snapshot) => {
     quizRound1State.currentBuzz = snapshot.val() || null;
@@ -2319,6 +2379,11 @@ function bindQuizActions() {
     if (!name) {
       return;
     }
+    const exists = quizRound1State.streamerScores.some((entry) => String(entry.name || '').trim().toLowerCase() === name.toLowerCase());
+    if (exists) {
+      showQuizMessage('Ce streamer existe déjà.', 'warning');
+      return;
+    }
     await set(push(getQuizRound1Refs().streamerScoresRef), { name, points: 0, createdAt: Date.now() });
     quizStreamerForm.reset();
   });
@@ -2329,13 +2394,22 @@ function bindQuizActions() {
     if (!name) {
       return;
     }
+    const exists = quizRound1State.viewerScores.some((entry) => String(entry.name || '').trim().toLowerCase() === name.toLowerCase());
+    if (exists) {
+      showQuizMessage('Cette équipe viewers existe déjà.', 'warning');
+      return;
+    }
     await set(push(getQuizRound1Refs().viewerScoresRef), { name, points: 0, createdAt: Date.now() });
     quizViewerForm.reset();
   });
 
   quizGenerateCodeBtn?.addEventListener('click', async () => {
     try {
-      const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+      const existingCodes = new Set(quizRound1State.inviteCodes.map((entry) => String(entry.code || '').toUpperCase()));
+      let code = '';
+      do {
+        code = Math.random().toString(36).slice(2, 8).toUpperCase();
+      } while (existingCodes.has(code));
       await set(push(getQuizRound1Refs().inviteCodesRef), {
         code,
         createdAt: Date.now(),
@@ -2346,6 +2420,11 @@ function bindQuizActions() {
       console.error('Impossible de générer un code buzzer', error);
       showQuizMessage('Erreur lors de la génération du code.', 'error');
     }
+  });
+
+  quizClearInviteCodesBtn?.addEventListener('click', async () => {
+    await set(getQuizRound1Refs().inviteCodesRef, null);
+    showQuizMessage('Tous les codes ont été supprimés.', 'success');
   });
 
   quizResetBuzzBtn?.addEventListener('click', async () => {
@@ -2361,6 +2440,45 @@ function bindQuizActions() {
       console.error('Impossible de réinitialiser le buzz', error);
       showQuizMessage('Erreur lors du reset du buzz.', 'error');
     }
+  });
+
+  quizCloseQuestionBtn?.addEventListener('click', async () => {
+    await update(getQuizRound1Refs().questionStateRef, { open: false, updatedAt: Date.now() });
+    showQuizMessage('Question verrouillée : buzzer désactivé.', 'success');
+  });
+
+  quizOpenQuestionBtn?.addEventListener('click', async () => {
+    await update(getQuizRound1Refs().questionStateRef, { open: true, updatedAt: Date.now() });
+    showQuizMessage('Question déverrouillée : buzzer activé.', 'success');
+  });
+
+  quizClearQuestionsBtn?.addEventListener('click', async () => {
+    await set(getQuizRound1Refs().questionsRef, null);
+    showQuizMessage('Toutes les questions ont été supprimées.', 'success');
+  });
+
+  quizResetStreamerScoresBtn?.addEventListener('click', async () => {
+    await resetScores('streamers');
+    showQuizMessage('Scores streamers réinitialisés.', 'success');
+  });
+
+  quizResetViewerScoresBtn?.addEventListener('click', async () => {
+    await resetScores('viewers');
+    showQuizMessage('Scores viewers réinitialisés.', 'success');
+  });
+
+  quizResetRoundBtn?.addEventListener('click', async () => {
+    const refs = getQuizRound1Refs();
+    await Promise.all([
+      set(refs.questionsRef, null),
+      set(refs.streamerScoresRef, null),
+      set(refs.viewerScoresRef, null),
+      set(refs.inviteCodesRef, null),
+      set(refs.buzzerParticipantsRef, null),
+      set(refs.currentBuzzRef, null),
+      set(refs.questionStateRef, { open: true, blocked: {}, updatedAt: Date.now() }),
+    ]);
+    showQuizMessage('Manche 1 entièrement réinitialisée.', 'success');
   });
 
   [quizQaRectX1Input, quizQaRectY1Input, quizQaRectX2Input, quizQaRectY2Input].forEach((input) => {
