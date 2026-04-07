@@ -36,14 +36,13 @@ import {
   tickTimerState,
   TIMER_STATUS,
 } from '../shared/timer-state.js';
-import { CAM_SLOT_IDS } from '../webrtc/constants.js';
-import { GuestCamAdminManager } from '../webrtc/admin-room.js';
-import { camSlotsRef, patchGuest } from '../webrtc/signaling.js';
 
 const MAX_ACCOUNTS = 2;
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,24}$/;
 const loginSection = document.getElementById('loginSection');
 const appSection = document.getElementById('appSection');
+const productTabs = Array.from(document.querySelectorAll('[data-product-tab]'));
+const productViews = Array.from(document.querySelectorAll('[data-product-view]'));
 const connectionStatus = document.getElementById('connectionStatus');
 const createProfileForm = document.getElementById('createProfileForm');
 const createProfileMessage = document.getElementById('createProfileMessage');
@@ -69,7 +68,6 @@ const bracketContainer = document.getElementById('bracketContainer');
 const liveBracketContainer = document.getElementById('liveBracketContainer');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
 const openTreeOverlayBtn = document.getElementById('openTreeOverlayBtn');
-const openCamOverlayBtn = document.getElementById('openCamOverlayBtn');
 const overlayPrevBtn = document.getElementById('overlayPrevBtn');
 const overlayNextBtn = document.getElementById('overlayNextBtn');
 const duelImageHeightInput = document.getElementById('duelImageHeightPx');
@@ -89,9 +87,6 @@ const duelTimerValueFontSizeInput = document.getElementById('duelTimerValueFontS
 const duelTimerLabelFontSizeInput = document.getElementById('duelTimerLabelFontSizePx');
 const duelCharacterFontSizeInput = document.getElementById('duelCharacterFontSizePx');
 const duelFighterPseudoFontSizeInput = document.getElementById('duelFighterPseudoFontSizePx');
-const guestCamWidthInput = document.getElementById('guestCamWidthPx');
-const guestCamHeightInput = document.getElementById('guestCamHeightPx');
-const guestCamOffsetYInput = document.getElementById('guestCamOffsetYPx');
 const duelTimerProfileSelect = document.getElementById('duelTimerProfile');
 const duelHealthBarsEnabledInput = document.getElementById('duelHealthBarsEnabled');
 const duelHealthBarHeightInput = document.getElementById('duelHealthBarHeightPx');
@@ -126,8 +121,6 @@ const bindingDisplayNextMatch = document.getElementById('bindingDisplayNextMatch
 const bindingDisplayWinParticipant1 = document.getElementById('bindingDisplayWinParticipant1');
 const bindingDisplayWinParticipant2 = document.getElementById('bindingDisplayWinParticipant2');
 const resetBindingsBtn = document.getElementById('resetBindingsBtn');
-const camGuestsList = document.getElementById('camGuestsList');
-const camStatus = document.getElementById('camStatus');
 
 const DEFAULT_DUEL_IMAGE_HEIGHT_PX = 760;
 const DEFAULT_DUEL_IMAGE_OFFSET_X_PX = 18;
@@ -201,10 +194,6 @@ let isConnected = false;
 let usersLoaded = false;
 let timerTickHandle = null;
 let keybindingManager = null;
-let camGuestsCache = [];
-let camSlotsCache = {};
-const camStreams = new Map();
-let camManager = null;
 
 const KEYBINDING_ACTION_LABELS = {
   start: 'Démarrer',
@@ -459,7 +448,7 @@ function parseViewFromHash() {
     .replace('#', '')
     .trim()
     .toLowerCase();
-  return ['participants', 'config', 'keybinds', 'live', 'cam'].includes(normalized) ? normalized : 'participants';
+  return ['participants', 'config', 'keybinds', 'live'].includes(normalized) ? normalized : 'participants';
 }
 
 function renderActiveView(viewName) {
@@ -1130,10 +1119,6 @@ function openTreeOverlayWindow() {
   window.open('overlay-tree.html', '_blank', 'width=1600,height=900');
 }
 
-function openCamOverlayWindow() {
-  window.open('cam.html', '_blank', 'width=1600,height=900');
-}
-
 async function login(username, password) {
   if (!username || !password) {
     return false;
@@ -1247,97 +1232,6 @@ function renderConnectionStatus() {
   }
 
   connectionStatus.textContent = '⚠️ Connexion à la base perdue. Vérifie Internet/Firebase puis réessaie.';
-}
-
-function getCamStatusLabel(guest) {
-  if (!guest) {
-    return 'En attente';
-  }
-  if (!guest.cameraEnabled) {
-    return 'Caméra absente';
-  }
-  if (!guest.microphoneEnabled) {
-    return 'Micro absent';
-  }
-  if (guest.status === 'connected') {
-    return 'Connecté';
-  }
-  if (guest.status === 'connecting') {
-    return 'Connexion';
-  }
-  if (guest.status === 'disconnected') {
-    return 'Déconnecté';
-  }
-  if (guest.streamConnected && guest.voiceGroupConnected) {
-    return 'Flux + vocal connectés';
-  }
-  if (guest.streamConnected) {
-    return 'Flux connecté';
-  }
-  if (guest.voiceGroupConnected) {
-    return 'Vocal connecté';
-  }
-  return 'En attente';
-}
-
-function renderCamView() {
-  if (!camGuestsList) {
-    return;
-  }
-
-  if (!camGuestsCache.length) {
-    camGuestsList.innerHTML = '<p class="message">Aucun invité connecté.</p>';
-    if (camStatus) {
-      camStatus.textContent = 'En attente d’invités.';
-    }
-    return;
-  }
-
-  if (camStatus) {
-    camStatus.textContent = `${camGuestsCache.length} invité(s) connecté(s).`;
-  }
-
-  camGuestsList.innerHTML = camGuestsCache
-    .map((guest) => {
-      const selectedSlot =
-        CAM_SLOT_IDS.find((slotId) => camSlotsCache?.[slotId]?.guestId === guest.id) || '';
-      const hasStream = Boolean(camStreams.get(guest.id));
-      return `
-        <article class="sub-card cam-guest-card" data-guest-id="${guest.id}">
-          <h4>${escapeHtml(guest.name)}</h4>
-          <p class="message no-margin">${getCamStatusLabel(guest)} · ${hasStream ? 'Flux actif' : 'Flux indisponible'}</p>
-          <video class="cam-preview" data-guest-video="${guest.id}" autoplay playsinline muted></video>
-          <div class="settings-grid two-cols">
-            <label class="setting-field">Slot overlay
-              <select data-cam-slot="${guest.id}">
-                <option value="">Non affiché</option>
-                ${CAM_SLOT_IDS.map(
-                  (slotId) =>
-                    `<option value="${slotId}" ${selectedSlot === slotId ? 'selected' : ''}>${slotId.toUpperCase()}</option>`
-                ).join('')}
-              </select>
-            </label>
-            <label class="setting-field inline-toggle">Visible
-              <input type="checkbox" data-cam-visible="${guest.id}" ${selectedSlot && camSlotsCache?.[selectedSlot]?.visible ? 'checked' : ''} />
-            </label>
-            <label class="setting-field inline-toggle">Son overlay
-              <input type="checkbox" data-cam-overlay-audio="${guest.id}" ${guest.includeOverlayAudio ? 'checked' : ''} />
-            </label>
-          </div>
-          <div class="actions">
-            <button type="button" class="ghost danger" data-cam-remove="${guest.id}">Retirer le flux</button>
-          </div>
-        </article>
-      `;
-    })
-    .join('');
-
-  camGuestsCache.forEach((guest) => {
-    const video = camGuestsList.querySelector(`[data-guest-video="${guest.id}"]`);
-    if (video instanceof HTMLVideoElement) {
-      video.srcObject = camStreams.get(guest.id) || null;
-    }
-  });
 }
 
 async function refreshUsersCache() {
@@ -1457,37 +1351,6 @@ async function ensureDatabaseShape() {
 
   if (value.profile === undefined) {
     await set(profileRef, null);
-  }
-
-  if (!value.cam || typeof value.cam !== 'object') {
-    await set(ref(rootRef, 'cam'), {
-      guests: {},
-      slots: {
-        slot1: { guestId: null, visible: false, updatedAt: Date.now() },
-        slot2: { guestId: null, visible: false, updatedAt: Date.now() },
-        slot3: { guestId: null, visible: false, updatedAt: Date.now() },
-      },
-      signals: {
-        admin: {},
-        overlay: {},
-      },
-    });
-  } else {
-    const camPatches = {};
-    CAM_SLOT_IDS.forEach((slotId) => {
-      if (!value.cam.slots || typeof value.cam.slots[slotId] !== 'object') {
-        camPatches[`slots/${slotId}`] = { guestId: null, visible: false, updatedAt: Date.now() };
-      }
-    });
-    if (!value.cam.signals || typeof value.cam.signals !== 'object') {
-      camPatches.signals = { admin: {}, overlay: {} };
-    }
-    if (!value.cam.guests || typeof value.cam.guests !== 'object') {
-      camPatches.guests = {};
-    }
-    if (Object.keys(camPatches).length) {
-      await update(ref(rootRef, 'cam'), camPatches);
-    }
   }
 
   if (value.profiles !== undefined) {
@@ -1611,15 +1474,6 @@ function bindRealtimeSubscriptions() {
     if (duelFighterPseudoFontSizeInput) {
       duelFighterPseudoFontSizeInput.value = String(currentOverlay.fontSizes.fighterPseudoPx);
     }
-    if (guestCamWidthInput) {
-      guestCamWidthInput.value = String(currentOverlay.guestCamWidthPx);
-    }
-    if (guestCamHeightInput) {
-      guestCamHeightInput.value = String(currentOverlay.guestCamHeightPx);
-    }
-    if (guestCamOffsetYInput) {
-      guestCamOffsetYInput.value = String(currentOverlay.guestCamOffsetYPx);
-    }
     if (liveTimerInitialSecondsInput) {
       liveTimerInitialSecondsInput.value = String(currentOverlay.timer.initialSeconds);
     }
@@ -1666,29 +1520,6 @@ function bindRealtimeSubscriptions() {
     syncTimerParticipantLabels();
   });
 
-  onValue(camSlotsRef(), (snapshot) => {
-    camSlotsCache = snapshot.val() || {};
-    renderCamView();
-  });
-
-  camManager = new GuestCamAdminManager({
-    onGuestsChanged: (guests) => {
-      camGuestsCache = guests;
-      renderCamView();
-    },
-    onRemoteTrack: (guestId, stream) => {
-      if (stream) {
-        camStreams.set(guestId, stream);
-      } else {
-        camStreams.delete(guestId);
-      }
-      renderCamView();
-    },
-    onLog: (message) => {
-      console.log('[CamAdmin]', message);
-    },
-  });
-  camManager.start();
 }
 
 window.addEventListener('hashchange', () => {
@@ -2063,39 +1894,6 @@ duelFighterPseudoFontSizeInput?.addEventListener('change', async (event) => {
   });
 });
 
-guestCamWidthInput?.addEventListener('change', async (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) {
-    return;
-  }
-
-  const safeWidth = sanitizeGuestCamWidth(target.value);
-  target.value = String(safeWidth);
-  await setOverlayGuestCamWidth(safeWidth);
-});
-
-guestCamHeightInput?.addEventListener('change', async (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) {
-    return;
-  }
-
-  const safeHeight = sanitizeGuestCamHeight(target.value);
-  target.value = String(safeHeight);
-  await setOverlayGuestCamHeight(safeHeight);
-});
-
-guestCamOffsetYInput?.addEventListener('change', async (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) {
-    return;
-  }
-
-  const safeOffset = sanitizeGuestCamOffsetY(target.value);
-  target.value = String(safeOffset);
-  await setOverlayGuestCamOffsetY(safeOffset);
-});
-
 liveTimerInitialSecondsInput?.addEventListener('change', async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
@@ -2289,85 +2087,29 @@ liveWinnerParticipant2Btn?.addEventListener('click', async () => {
   await setCurrentMatchWinner('right');
 });
 
-camGuestsList?.addEventListener('change', async (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLElement) || !camManager) {
-    return;
-  }
-
-  if (target instanceof HTMLSelectElement && target.dataset.camSlot) {
-    const guestId = target.dataset.camSlot;
-    const slotId = target.value;
-    if (!slotId) {
-      for (const candidateSlot of CAM_SLOT_IDS) {
-        if (camSlotsCache?.[candidateSlot]?.guestId === guestId) {
-          await camManager.assignSlot(candidateSlot, null);
-        }
-      }
-      return;
-    }
-
-    for (const candidateSlot of CAM_SLOT_IDS) {
-      if (candidateSlot !== slotId && camSlotsCache?.[candidateSlot]?.guestId === guestId) {
-        await camManager.assignSlot(candidateSlot, null);
-      }
-    }
-    await camManager.assignSlot(slotId, guestId);
-    return;
-  }
-
-  if (target instanceof HTMLInputElement && target.dataset.camVisible) {
-    const guestId = target.dataset.camVisible;
-    const slotId = CAM_SLOT_IDS.find((candidateSlot) => camSlotsCache?.[candidateSlot]?.guestId === guestId);
-    if (!slotId) {
-      return;
-    }
-    await camManager.setSlotVisibility(slotId, target.checked);
-    return;
-  }
-
-  if (target instanceof HTMLInputElement && target.dataset.camOverlayAudio) {
-    const guestId = target.dataset.camOverlayAudio;
-    if (!guestId) {
-      return;
-    }
-    await patchGuest(guestId, {
-      includeOverlayAudio: target.checked,
-      updatedAt: Date.now(),
-    });
-  }
-});
-
-camGuestsList?.addEventListener('click', async (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLElement) || !camManager) {
-    return;
-  }
-
-  const button = target.closest('[data-cam-remove]');
-  if (button instanceof HTMLButtonElement) {
-    const guestId = button.dataset.camRemove;
-    if (!guestId) {
-      return;
-    }
-
-    for (const slotId of CAM_SLOT_IDS) {
-      if (camSlotsCache?.[slotId]?.guestId === guestId) {
-        await camManager.assignSlot(slotId, null);
-      }
-    }
-    await camManager.removeGuestSlotBindings(guestId);
-    return;
-  }
-
-  return;
-});
-
 openDuelOverlayBtn.addEventListener('click', openDuelOverlayWindow);
 openTreeOverlayBtn.addEventListener('click', openTreeOverlayWindow);
-openCamOverlayBtn?.addEventListener('click', openCamOverlayWindow);
 logoutBtn.addEventListener('click', () => {
   logout();
+});
+
+function renderActiveProductView(viewName) {
+  productViews.forEach((view) => {
+    const isActive = view.dataset.productView === viewName;
+    view.classList.toggle('is-active', isActive);
+    view.setAttribute('aria-hidden', String(!isActive));
+  });
+  productTabs.forEach((tab) => {
+    const isActive = tab.dataset.productTab === viewName;
+    tab.classList.toggle('is-active', isActive);
+    tab.classList.toggle('secondary', !isActive);
+  });
+}
+
+productTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    renderActiveProductView(String(tab.dataset.productTab || 'tournament'));
+  });
 });
 
 try {
@@ -2392,5 +2134,4 @@ window.addEventListener('beforeunload', () => {
   if (timerTickHandle) {
     window.clearInterval(timerTickHandle);
   }
-  camManager?.stop();
 });
