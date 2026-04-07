@@ -2087,6 +2087,364 @@ logoutBtn.addEventListener('click', () => {
   logout();
 });
 
+
+const quizRoundTabs = Array.from(document.querySelectorAll('.quiz-round-tab'));
+const quizRoundPanels = Array.from(document.querySelectorAll('[data-quiz-round-panel]'));
+const openQuizOverlayBtn = document.getElementById('openQuizOverlayBtn');
+const openBuzzerPageBtn = document.getElementById('openBuzzerPageBtn');
+const quizQuestionForm = document.getElementById('quizQuestionForm');
+const quizQuestionTypeInput = document.getElementById('quizQuestionType');
+const quizQuestionTextInput = document.getElementById('quizQuestionText');
+const quizQuestionAnswersInput = document.getElementById('quizQuestionAnswers');
+const quizQuestionMessage = document.getElementById('quizQuestionMessage');
+const quizQuestionsList = document.getElementById('quizQuestionsList');
+const quizStreamerForm = document.getElementById('quizStreamerForm');
+const quizStreamerNameInput = document.getElementById('quizStreamerName');
+const quizStreamerList = document.getElementById('quizStreamerList');
+const quizViewerForm = document.getElementById('quizViewerForm');
+const quizViewerNameInput = document.getElementById('quizViewerName');
+const quizViewerList = document.getElementById('quizViewerList');
+const quizGenerateCodeBtn = document.getElementById('quizGenerateCodeBtn');
+const quizInviteCodesList = document.getElementById('quizInviteCodesList');
+const quizBuzzerLiveStatus = document.getElementById('quizBuzzerLiveStatus');
+const quizResetBuzzBtn = document.getElementById('quizResetBuzzBtn');
+const quizBuzzParticipantsList = document.getElementById('quizBuzzParticipantsList');
+
+let quizRound1State = {
+  questions: [],
+  streamerScores: [],
+  viewerScores: [],
+  inviteCodes: [],
+  buzzerParticipants: [],
+  currentBuzz: null,
+  questionState: null,
+};
+
+function getQuizRound1Refs() {
+  const baseRef = ref(activeProductRefs.productRootRef, 'round1');
+  return {
+    questionsRef: ref(baseRef, 'questions'),
+    streamerScoresRef: ref(baseRef, 'scores/streamers'),
+    viewerScoresRef: ref(baseRef, 'scores/viewers'),
+    inviteCodesRef: ref(baseRef, 'inviteCodes'),
+    buzzerParticipantsRef: ref(baseRef, 'buzzer/participants'),
+    currentBuzzRef: ref(baseRef, 'buzzer/currentBuzz'),
+    questionStateRef: ref(baseRef, 'buzzer/questionState'),
+  };
+}
+
+function showQuizMessage(message, tone = '') {
+  if (!quizQuestionMessage) {
+    return;
+  }
+  quizQuestionMessage.textContent = message;
+  quizQuestionMessage.className = `message ${tone}`.trim();
+}
+
+function normalizeAnswers(rawValue) {
+  return String(rawValue || '')
+    .split(',')
+    .map((answer) => answer.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function renderQuizQuestions() {
+  if (!quizQuestionsList) {
+    return;
+  }
+  const sorted = [...quizRound1State.questions].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  if (!sorted.length) {
+    quizQuestionsList.innerHTML = '<li class="empty">Aucune question.</li>';
+    return;
+  }
+
+  quizQuestionsList.innerHTML = sorted
+    .map((item, index) => {
+      const answers = Array.isArray(item.answers) ? item.answers.join(' / ') : '-';
+      return `
+      <li>
+        <div><strong>Q${index + 1}</strong> · ${escapeHtml(item.type || 'streamer')}<br />${escapeHtml(item.text || '')}</div>
+        <small>Réponses: ${escapeHtml(answers)}</small>
+        <div class="actions">
+          <button type="button" class="secondary" data-quiz-ask="${escapeHtml(item.id)}">Afficher</button>
+          <button type="button" class="danger ghost" data-quiz-delete="${escapeHtml(item.id)}">Supprimer</button>
+        </div>
+      </li>`;
+    })
+    .join('');
+
+  quizQuestionsList.querySelectorAll('[data-quiz-delete]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const id = button.getAttribute('data-quiz-delete');
+      if (!id) {
+        return;
+      }
+      await remove(ref(getQuizRound1Refs().questionsRef, id));
+    });
+  });
+
+  quizQuestionsList.querySelectorAll('[data-quiz-ask]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const id = button.getAttribute('data-quiz-ask');
+      const question = sorted.find((entry) => entry.id === id);
+      if (!id || !question) {
+        return;
+      }
+      await update(activeProductRefs.overlayRef, {
+        quizRound: 1,
+        currentQuestion: {
+          id,
+          type: question.type,
+          text: question.text,
+        },
+      });
+      showQuizMessage("Question envoyée vers l'overlay.");
+    });
+  });
+}
+
+function renderScoreList(container, entries, key) {
+  if (!container) {
+    return;
+  }
+  const sorted = [...entries].sort((a, b) => Number(b.points || 0) - Number(a.points || 0));
+  if (!sorted.length) {
+    container.innerHTML = '<li class="empty">Aucun joueur.</li>';
+    return;
+  }
+
+  container.innerHTML = sorted
+    .map(
+      (entry, index) => `
+      <li>
+        <div><strong>#${index + 1}</strong> ${escapeHtml(entry.name || 'Sans nom')}</div>
+        <div class="actions wrap">
+          <button type="button" class="secondary" data-score-minus="${key}:${escapeHtml(entry.id)}">-1</button>
+          <span>${Number(entry.points || 0)} pts</span>
+          <button type="button" data-score-plus="${key}:${escapeHtml(entry.id)}">+1</button>
+          <button type="button" class="danger ghost" data-score-delete="${key}:${escapeHtml(entry.id)}">Suppr.</button>
+        </div>
+      </li>`
+    )
+    .join('');
+
+  container.querySelectorAll('[data-score-plus], [data-score-minus], [data-score-delete]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const token = button.getAttribute('data-score-plus') || button.getAttribute('data-score-minus') || button.getAttribute('data-score-delete');
+      if (!token) {
+        return;
+      }
+      const [group, id] = token.split(':');
+      const refs = getQuizRound1Refs();
+      const targetRef = group === 'viewers' ? ref(refs.viewerScoresRef, id) : ref(refs.streamerScoresRef, id);
+      if (button.hasAttribute('data-score-delete')) {
+        await remove(targetRef);
+        return;
+      }
+      const source = group === 'viewers' ? quizRound1State.viewerScores : quizRound1State.streamerScores;
+      const current = source.find((item) => item.id === id);
+      const delta = button.hasAttribute('data-score-plus') ? 1 : -1;
+      await update(targetRef, { points: Math.max(0, Number(current?.points || 0) + delta) });
+    });
+  });
+}
+
+function renderInviteCodes() {
+  if (!quizInviteCodesList) {
+    return;
+  }
+  if (!quizRound1State.inviteCodes.length) {
+    quizInviteCodesList.innerHTML = '<li class="empty">Aucun code actif.</li>';
+    return;
+  }
+
+  quizInviteCodesList.innerHTML = quizRound1State.inviteCodes
+    .map((entry) => `<li><div><strong>${escapeHtml(entry.code || '')}</strong></div><small>Créé le ${new Date(entry.createdAt || Date.now()).toLocaleString('fr-FR')}</small></li>`)
+    .join('');
+}
+
+function renderBuzzerLive() {
+  if (!quizBuzzerLiveStatus || !quizBuzzParticipantsList) {
+    return;
+  }
+  const buzz = quizRound1State.currentBuzz;
+  quizBuzzerLiveStatus.textContent = buzz ? `🎯 ${buzz.pseudo || 'Participant'} a buzzé en premier.` : 'Aucun buzz en cours.';
+
+  const participants = [...quizRound1State.buzzerParticipants].sort((a, b) => (a.pseudo || '').localeCompare(b.pseudo || '', 'fr'));
+  if (!participants.length) {
+    quizBuzzParticipantsList.innerHTML = '<li class="empty">Aucun participant connecté.</li>';
+    return;
+  }
+
+  const blocked = quizRound1State.questionState?.blocked || {};
+  quizBuzzParticipantsList.innerHTML = participants
+    .map(
+      (entry) => `<li>
+      <div>${escapeHtml(entry.pseudo || 'Invité')}</div>
+      <div class="actions wrap">
+        <span>${blocked[entry.id] ? 'Bloqué' : 'Actif'}</span>
+        <button type="button" class="secondary" data-buzz-fault="${escapeHtml(entry.id)}">Faute</button>
+        <button type="button" data-buzz-unblock="${escapeHtml(entry.id)}">Débloquer</button>
+      </div>
+    </li>`
+    )
+    .join('');
+
+  quizBuzzParticipantsList.querySelectorAll('[data-buzz-fault],[data-buzz-unblock]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const id = button.getAttribute('data-buzz-fault') || button.getAttribute('data-buzz-unblock');
+      if (!id) {
+        return;
+      }
+      const isFault = button.hasAttribute('data-buzz-fault');
+      await update(getQuizRound1Refs().questionStateRef, {
+        [`blocked/${id}`]: isFault,
+      });
+    });
+  });
+}
+
+function bindQuizRoundNavigation() {
+  quizRoundTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const target = String(tab.dataset.quizRound || '1');
+      quizRoundTabs.forEach((entry) => entry.classList.toggle('is-active', entry === tab));
+      quizRoundPanels.forEach((panel) => {
+        const panelKey = String(panel.dataset.quizRoundPanel || 'placeholder');
+        const active = panelKey === target || (target !== '1' && panelKey === 'placeholder');
+        panel.classList.toggle('is-active', active);
+      });
+    });
+  });
+}
+
+function bindQuizRealtime() {
+  if (activeProductRefs.productKey !== 'zogquiz') {
+    return;
+  }
+  const refs = getQuizRound1Refs();
+  onValue(refs.questionsRef, (snapshot) => {
+    const value = snapshot.val() || {};
+    quizRound1State.questions = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
+    renderQuizQuestions();
+  });
+  onValue(refs.streamerScoresRef, (snapshot) => {
+    const value = snapshot.val() || {};
+    quizRound1State.streamerScores = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
+    renderScoreList(quizStreamerList, quizRound1State.streamerScores, 'streamers');
+  });
+  onValue(refs.viewerScoresRef, (snapshot) => {
+    const value = snapshot.val() || {};
+    quizRound1State.viewerScores = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
+    renderScoreList(quizViewerList, quizRound1State.viewerScores, 'viewers');
+  });
+  onValue(refs.inviteCodesRef, (snapshot) => {
+    const value = snapshot.val() || {};
+    quizRound1State.inviteCodes = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
+    renderInviteCodes();
+  });
+  onValue(refs.buzzerParticipantsRef, (snapshot) => {
+    const value = snapshot.val() || {};
+    quizRound1State.buzzerParticipants = Object.entries(value).map(([id, entry]) => ({ id, ...(entry || {}) }));
+    renderBuzzerLive();
+  });
+  onValue(refs.currentBuzzRef, (snapshot) => {
+    quizRound1State.currentBuzz = snapshot.val() || null;
+    renderBuzzerLive();
+  });
+  onValue(refs.questionStateRef, (snapshot) => {
+    quizRound1State.questionState = snapshot.val() || {};
+    renderBuzzerLive();
+  });
+}
+
+function bindQuizActions() {
+  if (!quizQuestionForm) {
+    return;
+  }
+
+  quizQuestionForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const type = String(quizQuestionTypeInput?.value || 'streamer');
+    const text = String(quizQuestionTextInput?.value || '').trim();
+    const answers = normalizeAnswers(quizQuestionAnswersInput?.value || '');
+    if (!text || !answers.length) {
+      showQuizMessage('Question et réponse obligatoires.', 'error');
+      return;
+    }
+    const entryRef = push(getQuizRound1Refs().questionsRef);
+    await set(entryRef, {
+      type,
+      text,
+      answers,
+      order: Date.now(),
+      createdAt: Date.now(),
+    });
+    quizQuestionForm.reset();
+    showQuizMessage('Question ajoutée.');
+  });
+
+  quizStreamerForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const name = String(quizStreamerNameInput?.value || '').trim();
+    if (!name) {
+      return;
+    }
+    await set(push(getQuizRound1Refs().streamerScoresRef), { name, points: 0, createdAt: Date.now() });
+    quizStreamerForm.reset();
+  });
+
+  quizViewerForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const name = String(quizViewerNameInput?.value || '').trim();
+    if (!name) {
+      return;
+    }
+    await set(push(getQuizRound1Refs().viewerScoresRef), { name, points: 0, createdAt: Date.now() });
+    quizViewerForm.reset();
+  });
+
+  quizGenerateCodeBtn?.addEventListener('click', async () => {
+    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+    await set(push(getQuizRound1Refs().inviteCodesRef), {
+      code,
+      createdAt: Date.now(),
+      used: false,
+    });
+  });
+
+  quizResetBuzzBtn?.addEventListener('click', async () => {
+    await remove(getQuizRound1Refs().currentBuzzRef);
+    await set(getQuizRound1Refs().questionStateRef, {
+      open: true,
+      blocked: {},
+      updatedAt: Date.now(),
+    });
+  });
+
+  openQuizOverlayBtn?.addEventListener('click', () => {
+    const params = new URLSearchParams();
+    if (activeProductRefs.profileId) {
+      params.set('profile', activeProductRefs.profileId);
+    }
+    params.set('product', 'quiz');
+    window.open(`overlays/quiz-round1-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
+  });
+
+  openBuzzerPageBtn?.addEventListener('click', () => {
+    const params = new URLSearchParams();
+    if (activeProductRefs.profileId) {
+      params.set('profile', activeProductRefs.profileId);
+    }
+    params.set('product', 'quiz');
+    window.open(`buzzer.html?${params.toString()}`, '_blank', 'width=880,height=760');
+  });
+}
+
+bindQuizRoundNavigation();
+bindQuizActions();
+bindQuizRealtime();
+
 function renderActiveProductView(viewName) {
   productViews.forEach((view) => {
     const isActive = view.dataset.productView === viewName;
