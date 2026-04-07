@@ -2289,23 +2289,28 @@ function bindQuizActions() {
 
   quizQuestionForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const type = String(quizQuestionTypeInput?.value || 'streamer');
-    const text = String(quizQuestionTextInput?.value || '').trim();
-    const answers = normalizeAnswers(quizQuestionAnswersInput?.value || '');
-    if (!text || !answers.length) {
-      showQuizMessage('Question et réponse obligatoires.', 'error');
-      return;
+    try {
+      const type = String(quizQuestionTypeInput?.value || 'streamer');
+      const text = String(quizQuestionTextInput?.value || '').trim();
+      const answers = normalizeAnswers(quizQuestionAnswersInput?.value || '');
+      if (!text || !answers.length) {
+        showQuizMessage('Question et réponse obligatoires.', 'error');
+        return;
+      }
+      const entryRef = push(getQuizRound1Refs().questionsRef);
+      await set(entryRef, {
+        type,
+        text,
+        answers,
+        order: Date.now(),
+        createdAt: Date.now(),
+      });
+      quizQuestionForm.reset();
+      showQuizMessage('Question ajoutée.', 'success');
+    } catch (error) {
+      console.error('Impossible d’ajouter la question quiz', error);
+      showQuizMessage("Erreur lors de l'ajout de la question.", 'error');
     }
-    const entryRef = push(getQuizRound1Refs().questionsRef);
-    await set(entryRef, {
-      type,
-      text,
-      answers,
-      order: Date.now(),
-      createdAt: Date.now(),
-    });
-    quizQuestionForm.reset();
-    showQuizMessage('Question ajoutée.');
   });
 
   quizStreamerForm?.addEventListener('submit', async (event) => {
@@ -2329,21 +2334,33 @@ function bindQuizActions() {
   });
 
   quizGenerateCodeBtn?.addEventListener('click', async () => {
-    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-    await set(push(getQuizRound1Refs().inviteCodesRef), {
-      code,
-      createdAt: Date.now(),
-      used: false,
-    });
+    try {
+      const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+      await set(push(getQuizRound1Refs().inviteCodesRef), {
+        code,
+        createdAt: Date.now(),
+        used: false,
+      });
+      showQuizMessage(`Code généré: ${code}`, 'success');
+    } catch (error) {
+      console.error('Impossible de générer un code buzzer', error);
+      showQuizMessage('Erreur lors de la génération du code.', 'error');
+    }
   });
 
   quizResetBuzzBtn?.addEventListener('click', async () => {
-    await remove(getQuizRound1Refs().currentBuzzRef);
-    await set(getQuizRound1Refs().questionStateRef, {
-      open: true,
-      blocked: {},
-      updatedAt: Date.now(),
-    });
+    try {
+      await remove(getQuizRound1Refs().currentBuzzRef);
+      await set(getQuizRound1Refs().questionStateRef, {
+        open: true,
+        blocked: {},
+        updatedAt: Date.now(),
+      });
+      showQuizMessage('Buzz réinitialisé pour la question suivante.', 'success');
+    } catch (error) {
+      console.error('Impossible de réinitialiser le buzz', error);
+      showQuizMessage('Erreur lors du reset du buzz.', 'error');
+    }
   });
 
   [quizQaRectX1Input, quizQaRectY1Input, quizQaRectX2Input, quizQaRectY2Input].forEach((input) => {
