@@ -143,9 +143,6 @@ const DEFAULT_DUEL_FONT_SIZES = {
   characterNamePx: 58,
   fighterPseudoPx: 28,
 };
-const DEFAULT_GUEST_CAM_WIDTH_PX = 320;
-const DEFAULT_GUEST_CAM_HEIGHT_PX = 180;
-const DEFAULT_GUEST_CAM_OFFSET_Y_PX = 0;
 const DEFAULT_TIMER_INITIAL_SECONDS = 300;
 const DEFAULT_DUEL_TIMER_OFFSET_Y_PX = 0;
 const DEFAULT_TIMER_LABEL_1 = 'Joueur 1';
@@ -183,9 +180,6 @@ let currentOverlay = {
   fighterPseudoColor: DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR,
   textShadow: DEFAULT_DUEL_TEXT_SHADOW,
   fontSizes: DEFAULT_DUEL_FONT_SIZES,
-  guestCamWidthPx: DEFAULT_GUEST_CAM_WIDTH_PX,
-  guestCamHeightPx: DEFAULT_GUEST_CAM_HEIGHT_PX,
-  guestCamOffsetYPx: DEFAULT_GUEST_CAM_OFFSET_Y_PX,
   timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
   timerProfile: DEFAULT_TIMER_PROFILE,
   timer: null,
@@ -298,33 +292,6 @@ function normalizeDuelFontSizes(value = {}) {
     characterNamePx: sanitizeRange(value.characterNamePx, DEFAULT_DUEL_FONT_SIZES.characterNamePx, 12, 140),
     fighterPseudoPx: sanitizeRange(value.fighterPseudoPx, DEFAULT_DUEL_FONT_SIZES.fighterPseudoPx, 10, 100),
   };
-}
-
-function sanitizeGuestCamWidth(value) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_GUEST_CAM_WIDTH_PX;
-  }
-
-  return Math.max(120, Math.min(920, Math.round(parsed)));
-}
-
-function sanitizeGuestCamHeight(value) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_GUEST_CAM_HEIGHT_PX;
-  }
-
-  return Math.max(80, Math.min(520, Math.round(parsed)));
-}
-
-function sanitizeGuestCamOffsetY(value) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return DEFAULT_GUEST_CAM_OFFSET_Y_PX;
-  }
-
-  return Math.round(parsed);
 }
 
 function sanitizeTimerInitialSeconds(value) {
@@ -967,33 +934,6 @@ async function setOverlayTextAppearance(patch) {
   });
 }
 
-async function setOverlayGuestCamWidth(widthPx) {
-  const safeWidth = sanitizeGuestCamWidth(widthPx);
-
-  await update(overlayRef, {
-    guestCamWidthPx: safeWidth,
-    updatedAt: Date.now(),
-  });
-}
-
-async function setOverlayGuestCamHeight(heightPx) {
-  const safeHeight = sanitizeGuestCamHeight(heightPx);
-
-  await update(overlayRef, {
-    guestCamHeightPx: safeHeight,
-    updatedAt: Date.now(),
-  });
-}
-
-async function setOverlayGuestCamOffsetY(offsetYPx) {
-  const safeOffset = sanitizeGuestCamOffsetY(offsetYPx);
-
-  await update(overlayRef, {
-    guestCamOffsetYPx: safeOffset,
-    updatedAt: Date.now(),
-  });
-}
-
 async function setOverlayTimerOffsetY(timerOffsetYPx) {
   const safeOffset = sanitizeDuelTimerOffsetY(timerOffsetYPx);
 
@@ -1269,10 +1209,7 @@ async function ensureDatabaseShape() {
       fighterPseudoColor: DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR,
       textShadow: DEFAULT_DUEL_TEXT_SHADOW,
       fontSizes: DEFAULT_DUEL_FONT_SIZES,
-      guestCamWidthPx: DEFAULT_GUEST_CAM_WIDTH_PX,
-      guestCamHeightPx: DEFAULT_GUEST_CAM_HEIGHT_PX,
-      guestCamOffsetYPx: DEFAULT_GUEST_CAM_OFFSET_Y_PX,
-      timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
+                  timerOffsetYPx: DEFAULT_DUEL_TIMER_OFFSET_Y_PX,
       timerProfile: DEFAULT_TIMER_PROFILE,
       timer: normalizeTimerState({
         initialSeconds: DEFAULT_TIMER_INITIAL_SECONDS,
@@ -1316,15 +1253,6 @@ async function ensureDatabaseShape() {
     }
     if (!value.overlay.fontSizes || typeof value.overlay.fontSizes !== 'object') {
       patches.fontSizes = DEFAULT_DUEL_FONT_SIZES;
-    }
-    if (!Number.isFinite(Number(value.overlay.guestCamWidthPx))) {
-      patches.guestCamWidthPx = DEFAULT_GUEST_CAM_WIDTH_PX;
-    }
-    if (!Number.isFinite(Number(value.overlay.guestCamHeightPx))) {
-      patches.guestCamHeightPx = DEFAULT_GUEST_CAM_HEIGHT_PX;
-    }
-    if (!Number.isFinite(Number(value.overlay.guestCamOffsetYPx))) {
-      patches.guestCamOffsetYPx = DEFAULT_GUEST_CAM_OFFSET_Y_PX;
     }
 
     if (!Number.isFinite(Number(value.overlay.timerOffsetYPx))) {
@@ -1415,9 +1343,6 @@ function bindRealtimeSubscriptions() {
       fighterPseudoColor: sanitizeColor(value.fighterPseudoColor, DEFAULT_DUEL_FIGHTER_PSEUDO_COLOR),
       textShadow: normalizeDuelTextShadow(value.textShadow),
       fontSizes: normalizeDuelFontSizes(value.fontSizes),
-      guestCamWidthPx: sanitizeGuestCamWidth(value.guestCamWidthPx),
-      guestCamHeightPx: sanitizeGuestCamHeight(value.guestCamHeightPx),
-      guestCamOffsetYPx: sanitizeGuestCamOffsetY(value.guestCamOffsetYPx),
       timerOffsetYPx: sanitizeDuelTimerOffsetY(value.timerOffsetYPx),
       timerProfile: normalizedTimer.profile,
       timer: normalizedTimer,
