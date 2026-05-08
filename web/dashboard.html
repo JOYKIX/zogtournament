@@ -13,11 +13,10 @@
         <div>
           <p class="eyebrow">Suite de production live</p>
           <h1>ZogControl</h1>
-          <p class="hint no-margin">Pilotez votre tournoi duel et vos manches quiz depuis un seul cockpit.</p>
+          <p class="hint no-margin">Pilotez votre tournoi duel depuis un seul cockpit.</p>
         </div>
         <div class="actions wrap">
           <button type="button" class="product-tab is-active" data-product-tab="tournament">ZogTournament</button>
-          <button type="button" class="product-tab secondary" data-product-tab="quiz">ZogQuiz</button>
         </div>
       </header>
 
@@ -270,124 +269,7 @@
         </section>
       </section>
 
-      <section class="card product-view quiz-view" data-product-view="quiz" aria-hidden="true">
-        <header class="section-head">
-          <p class="eyebrow">ZogQuiz</p>
-          <h3>Back-office des manches</h3>
-          <p class="hint">Configurez la manche 1, les questions, les classements, le buzzer et les accès invités.</p>
-        </header>
-
-        <div class="quiz-layout">
-          <nav class="quiz-round-nav" aria-label="Navigation des manches">
-            <button type="button" class="quiz-round-tab is-active" data-quiz-round="1">Manche 1</button>
-            <button type="button" class="quiz-round-tab" data-quiz-round="2">Manche 2</button>
-            <button type="button" class="quiz-round-tab" data-quiz-round="3">Manche 3</button>
-            <button type="button" class="quiz-round-tab" data-quiz-round="4">Manche 4</button>
-            <button type="button" class="quiz-round-tab" data-quiz-round="5">Manche 5</button>
-            <button type="button" class="quiz-round-tab" data-quiz-round="finale">Finale</button>
-          </nav>
-
-          <section class="quiz-round-panel is-active" data-quiz-round-panel="1">
-            <div class="actions wrap">
-              <button id="openQuizOverlayBtn" type="button">Ouvrir overlay manche 1</button>
-              <button id="openBuzzerPageBtn" type="button" class="secondary">Ouvrir page buzzer</button>
-              <button id="quizCloseQuestionBtn" type="button" class="ghost">Verrouiller question</button>
-              <button id="quizOpenQuestionBtn" type="button" class="ghost">Déverrouiller question</button>
-              <button id="quizResetRoundBtn" type="button" class="danger ghost">Reset complet manche 1</button>
-            </div>
-
-            <div class="quiz-metrics" id="quizMetrics">
-              <p class="countdown-pill">Questions: <strong id="quizMetricQuestions">0</strong></p>
-              <p class="countdown-pill">Streamers: <strong id="quizMetricStreamers">0</strong></p>
-              <p class="countdown-pill">Viewers: <strong id="quizMetricViewers">0</strong></p>
-              <p class="countdown-pill">Participants buzzer: <strong id="quizMetricBuzzer">0</strong></p>
-            </div>
-
-            <div class="quiz-grid">
-              <article class="sub-card">
-                <h4>Zone Q/R overlay (1920×1080)</h4>
-                <p class="hint no-margin">Définissez le rectangle avec les points haut-gauche et bas-droite.</p>
-                <div class="settings-grid three-cols">
-                  <label class="setting-field" for="quizQaRectX1">X haut-gauche<input id="quizQaRectX1" type="number" min="0" max="1919" step="1" value="560" /></label>
-                  <label class="setting-field" for="quizQaRectY1">Y haut-gauche<input id="quizQaRectY1" type="number" min="0" max="1079" step="1" value="260" /></label>
-                  <label class="setting-field" for="quizQaRectX2">X bas-droite<input id="quizQaRectX2" type="number" min="1" max="1920" step="1" value="1360" /></label>
-                  <label class="setting-field" for="quizQaRectY2">Y bas-droite<input id="quizQaRectY2" type="number" min="1" max="1080" step="1" value="760" /></label>
-                </div>
-              </article>
-
-              <article class="sub-card">
-                <div class="toolbar compact">
-                  <h4>Questions manche 1</h4>
-                  <button id="quizClearQuestionsBtn" type="button" class="danger ghost">Tout supprimer</button>
-                </div>
-                <form id="quizQuestionForm">
-                  <label for="quizQuestionType">Type de question</label>
-                  <select id="quizQuestionType" required>
-                    <option value="streamer">Question streamer</option>
-                    <option value="viewers">Question viewers</option>
-                  </select>
-                  <label for="quizQuestionText">Question</label>
-                  <textarea id="quizQuestionText" rows="3" required placeholder="Ex: Quel est le plus grand océan ?"></textarea>
-                  <label for="quizQuestionAnswers">Réponse(s)</label>
-                  <input id="quizQuestionAnswers" type="text" required placeholder="Ex: pacifique, ocean pacifique" />
-                  <p class="hint no-margin">Séparez les variantes de réponses par une virgule.</p>
-                  <button type="submit">Ajouter la question</button>
-                  <p id="quizQuestionMessage" class="message"></p>
-                </form>
-                <ul id="quizQuestionsList" class="list compact-list"></ul>
-              </article>
-
-              <article class="sub-card">
-                <div class="toolbar compact">
-                  <h4>Leaderboard streamer</h4>
-                  <button id="quizResetStreamerScoresBtn" type="button" class="ghost">Reset scores</button>
-                </div>
-                <form id="quizStreamerForm">
-                  <label for="quizStreamerName">Pseudo participant</label>
-                  <input id="quizStreamerName" type="text" required />
-                  <button type="submit">Ajouter participant</button>
-                </form>
-                <ul id="quizStreamerList" class="list compact-list"></ul>
-              </article>
-
-              <article class="sub-card">
-                <div class="toolbar compact">
-                  <h4>Leaderboard viewers</h4>
-                  <button id="quizResetViewerScoresBtn" type="button" class="ghost">Reset scores</button>
-                </div>
-                <form id="quizViewerForm">
-                  <label for="quizViewerName">Nom équipe viewers</label>
-                  <input id="quizViewerName" type="text" placeholder="Chat" required />
-                  <button type="submit">Ajouter équipe viewers</button>
-                </form>
-                <ul id="quizViewerList" class="list compact-list"></ul>
-              </article>
-
-              <article class="sub-card">
-                <h4>Codes d'invitation buzzer</h4>
-                <div class="actions wrap">
-                  <button id="quizGenerateCodeBtn" type="button">Générer un code</button>
-                  <button id="quizClearInviteCodesBtn" type="button" class="danger ghost">Vider les codes</button>
-                </div>
-                <ul id="quizInviteCodesList" class="list compact-list"></ul>
-              </article>
-
-              <article class="sub-card">
-                <h4>Vue buzzer (live)</h4>
-                <p id="quizBuzzerLiveStatus" class="countdown-pill">Aucun buzz en cours.</p>
-                <div class="actions stacked-mobile"><button id="quizResetBuzzBtn" type="button" class="secondary">Reset buzz / question suivante</button></div>
-                <p class="hint no-margin">Utilisez « faute » sur un joueur pour le bloquer sur la question en cours.</p>
-                <ul id="quizBuzzParticipantsList" class="list compact-list"></ul>
-              </article>
-            </div>
-          </section>
-
-          <section class="quiz-round-panel" data-quiz-round-panel="placeholder">
-            <p class="hint">Cette manche sera configurée plus tard. La navigation est prête.</p>
-          </section>
-        </div>
-      </section>
-    </main>
+          </main>
 
     <script type="module" src="../app/pages/dashboard.js"></script>
   </body>

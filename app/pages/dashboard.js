@@ -1,4 +1,5 @@
 import {
+  child,
   connectedRef,
   DEFAULT_PRODUCT_KEY,
   get,
@@ -1460,7 +1461,7 @@ participantForm.addEventListener('submit', async (event) => {
   const editId = String(formData.get('editParticipantId') || '').trim();
 
   if (editId) {
-    await update(ref(activeProductRefs.participantsRef, editId), participant);
+    await update(child(activeProductRefs.participantsRef, editId), participant);
     participantMessage.textContent = 'Participant modifié ✅';
     toggleEditMode();
     return;
@@ -1528,7 +1529,7 @@ participantsList.addEventListener('click', async (event) => {
     return;
   }
 
-  const participantRef = ref(activeProductRefs.participantsRef, participantId);
+  const participantRef = child(activeProductRefs.participantsRef, participantId);
   await remove(participantRef);
 
   participantMessage.textContent = `${participant.pseudo} supprimé ✅`;
@@ -2524,7 +2525,7 @@ function renderActiveProductView(viewName) {
 }
 
 function getCurrentProductTab() {
-  return activeProductRefs.productKey === 'zogquiz' ? 'quiz' : 'tournament';
+  return 'tournament';
 }
 
 productTabs.forEach((tab) => {
@@ -2535,7 +2536,7 @@ productTabs.forEach((tab) => {
       return;
     }
 
-    const nextProduct = nextTab === 'quiz' ? 'quiz' : 'tournament';
+    const nextProduct = 'tournament';
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('product', nextProduct);
     window.location.href = nextUrl.toString();
