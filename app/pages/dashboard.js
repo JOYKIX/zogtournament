@@ -895,6 +895,49 @@ async function generateMatches() {
   await setOverlayMatch(0);
 }
 
+function participantIdentityMatches(candidate, source) {
+  if (!candidate || !source) {
+    return false;
+  }
+
+  return (
+    String(candidate.pseudo || '') === String(source.pseudo || '') &&
+    String(candidate.character || '') === String(source.character || '') &&
+    String(candidate.image || '') === String(source.image || '')
+  );
+}
+
+function syncParticipantInTournament(tournament, previousParticipant, nextParticipant) {
+  if (!tournament || !previousParticipant || !nextParticipant) {
+    return null;
+  }
+
+  const participants = Array.isArray(tournament.participants) ? tournament.participants : [];
+  let didChange = false;
+
+  const syncedParticipants = participants.map((entry) => {
+    if (!participantIdentityMatches(entry, previousParticipant)) {
+      return entry;
+    }
+    didChange = true;
+    return {
+      ...entry,
+      pseudo: nextParticipant.pseudo,
+      character: nextParticipant.character,
+      image: nextParticipant.image,
+    };
+  });
+
+  if (!didChange) {
+    return null;
+  }
+
+  return {
+    ...tournament,
+    participants: syncedParticipants,
+  };
+}
+
 async function setWinner(roundIndex, matchIndex, side) {
   if (!tournamentCache?.rounds?.[roundIndex]?.[matchIndex]) {
     return;
@@ -1461,7 +1504,12 @@ participantForm.addEventListener('submit', async (event) => {
   const editId = String(formData.get('editParticipantId') || '').trim();
 
   if (editId) {
+    const previousParticipant = participantsCache.find((item) => item.id === editId) || null;
     await update(child(activeProductRefs.participantsRef, editId), participant);
+    const syncedTournament = syncParticipantInTournament(tournamentCache, previousParticipant, participant);
+    if (syncedTournament) {
+      await set(activeProductRefs.matchesRef, syncedTournament);
+    }
     participantMessage.textContent = 'Participant modifié ✅';
     toggleEditMode();
     return;
