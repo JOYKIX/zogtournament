@@ -466,6 +466,17 @@ function normalizeParticipants(snapshotValue) {
     }));
 }
 
+function getParticipantById(participantId) {
+  const id = String(participantId || '').trim();
+  if (!id) return null;
+  return participantsCache.find((participant) => String(participant.id || '').trim() === id) || null;
+}
+
+function resolveMatchPlayer(playerRef) {
+  if (!playerRef || typeof playerRef !== 'object') return null;
+  return getParticipantById(playerRef.id);
+}
+
 function resolveParticipantImagePresetPath(rawImage) {
   const raw = String(rawImage || '').trim();
   if (!raw) {
@@ -645,10 +656,12 @@ function renderBracketContent(targetContainer) {
       }
 
       const winner = computeWinner(match);
-      const leftName = escapeHtml(match.left?.pseudo || 'En attente');
-      const rightName = escapeHtml(match.right?.pseudo || 'En attente');
-      const leftCharacter = escapeHtml(match.left?.character || '—');
-      const rightCharacter = escapeHtml(match.right?.character || '—');
+      const leftPlayer = resolveMatchPlayer(match.left);
+      const rightPlayer = resolveMatchPlayer(match.right);
+      const leftName = escapeHtml(leftPlayer?.pseudo || 'En attente');
+      const rightName = escapeHtml(rightPlayer?.pseudo || 'En attente');
+      const leftCharacter = escapeHtml(leftPlayer?.character || '—');
+      const rightCharacter = escapeHtml(rightPlayer?.character || '—');
 
       node.innerHTML = `
         <button type="button" class="slot ${winner.side === 'left' ? 'is-winner' : ''}" data-side="left">
@@ -893,49 +906,6 @@ async function generateMatches() {
   const tournament = createTournament(participantsCache);
   await set(activeProductRefs.matchesRef, tournament);
   await setOverlayMatch(0);
-}
-
-function participantIdentityMatches(candidate, source) {
-  if (!candidate || !source) {
-    return false;
-  }
-
-  return (
-    String(candidate.pseudo || '') === String(source.pseudo || '') &&
-    String(candidate.character || '') === String(source.character || '') &&
-    String(candidate.image || '') === String(source.image || '')
-  );
-}
-
-function syncParticipantInTournament(tournament, previousParticipant, nextParticipant) {
-  if (!tournament || !previousParticipant || !nextParticipant) {
-    return null;
-  }
-
-  const participants = Array.isArray(tournament.participants) ? tournament.participants : [];
-  let didChange = false;
-
-  const syncedParticipants = participants.map((entry) => {
-    if (!participantIdentityMatches(entry, previousParticipant)) {
-      return entry;
-    }
-    didChange = true;
-    return {
-      ...entry,
-      pseudo: nextParticipant.pseudo,
-      character: nextParticipant.character,
-      image: nextParticipant.image,
-    };
-  });
-
-  if (!didChange) {
-    return null;
-  }
-
-  return {
-    ...tournament,
-    participants: syncedParticipants,
-  };
 }
 
 async function setWinner(roundIndex, matchIndex, side) {
@@ -1504,19 +1474,14 @@ participantForm.addEventListener('submit', async (event) => {
   const editId = String(formData.get('editParticipantId') || '').trim();
 
   if (editId) {
-    const previousParticipant = participantsCache.find((item) => item.id === editId) || null;
     await update(child(activeProductRefs.participantsRef, editId), participant);
-    const syncedTournament = syncParticipantInTournament(tournamentCache, previousParticipant, participant);
-    if (syncedTournament) {
-      await set(activeProductRefs.matchesRef, syncedTournament);
-    }
     participantMessage.textContent = 'Participant modifié ✅';
     toggleEditMode();
     return;
   }
 
   const newParticipantRef = push(activeProductRefs.participantsRef);
-  await set(newParticipantRef, participant);
+  await set(newParticipantRef, { ...participant, id: newParticipantRef.key });
 
   participantMessage.textContent = 'Participant ajouté ✅';
   toggleEditMode();

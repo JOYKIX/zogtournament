@@ -22,14 +22,30 @@ function normalizeParticipant(participant) {
   }
 
   return {
+    id: String(participant.id || '').trim(),
     pseudo,
     character: String(participant.character || ''),
     image: String(participant.image || ''),
   };
 }
 
+function normalizeParticipantRef(player) {
+  if (!player || typeof player !== 'object') return null;
+  const id = String(player.id || '').trim();
+  return id ? { id } : null;
+}
+
+function hasPlayerRef(player) {
+  return Boolean(player?.id);
+}
+
+function resolvePlayer(playerRef, participantsById) {
+  if (!hasPlayerRef(playerRef)) return null;
+  return participantsById.get(playerRef.id) || null;
+}
+
 function hasPlayer(player) {
-  return Boolean(player?.pseudo);
+  return hasPlayerRef(player);
 }
 
 function isRealBye(match, roundIndex) {
@@ -93,8 +109,8 @@ export function emptyMatch() {
 
 export function cloneMatch(match) {
   return {
-    left: normalizeParticipant(match?.left),
-    right: normalizeParticipant(match?.right),
+    left: normalizeParticipantRef(match?.left),
+    right: normalizeParticipantRef(match?.right),
     winnerSide: isValidSide(match?.winnerSide) ? match.winnerSide : null,
   };
 }
@@ -169,8 +185,8 @@ function seedFirstRound(firstRound, participants, bracketSize) {
   }
 
   for (let i = 0; i < firstRound.length; i += 1) {
-    const left = normalizeParticipant(participants[i * 2]);
-    const right = normalizeParticipant(participants[i * 2 + 1]);
+    const left = normalizeParticipantRef(participants[i * 2]);
+    const right = normalizeParticipantRef(participants[i * 2 + 1]);
     firstRound[i] = {
       left,
       right,
@@ -229,15 +245,22 @@ export function rebuildTournament(rawTournament) {
   }
 
   const participants = Array.isArray(rawTournament.participants)
-    ? rawTournament.participants.map(normalizeParticipant).filter(Boolean).slice(0, bracketSize)
+    ? rawTournament.participants.map(normalizeParticipant).filter((p) => p && p.id).slice(0, bracketSize)
     : [];
+  const participantsById = new Map(participants.map((p) => [p.id, p]));
 
   if (!participants.length && Array.isArray(rawTournament.rounds?.[0])) {
     const fromRound = rawTournament.rounds[0]
       .flatMap((match) => [normalizeParticipant(match?.left), normalizeParticipant(match?.right)])
       .filter(Boolean)
       .slice(0, bracketSize);
-    participants.push(...fromRound);
+    fromRound.forEach((entry, index) => {
+      if (!entry.id) {
+        entry.id = `legacy-${index}-${entry.pseudo.toLowerCase().replace(/\s+/g, '-')}`;
+      }
+      participants.push(entry);
+      participantsById.set(entry.id, entry);
+    });
   }
 
   seedFirstRound(rounds[0], participants, bracketSize);
@@ -280,14 +303,15 @@ export function rebuildTournament(rawTournament) {
     rounds,
     participants,
     generatedAt: Number(rawTournament.generatedAt) || Date.now(),
-    champion: computeChampionFromFinal(rounds),
+    champion: resolvePlayer(computeChampionFromFinal(rounds), participantsById),
+    participantsById: Object.fromEntries(participantsById),
   };
 }
 
 export function createTournament(participants, bracketSize = BRACKET_SIZE, options = {}) {
   const safeBracketSize = sanitizeBracketSize(bracketSize, BRACKET_SIZE);
   const safeParticipants = Array.isArray(participants)
-    ? participants.map(normalizeParticipant).filter(Boolean).slice(0, safeBracketSize)
+    ? participants.map(normalizeParticipant).filter((p) => p && p.id).slice(0, safeBracketSize)
     : [];
 
   const seeded = options.shuffle === false ? safeParticipants : shuffleParticipants(safeParticipants);
@@ -357,9 +381,25 @@ export function getOverlayMatches(tournament) {
     return [];
   }
 
+  const participantsById = new Map(
+    (Array.isArray(tournament.participants) ? tournament.participants : [])
+      .map((p) => normalizeParticipant(p))
+      .filter((p) => p && p.id)
+      .map((p) => [p.id, p]),
+  );
+
   return tournament.rounds.flatMap((round, roundIndex) =>
     round
-      .map((match, matchIndex) => ({ roundIndex, matchIndex, ...cloneMatch(match) }))
+      .map((match, matchIndex) => {
+        const cloned = cloneMatch(match);
+        return {
+          roundIndex,
+          matchIndex,
+          ...cloned,
+          left: resolvePlayer(cloned.left, participantsById),
+          right: resolvePlayer(cloned.right, participantsById),
+        };
+      })
       .filter((match) => canPlayMatch(match, roundIndex)),
   );
 }
