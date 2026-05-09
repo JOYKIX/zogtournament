@@ -100,6 +100,7 @@ const cancelEditBtn = document.getElementById('cancelEditBtn');
 const clearParticipantsBtn = document.getElementById('clearParticipantsBtn');
 
 const generateBracketBtn = document.getElementById('generateBracketBtn');
+const bracketSeedingModeSelect = document.getElementById('bracketSeedingMode');
 const bracketContainer = document.getElementById('bracketContainer');
 const liveBracketContainer = document.getElementById('liveBracketContainer');
 const openDuelOverlayBtn = document.getElementById('openDuelOverlayBtn');
@@ -903,7 +904,8 @@ async function generateMatches() {
     return;
   }
 
-  const tournament = createTournament(participantsCache);
+  const shouldShuffle = bracketSeedingModeSelect?.value !== 'manual';
+  const tournament = createTournament(participantsCache, BRACKET_SIZE, { shuffle: shouldShuffle });
   await set(activeProductRefs.matchesRef, tournament);
   await setOverlayMatch(0);
 }
