@@ -908,6 +908,37 @@ async function generateMatches() {
   await setOverlayMatch(0);
 }
 
+function rebuildTournamentParticipants(tournament, updatedParticipant) {
+  if (!tournament || !Array.isArray(tournament.participants) || !updatedParticipant?.id) {
+    return null;
+  }
+
+  let changed = false;
+  const nextParticipants = tournament.participants.map((entry) => {
+    if (String(entry?.id || '').trim() !== updatedParticipant.id) {
+      return entry;
+    }
+
+    changed = true;
+    return {
+      ...entry,
+      pseudo: updatedParticipant.pseudo,
+      character: updatedParticipant.character,
+      image: updatedParticipant.image,
+    };
+  });
+
+  if (!changed) {
+    return null;
+  }
+
+  return {
+    ...tournament,
+    participants: nextParticipants,
+    updatedAt: Date.now(),
+  };
+}
+
 async function setWinner(roundIndex, matchIndex, side) {
   if (!tournamentCache?.rounds?.[roundIndex]?.[matchIndex]) {
     return;
@@ -1475,6 +1506,10 @@ participantForm.addEventListener('submit', async (event) => {
 
   if (editId) {
     await update(child(activeProductRefs.participantsRef, editId), participant);
+    const syncedTournament = rebuildTournamentParticipants(tournamentCache, { ...participant, id: editId });
+    if (syncedTournament) {
+      await set(activeProductRefs.matchesRef, syncedTournament);
+    }
     participantMessage.textContent = 'Participant modifié ✅';
     toggleEditMode();
     return;
