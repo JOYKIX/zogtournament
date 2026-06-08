@@ -57,25 +57,21 @@
         </section>
 
         <section id="appSection" class="hidden app-shell">
-          <header class="card app-header">
-            <div>
-              <p class="eyebrow">ZogTournament</p>
-              <h2>Centre de contrôle du tournoi</h2>
-              <p class="hint no-margin">Orchestrez les participants, l'arbre, les overlays et le timer live.</p>
-            </div>
+          <header class="card app-header" aria-label="Actions rapides">
+            <div class="quick-actions-label">Actions rapides</div>
             <div class="actions wrap top-actions">
-              <button id="openDuelOverlayBtn">Ouvrir overlay duel</button>
-              <button id="openTreeOverlayBtn" class="secondary">Ouvrir overlay arbre</button>
+              <button id="openDuelOverlayBtn">Overlay duel</button>
+              <button id="openTreeOverlayBtn" class="secondary">Overlay arbre</button>
               <button id="logoutBtn" class="ghost">Déconnexion</button>
             </div>
           </header>
 
           <div class="app-layout">
             <nav class="card app-nav" aria-label="Navigation principale">
-              <a href="#participants" class="app-nav-item is-active" data-target-view="participants">Roster & Bracket</a>
-              <a href="#live" class="app-nav-item" data-target-view="live">Contrôles live</a>
-              <a href="#config" class="app-nav-item" data-target-view="config">Design Overlay</a>
-              <a href="#keybinds" class="app-nav-item" data-target-view="keybinds">Raccourcis</a>
+              <a href="#participants" class="app-nav-item is-active" data-target-view="participants"><span>01</span> Participants</a>
+              <a href="#live" class="app-nav-item" data-target-view="live"><span>02</span> Live & arbre</a>
+              <a href="#config" class="app-nav-item" data-target-view="config"><span>03</span> Design overlay</a>
+              <a href="#keybinds" class="app-nav-item" data-target-view="keybinds"><span>04</span> Raccourcis</a>
             </nav>
 
             <section class="app-content">
@@ -217,54 +213,56 @@
                 </article>
               </section>
 
-              <section class="app-view" data-view="live" aria-hidden="true">
+              <section class="app-view live-view" data-view="live" aria-hidden="true">
+                <div class="live-dashboard-grid">
+                  <article class="card panel section-card live-primary-card">
+                    <header class="section-head"><p class="eyebrow">Étape 1 · Régie match</p><h3>Contrôles du duel courant</h3></header>
+                    <div class="live-controls">
+                      <label class="setting-field" for="bracketSeedingMode">Placement des participants
+                        <select id="bracketSeedingMode">
+                          <option value="random">Aléatoire</option>
+                          <option value="manual">Manuel (ordre actuel)</option>
+                        </select>
+                      </label>
+                      <button id="generateBracketBtn" class="secondary">Créer / régénérer le tournoi</button>
+                      <div class="duel-nav">
+                        <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
+                        <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="card panel section-card live-countdown-card">
+                    <header class="section-head"><p class="eyebrow">Étape 2 · Timer live</p><h3>Chronos & vainqueur</h3></header>
+                    <p id="liveTimerStatus" class="message no-margin">Timer en pause.</p>
+                    <div class="live-countdown-grid">
+                      <p id="liveCountdownP1" class="countdown-pill">Joueur 1: 05:00</p>
+                      <p id="liveCountdownP2" class="countdown-pill">Joueur 2: 05:00</p>
+                    </div>
+                    <div class="settings-grid two-cols">
+                      <label class="setting-field" for="liveTimerInitialSeconds">Durée timer (secondes)<input id="liveTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" /></label>
+                      <label class="setting-field" for="timerStartParticipant">Joueur de départ
+                        <select id="timerStartParticipant"><option value="1">Joueur 1</option><option value="2">Joueur 2</option></select>
+                      </label>
+                    </div>
+                    <div class="timer-controls">
+                      <button id="timerStartBtn" type="button">Démarrer</button>
+                      <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
+                      <button id="timerSwitchBtn" type="button" class="secondary">Basculer le timer</button>
+                    </div>
+                    <div class="winner-controls">
+                      <p class="winner-controls-label">Vainqueur du match en cours</p>
+                      <div class="winner-controls-grid">
+                        <button id="liveWinnerParticipant1Btn" type="button" class="secondary">Joueur 1</button>
+                        <button id="liveWinnerParticipant2Btn" type="button" class="secondary">Joueur 2</button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
                 <article class="card panel section-card bracket-panel">
-                  <header class="section-head"><p class="eyebrow">Broadcast</p><h3>Suivi en direct de l'arbre</h3></header>
+                  <header class="section-head"><p class="eyebrow">Étape 3 · Broadcast</p><h3>Suivi en direct de l'arbre</h3></header>
                   <div id="liveBracketContainer" class="bracket"></div>
-                </article>
-
-                <article class="card panel section-card">
-                  <header class="section-head"><p class="eyebrow">Régie match</p><h3>Contrôles du duel courant</h3></header>
-                  <div class="live-controls">
-                    <label class="setting-field" for="bracketSeedingMode">Placement des participants
-                      <select id="bracketSeedingMode">
-                        <option value="random">Aléatoire</option>
-                        <option value="manual">Manuel (ordre actuel)</option>
-                      </select>
-                    </label>
-                    <button id="generateBracketBtn" class="secondary">Créer / régénérer le tournoi</button>
-                    <div class="duel-nav">
-                      <button id="overlayPrevBtn" class="secondary">◀ Match précédent</button>
-                      <button id="overlayNextBtn" class="secondary">Match suivant ▶</button>
-                    </div>
-                  </div>
-                </article>
-
-                <article class="card panel section-card live-countdown-card">
-                  <header class="section-head"><p class="eyebrow">Timer live</p><h3>Contrôle des chronos</h3></header>
-                  <p id="liveTimerStatus" class="message no-margin">Timer en pause.</p>
-                  <div class="live-countdown-grid">
-                    <p id="liveCountdownP1" class="countdown-pill">Joueur 1: 05:00</p>
-                    <p id="liveCountdownP2" class="countdown-pill">Joueur 2: 05:00</p>
-                  </div>
-                  <div class="settings-grid two-cols">
-                    <label class="setting-field" for="liveTimerInitialSeconds">Durée timer (secondes)<input id="liveTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" /></label>
-                    <label class="setting-field" for="timerStartParticipant">Joueur de départ
-                      <select id="timerStartParticipant"><option value="1">Joueur 1</option><option value="2">Joueur 2</option></select>
-                    </label>
-                  </div>
-                  <div class="timer-controls">
-                    <button id="timerStartBtn" type="button">Démarrer</button>
-                    <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
-                    <button id="timerSwitchBtn" type="button" class="secondary">Basculer le timer</button>
-                  </div>
-                  <div class="winner-controls">
-                    <p class="winner-controls-label">Vainqueur du match en cours</p>
-                    <div class="winner-controls-grid">
-                      <button id="liveWinnerParticipant1Btn" type="button" class="secondary">Joueur 1</button>
-                      <button id="liveWinnerParticipant2Btn" type="button" class="secondary">Joueur 2</button>
-                    </div>
-                  </div>
                 </article>
               </section>
             </section>
