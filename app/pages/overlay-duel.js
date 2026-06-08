@@ -124,12 +124,13 @@ function getHealthColor(remainingRatio, healthConfig = DEFAULT_TIMER_HEALTH_CONF
 
 function applyHealthBar(fillNode, remainingMs, initialMs, healthConfig) {
   if (!fillNode) {
-    return;
+    return 0;
   }
 
   const ratio = initialMs > 0 ? Math.max(0, Math.min(1, remainingMs / initialMs)) : 0;
   fillNode.style.setProperty('--timer-health-ratio', ratio.toFixed(4));
   fillNode.style.setProperty('--timer-health-color', getHealthColor(ratio, healthConfig));
+  return ratio;
 }
 
 function render() {
@@ -198,14 +199,17 @@ function render() {
   }
 
   const initialMs = resolvedTimer.initialSeconds * TIMER_SECOND_MS;
-  const ratioP1 = initialMs > 0 ? Math.max(0, Math.min(1, resolvedTimer.participant1.remainingMs / initialMs)) : 0;
-  const ratioP2 = initialMs > 0 ? Math.max(0, Math.min(1, resolvedTimer.participant2.remainingMs / initialMs)) : 0;
-  const dangerMode = resolvedTimer.healthConfig.dangerEffects && (ratioP1 <= 0.2 || ratioP2 <= 0.2);
-
-  applyHealthBar(timerP1HealthFill, resolvedTimer.participant1.remainingMs, initialMs, resolvedTimer.healthConfig);
-  applyHealthBar(timerP2HealthFill, resolvedTimer.participant2.remainingMs, initialMs, resolvedTimer.healthConfig);
+  const ratioP1 = applyHealthBar(timerP1HealthFill, resolvedTimer.participant1.remainingMs, initialMs, resolvedTimer.healthConfig);
+  const ratioP2 = applyHealthBar(timerP2HealthFill, resolvedTimer.participant2.remainingMs, initialMs, resolvedTimer.healthConfig);
   applyHealthBar(timerP1HealthTrail, resolvedTimer.participant1.remainingMs, initialMs, resolvedTimer.healthConfig);
   applyHealthBar(timerP2HealthTrail, resolvedTimer.participant2.remainingMs, initialMs, resolvedTimer.healthConfig);
+
+  const dangerP1 = resolvedTimer.healthConfig.dangerEffects && ratioP1 <= 0.2;
+  const dangerP2 = resolvedTimer.healthConfig.dangerEffects && ratioP2 <= 0.2;
+  const dangerMode = dangerP1 || dangerP2;
+
+  timerParticipant1?.classList.toggle('health-danger', dangerP1);
+  timerParticipant2?.classList.toggle('health-danger', dangerP2);
 
   if (timerCenterValue) {
     timerCenterValue.textContent = 'VS';
