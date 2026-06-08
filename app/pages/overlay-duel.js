@@ -1,4 +1,4 @@
-import { getProductRefsBySlug, onValue } from '../shared/firebase.js';
+import { get, getAuthRefs, getProductRefsBySlug, onValue } from '../shared/firebase.js';
 import { getOverlayMatches, normalizeTournament } from '../shared/tournament.js';
 import { escapeHtml, normalizeImageUrl } from '../shared/view-helpers.js';
 import {
@@ -62,7 +62,31 @@ let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
 const pageParams = new URLSearchParams(window.location.search);
-const activeProductRefs = getProductRefsBySlug(pageParams.get('product'), pageParams.get('profile'));
+
+async function resolveActiveProductRefs() {
+  const productSlug = pageParams.get('product') || 'tournament';
+  const profileId = String(pageParams.get('profile') || '').trim();
+
+  if (profileId) {
+    return getProductRefsBySlug(productSlug, profileId);
+  }
+
+  const profileSnapshot = await get(getAuthRefs().profileRef);
+  const fallbackProfileId = String(profileSnapshot.val()?.uid || '').trim();
+
+  if (!fallbackProfileId) {
+    return getProductRefsBySlug(productSlug);
+  }
+
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set('product', productSlug);
+  nextUrl.searchParams.set('profile', fallbackProfileId);
+  window.history.replaceState(null, '', nextUrl.toString());
+
+  return getProductRefsBySlug(productSlug, fallbackProfileId);
+}
+
+const activeProductRefs = await resolveActiveProductRefs();
 
 function formatTimer(ms) {
   const totalSeconds = Math.max(0, Math.ceil(ms / TIMER_SECOND_MS));

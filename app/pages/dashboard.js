@@ -963,24 +963,25 @@ async function setCurrentMatchWinner(side) {
   await setWinner(current.roundIndex, current.matchIndex, side);
 }
 
-function openDuelOverlayWindow() {
+function buildTournamentOverlayUrl(path) {
   const params = new URLSearchParams({
-    product: activeProductRefs.productKey,
+    product: 'tournament',
   });
-  if (activeProfileId) {
-    params.set('profile', activeProfileId);
+  const profileId = activeProductRefs.profileId || activeProfileId || String(currentProfile?.uid || '').trim();
+
+  if (profileId) {
+    params.set('profile', profileId);
   }
-  window.open(`web/overlays/duel-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
+
+  return `${path}?${params.toString()}`;
+}
+
+function openDuelOverlayWindow() {
+  window.open(buildTournamentOverlayUrl('web/overlays/duel-overlay.html'), '_blank', 'width=1600,height=900');
 }
 
 function openTreeOverlayWindow() {
-  const params = new URLSearchParams({
-    product: activeProductRefs.productKey,
-  });
-  if (activeProfileId) {
-    params.set('profile', activeProfileId);
-  }
-  window.open(`web/overlays/tree-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
+  window.open(buildTournamentOverlayUrl('web/overlays/tree-overlay.html'), '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
