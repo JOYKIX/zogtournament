@@ -44,20 +44,6 @@ body {
   filter: drop-shadow(8px 8px 0 #000) drop-shadow(0 0 28px rgba(0, 217, 233, 0.22));
 }
 
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(120deg, rgba(255, 107, 0, 0.1) 0 11%, transparent 11% 100%),
-    linear-gradient(118deg, transparent 0 62%, rgba(0, 217, 233, 0.08) 62% 66%, transparent 66% 100%),
-    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.024) 0 2px, transparent 2px 160px);
-  mix-blend-mode: screen;
-}
-
-
 .duel-timers {
   --duel-timer-offset-y: 0px;
   --health-bar-height: 26px;
