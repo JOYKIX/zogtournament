@@ -970,7 +970,7 @@ function openDuelOverlayWindow() {
   if (activeProfileId) {
     params.set('profile', activeProfileId);
   }
-  window.open(`overlays/duel-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
+  window.open(`web/overlays/duel-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
 }
 
 function openTreeOverlayWindow() {
@@ -980,7 +980,7 @@ function openTreeOverlayWindow() {
   if (activeProfileId) {
     params.set('profile', activeProfileId);
   }
-  window.open(`overlays/tree-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
+  window.open(`web/overlays/tree-overlay.html?${params.toString()}`, '_blank', 'width=1600,height=900');
 }
 
 async function login(username, password) {
@@ -2544,7 +2544,7 @@ function bindQuizActions() {
       params.set('profile', activeProductRefs.profileId);
     }
     params.set('product', 'quiz');
-    window.open(`overlays/quiz-round1-overlay.html?${params.toString()}`, '_blank', 'width=1920,height=1080');
+    window.open(`web/overlays/quiz-round1-overlay.html?${params.toString()}`, '_blank', 'width=1920,height=1080');
   });
 
   openBuzzerPageBtn?.addEventListener('click', () => {
@@ -2553,7 +2553,7 @@ function bindQuizActions() {
       params.set('profile', activeProductRefs.profileId);
     }
     params.set('product', 'quiz');
-    window.open(`buzzer.html?${params.toString()}`, '_blank', 'width=880,height=760');
+    window.open(`web/buzzer.html?${params.toString()}`, '_blank', 'width=880,height=760');
   });
 }
 
