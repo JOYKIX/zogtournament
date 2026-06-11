@@ -1,17 +1,19 @@
 :root {
   --zog-bg: rgba(4, 5, 10, 0.74);
-  --zog-bg-strong: rgba(17, 19, 29, 0.96);
-  --zog-surface: rgba(28, 31, 45, 0.94);
-  --zog-line: #000;
-  --zog-line-soft: rgba(255, 255, 255, 0.16);
+  --zog-bg-strong: rgba(17, 19, 29, 0.88);
+  --zog-surface: rgba(23, 27, 42, 0.86);
+  --zog-surface-soft: rgba(255, 255, 255, 0.07);
+  --zog-line: rgba(0, 0, 0, 0.82);
+  --zog-line-soft: rgba(255, 255, 255, 0.17);
   --zog-text: #f8f8fb;
   --zog-muted: #9aa0ad;
   --zog-primary: #00d9e9;
+  --zog-primary-soft: rgba(0, 217, 233, 0.22);
   --zog-yellow: #ffcc35;
   --zog-orange: #ff6b00;
   --zog-success: #00e69b;
   --zog-danger: #ff2e73;
-  --zog-shadow: 0 5px 0 #000, 0 16px 34px rgba(0, 0, 0, 0.62);
+  --zog-shadow: 0 10px 0 rgba(0, 0, 0, 0.88), 0 22px 44px rgba(0, 0, 0, 0.48);
   color-scheme: dark;
 }
 
@@ -34,31 +36,16 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  padding: clamp(0.65rem, 1.25vh, 1rem) clamp(0.8rem, 1.5vw, 1.45rem);
-  background:
-    linear-gradient(120deg, rgba(255, 107, 0, 0.12) 0 10%, transparent 10% 100%),
-    linear-gradient(118deg, transparent 0 62%, rgba(0, 217, 233, 0.08) 62% 66%, transparent 66% 100%),
-    repeating-linear-gradient(118deg, rgba(255, 255, 255, 0.026) 0 2px, transparent 2px 160px),
-    radial-gradient(35rem 28rem at 13% 10%, rgba(255, 204, 53, 0.1), transparent 60%);
+  padding: clamp(0.75rem, 1.45vh, 1.15rem) clamp(0.95rem, 1.75vw, 1.65rem);
+  background: transparent;
   overflow: hidden;
-}
-
-.tree-root::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 0 calc(100% - 6px), var(--zog-primary) calc(100% - 6px) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 100%);
-  mix-blend-mode: screen;
 }
 
 .tree-grid {
   --round-count: 3;
-  --column-gap: clamp(0.55rem, 1.15vw, 1.25rem);
-  --card-width: clamp(250px, 22vw, 370px);
-  --card-height: clamp(86px, 11.2vh, 126px);
+  --column-gap: clamp(0.7rem, 1.45vw, 1.55rem);
+  --card-width: clamp(260px, 22.5vw, 385px);
+  --card-height: clamp(90px, 11.4vh, 130px);
   --base-match-center: 132px;
   --connector: var(--zog-primary);
 
@@ -71,7 +58,7 @@ body {
   justify-content: center;
   gap: var(--column-gap);
   overflow: hidden;
-  padding: 0.15rem 0.25rem 0.25rem 0;
+  padding: 0.15rem 0.35rem 0.35rem 0;
 }
 
 .bracket-round {
@@ -87,10 +74,13 @@ body {
 
 .round-title {
   position: relative;
-  margin: 0 0 clamp(0.32rem, 0.75vh, 0.58rem);
-  padding: 0.44rem 0.55rem 0.38rem;
-  border: 1px solid var(--zog-line);
-  background: linear-gradient(90deg, var(--zog-yellow) 0 28%, var(--zog-orange) 28% 29.5%, var(--zog-bg-strong) 29.5% 100%);
+  margin: 0 0 clamp(0.42rem, 0.86vh, 0.66rem);
+  padding: 0.5rem 0.7rem 0.44rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px 4px 14px 4px;
+  background:
+    linear-gradient(90deg, rgba(255, 204, 53, 0.96) 0 14px, rgba(255, 107, 0, 0.9) 14px 20px, rgba(13, 16, 28, 0.9) 20px 100%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 58%);
   color: var(--zog-text);
   text-align: right;
   font-size: clamp(0.78rem, 1vw, 1rem);
@@ -99,17 +89,20 @@ body {
   letter-spacing: 0.15em;
   line-height: 1;
   text-shadow: 3px 3px 0 #000;
-  box-shadow: 0 4px 0 #000;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.82), 0 12px 24px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(5px);
 }
 
 .round-title::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background: var(--zog-primary);
+  right: 0.55rem;
+  bottom: -0.32rem;
+  width: 35%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--zog-primary));
+  box-shadow: 0 0 12px rgba(0, 217, 233, 0.9);
 }
 
 .round-stack {
@@ -127,15 +120,19 @@ body {
 .tree-match-card {
   position: relative;
   height: var(--card-height);
-  padding: clamp(0.36rem, 0.58vw, 0.54rem);
+  padding: clamp(0.42rem, 0.64vw, 0.6rem);
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 0.28rem;
-  border: 1px solid var(--zog-line);
+  gap: 0.33rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px 6px 18px 6px;
   background:
-    linear-gradient(118deg, transparent 0 54%, rgba(255, 255, 255, 0.035) 54% 56%, transparent 56% 100%),
-    linear-gradient(160deg, var(--zog-surface), rgba(11, 13, 20, 0.96));
+    linear-gradient(118deg, transparent 0 49%, rgba(255, 255, 255, 0.055) 49% 51%, transparent 51% 100%),
+    radial-gradient(circle at 0 0, rgba(255, 204, 53, 0.12), transparent 44%),
+    linear-gradient(160deg, var(--zog-surface), rgba(8, 10, 18, 0.9));
   box-shadow: var(--zog-shadow);
+  overflow: hidden;
+  backdrop-filter: blur(7px);
 }
 
 .tree-match-card::before {
@@ -144,55 +141,82 @@ body {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 5px;
-  background: var(--zog-yellow);
+  width: 6px;
+  background: linear-gradient(180deg, var(--zog-yellow), var(--zog-orange));
+  box-shadow: 0 0 18px rgba(255, 204, 53, 0.62);
+}
+
+.tree-match-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 34% 100%);
+  opacity: 0.42;
 }
 
 .tree-match-card.is-active {
-  border-color: var(--zog-primary);
+  border-color: rgba(0, 217, 233, 0.92);
   box-shadow:
-    0 0 0 2px #000,
-    0 0 0 5px var(--zog-primary),
-    0 8px 0 #000,
-    0 0 34px rgba(0, 217, 233, 0.44);
-  transform: translateY(-1px);
+    0 0 0 2px rgba(0, 0, 0, 0.9),
+    0 0 0 5px rgba(0, 217, 233, 0.86),
+    0 10px 0 rgba(0, 0, 0, 0.88),
+    0 0 38px rgba(0, 217, 233, 0.46);
+  transform: translateY(-2px) scale(1.012);
 }
 
-.tree-match-card.is-active::after {
-  content: 'LIVE';
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 0.18rem 0.48rem 0.14rem;
-  background: var(--zog-orange);
-  color: #05060a;
-  font-size: clamp(0.55rem, 0.72vw, 0.72rem);
-  font-weight: 900;
-  letter-spacing: 0.08em;
+.tree-match-card.is-active::before {
+  background: linear-gradient(180deg, var(--zog-primary), var(--zog-yellow));
+  box-shadow: 0 0 22px rgba(0, 217, 233, 0.82);
 }
 
 .seed {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: clamp(0.23rem, 0.38vw, 0.36rem) clamp(0.36rem, 0.58vw, 0.52rem);
+  padding: clamp(0.27rem, 0.42vw, 0.42rem) clamp(0.44rem, 0.66vw, 0.62rem);
   border: 1px solid var(--zog-line-soft);
-  background: #11131d;
+  border-radius: 12px 4px 12px 4px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.075), transparent),
+    rgba(8, 10, 18, 0.78);
   color: var(--zog-text);
-  font-size: clamp(0.82rem, 1.08vw, 1.02rem);
+  font-size: clamp(0.84rem, 1.12vw, 1.06rem);
   font-weight: 900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-transform: uppercase;
   text-shadow: 2px 2px 0 #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.seed::before {
+  content: '';
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.48rem;
+  border-radius: 999px;
+  background: var(--zog-muted);
+  box-shadow: 0 0 9px rgba(154, 160, 173, 0.48);
 }
 
 .seed.winner {
-  border-color: var(--zog-success);
-  background: linear-gradient(90deg, var(--zog-success) 0 7px, rgba(0, 230, 155, 0.22) 7px 100%);
+  border-color: rgba(0, 230, 155, 0.82);
+  background:
+    linear-gradient(90deg, rgba(0, 230, 155, 0.44) 0 12px, rgba(0, 230, 155, 0.18) 12px 100%),
+    rgba(7, 18, 18, 0.86);
   color: #f8fffb;
-  box-shadow: inset 0 0 0 1px rgba(0, 230, 155, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(0, 230, 155, 0.24), 0 0 16px rgba(0, 230, 155, 0.18);
+}
+
+.seed.winner::before {
+  background: var(--zog-success);
+  box-shadow: 0 0 12px rgba(0, 230, 155, 0.9);
 }
 
 .tree-match-shell.has-next-round::after {
@@ -204,7 +228,7 @@ body {
   border-top: 3px solid var(--connector);
   opacity: 0.95;
   transform: translateY(-50%);
-  filter: drop-shadow(0 0 6px rgba(0, 217, 233, 0.76));
+  filter: drop-shadow(0 0 7px rgba(0, 217, 233, 0.78));
 }
 
 .tree-match-shell.has-next-round.pair-start::before {
@@ -215,17 +239,19 @@ body {
   height: var(--center-step);
   border-right: 3px solid var(--connector);
   opacity: 0.95;
-  filter: drop-shadow(0 0 6px rgba(0, 217, 233, 0.76));
+  filter: drop-shadow(0 0 7px rgba(0, 217, 233, 0.78));
 }
 
 .empty {
   margin: 2rem auto 0;
   width: min(520px, 90%);
   padding: 1rem;
-  border: 1px solid #000;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
   background: var(--zog-bg-strong);
   color: var(--zog-muted);
   text-align: center;
   text-transform: uppercase;
   box-shadow: var(--zog-shadow);
+  backdrop-filter: blur(6px);
 }
