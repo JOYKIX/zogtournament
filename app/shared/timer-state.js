@@ -29,17 +29,27 @@ function sanitizeParticipant(value) {
   return value === 1 || value === 2 ? value : null;
 }
 
+function sanitizeTimestamp(value, fallback = null) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function normalizeTimerPlayer(playerValue, initialMs, now) {
   const remainingRaw = Number(playerValue?.remainingMs);
   const remainingMs = Math.max(0, Math.round(Number.isFinite(remainingRaw) ? remainingRaw : initialMs));
-  const lastUpdatedAt = Number(playerValue?.lastUpdatedAt || now);
+  const lastUpdatedAt = sanitizeTimestamp(playerValue?.lastUpdatedAt, now);
+  const startedAt = sanitizeTimestamp(playerValue?.startedAt, null);
+  const rawEndsAt = sanitizeTimestamp(playerValue?.endsAt, null);
   const status = sanitizeStatus(playerValue?.status, remainingMs <= 0 ? TIMER_STATUS.FINISHED : TIMER_STATUS.IDLE);
   const isRunning = Boolean(playerValue?.isRunning && status !== TIMER_STATUS.FINISHED && remainingMs > 0);
+  const endsAt = isRunning ? rawEndsAt || lastUpdatedAt + remainingMs : null;
 
   if (remainingMs <= 0) {
     return {
       remainingMs: 0,
       lastUpdatedAt,
+      startedAt,
+      endsAt: null,
       status: TIMER_STATUS.FINISHED,
       isRunning: false,
     };
@@ -48,6 +58,8 @@ function normalizeTimerPlayer(playerValue, initialMs, now) {
   return {
     remainingMs,
     lastUpdatedAt,
+    startedAt: isRunning ? startedAt || lastUpdatedAt : startedAt,
+    endsAt,
     status: isRunning ? TIMER_STATUS.RUNNING : status,
     isRunning,
   };
@@ -119,7 +131,12 @@ export function getRemainingTime(state, now = Date.now()) {
     return remainingMs;
   }
 
-  const lastUpdatedAt = Number(state.lastUpdatedAt || now);
+  const endsAt = sanitizeTimestamp(state.endsAt, null);
+  if (endsAt) {
+    return Math.max(0, Math.ceil(endsAt - now));
+  }
+
+  const lastUpdatedAt = sanitizeTimestamp(state.lastUpdatedAt, now);
   const elapsed = Math.max(0, now - lastUpdatedAt);
   return Math.max(0, remainingMs - elapsed);
 }
@@ -135,6 +152,7 @@ function tickPlayer(player, now) {
       ...player,
       remainingMs: 0,
       lastUpdatedAt: now,
+      endsAt: null,
       isRunning: false,
       status: TIMER_STATUS.FINISHED,
     };
@@ -144,6 +162,7 @@ function tickPlayer(player, now) {
     ...player,
     remainingMs,
     lastUpdatedAt: now,
+    endsAt: player.endsAt || now + remainingMs,
     isRunning: true,
     status: TIMER_STATUS.RUNNING,
   };
@@ -184,12 +203,16 @@ export function resetTimerState(timerValue, now = Date.now(), labels = null) {
     participant1: {
       remainingMs: initialMs,
       lastUpdatedAt: now,
+      startedAt: null,
+      endsAt: null,
       status: TIMER_STATUS.IDLE,
       isRunning: false,
     },
     participant2: {
       remainingMs: initialMs,
       lastUpdatedAt: now,
+      startedAt: null,
+      endsAt: null,
       status: TIMER_STATUS.IDLE,
       isRunning: false,
     },
@@ -232,12 +255,15 @@ export function startTimerForParticipant(timerValue, participant, now = Date.now
       isRunning: true,
       status: TIMER_STATUS.RUNNING,
       lastUpdatedAt: now,
+      startedAt: timer[key].startedAt || now,
+      endsAt: now + timer[key].remainingMs,
     },
     [otherKey]: {
       ...timer[otherKey],
       isRunning: false,
       status: timer[otherKey].remainingMs <= 0 ? TIMER_STATUS.FINISHED : TIMER_STATUS.IDLE,
       lastUpdatedAt: now,
+      endsAt: null,
     },
     activeParticipant: target,
     status: TIMER_STATUS.RUNNING,
@@ -254,12 +280,14 @@ export function stopTimerState(timerValue, now = Date.now()) {
       isRunning: false,
       status: timer.participant1.remainingMs <= 0 ? TIMER_STATUS.FINISHED : TIMER_STATUS.IDLE,
       lastUpdatedAt: now,
+      endsAt: null,
     },
     participant2: {
       ...timer.participant2,
       isRunning: false,
       status: timer.participant2.remainingMs <= 0 ? TIMER_STATUS.FINISHED : TIMER_STATUS.IDLE,
       lastUpdatedAt: now,
+      endsAt: null,
     },
     activeParticipant: null,
     status: resolveGlobalStatus({
