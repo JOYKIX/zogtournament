@@ -137,8 +137,8 @@ const duelHealthAnimationIntensityInput = document.getElementById('duelHealthAni
 const duelHealthDangerEffectsInput = document.getElementById('duelHealthDangerEffects');
 const duelTimerOffsetYInput = document.getElementById('duelTimerOffsetYPx');
 const liveTimerInitialSecondsInput = document.getElementById('liveTimerInitialSeconds');
-const timerStartParticipantSelect = document.getElementById('timerStartParticipant');
-const timerStartBtn = document.getElementById('timerStartBtn');
+const timerStartParticipant1Btn = document.getElementById('timerStartParticipant1Btn');
+const timerStartParticipant2Btn = document.getElementById('timerStartParticipant2Btn');
 const timerStopBtn = document.getElementById('timerStopBtn');
 const timerSwitchBtn = document.getElementById('timerSwitchBtn');
 const liveWinnerParticipant1Btn = document.getElementById('liveWinnerParticipant1Btn');
@@ -325,6 +325,14 @@ function renderLiveTimerPanel() {
     liveCountdownP2.classList.toggle('is-active', Boolean(activeParticipant === 2 && timer.participant2.isRunning));
   }
 
+  if (timerStartParticipant1Btn) {
+    timerStartParticipant1Btn.textContent = `Timer ${timer.participant1Label}`;
+  }
+
+  if (timerStartParticipant2Btn) {
+    timerStartParticipant2Btn.textContent = `Timer ${timer.participant2Label}`;
+  }
+
   if (!liveTimerStatus) {
     return;
   }
@@ -396,8 +404,7 @@ function renderKeybindingsUi() {
 
 function handleTimerKeybindingAction(action) {
   if (action === 'start') {
-    const selected = Number(timerStartParticipantSelect?.value || 1);
-    return startTimer(selected);
+    return startTimer(1);
   }
   if (action === 'stop') {
     return stopTimer();
@@ -1418,12 +1425,6 @@ function bindRealtimeSubscriptions() {
     if (duelHealthDangerEffectsInput) {
       duelHealthDangerEffectsInput.checked = currentOverlay.timer.healthConfig.dangerEffects;
     }
-    if (timerStartParticipantSelect?.options?.[0]) {
-      timerStartParticipantSelect.options[0].textContent = currentOverlay.timer.participant1Label;
-    }
-    if (timerStartParticipantSelect?.options?.[1]) {
-      timerStartParticipantSelect.options[1].textContent = currentOverlay.timer.participant2Label;
-    }
     renderQuizQaRectInputs(normalizeQuizQaRect(value.quizLayout?.questionAnswerRect));
 
     renderBracket();
@@ -1993,9 +1994,12 @@ resetBindingsBtn?.addEventListener('click', () => {
   setKeybindingStatus('Bindings réinitialisés par défaut (S / A / D / F / Q / E).');
 });
 
-timerStartBtn?.addEventListener('click', async () => {
-  const selected = Number(timerStartParticipantSelect?.value || 1);
-  await startTimer(selected);
+timerStartParticipant1Btn?.addEventListener('click', async () => {
+  await startTimer(1);
+});
+
+timerStartParticipant2Btn?.addEventListener('click', async () => {
+  await startTimer(2);
 });
 
 timerStopBtn?.addEventListener('click', async () => {

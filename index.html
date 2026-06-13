@@ -233,14 +233,12 @@
                       <p id="liveCountdownP1" class="countdown-pill">Joueur 1: 05:00</p>
                       <p id="liveCountdownP2" class="countdown-pill">Joueur 2: 05:00</p>
                     </div>
-                    <div class="settings-grid two-cols">
+                    <div class="settings-grid">
                       <label class="setting-field" for="liveTimerInitialSeconds">Durée timer (secondes)<input id="liveTimerInitialSeconds" type="number" min="10" max="7200" step="5" value="300" /></label>
-                      <label class="setting-field" for="timerStartParticipant">Joueur de départ
-                        <select id="timerStartParticipant"><option value="1">Joueur 1</option><option value="2">Joueur 2</option></select>
-                      </label>
                     </div>
                     <div class="timer-controls">
-                      <button id="timerStartBtn" type="button">Démarrer</button>
+                      <button id="timerStartParticipant1Btn" type="button">Timer Joueur 1</button>
+                      <button id="timerStartParticipant2Btn" type="button">Timer Joueur 2</button>
                       <button id="timerStopBtn" type="button" class="secondary">Arrêter</button>
                       <button id="timerSwitchBtn" type="button" class="secondary">Basculer le timer</button>
                     </div>
