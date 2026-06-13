@@ -431,7 +431,7 @@ button.danger { background: var(--accent); color: #fff; }
 .select-overlay { grid-column: 1 / -1; justify-self: center; min-width: 160px; margin-top: .05rem; }
 
 .duel-nav { display: grid; grid-template-columns: repeat(2, minmax(180px,1fr)); gap: .45rem; }
-.timer-controls { display: grid; grid-template-columns: repeat(3, minmax(130px,1fr)); gap: .45rem; }
+.timer-controls { display: grid; grid-template-columns: repeat(4, minmax(130px,1fr)); gap: .45rem; }
 .winner-controls-grid { display: grid; grid-template-columns: repeat(2, minmax(180px,1fr)); gap: .45rem; }
 .countdown-pill {
   margin: 0;
