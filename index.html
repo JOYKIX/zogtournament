@@ -19,29 +19,8 @@
 
       <section class="product-view is-active" data-product-view="tournament">
         <section id="loginSection" class="card auth-card">
-          <header class="auth-header">
-            <p class="eyebrow">Espace sécurisé</p>
-            <h2>Connexion opérateur</h2>
-            <p class="hint">Créez un profil ou connectez-vous pour accéder au cockpit.</p>
-            <p id="connectionStatus" class="message"></p>
-          </header>
-
-          <div class="grid two-columns auth-grid">
-            <form id="createProfileForm" class="panel glass-panel">
-              <h3>Créer un profil</h3>
-              <p class="hint">Limite de 2 comptes sur l'instance.</p>
-
-              <label for="newUsername">Identifiant</label>
-              <input id="newUsername" name="newUsername" type="text" required />
-
-              <label for="newPassword">Mot de passe</label>
-              <input id="newPassword" name="newPassword" type="password" required />
-
-              <button type="submit">Créer le compte</button>
-              <p id="createProfileMessage" class="message"></p>
-            </form>
-
-            <form id="loginForm" class="panel glass-panel">
+          <div class="auth-grid">
+            <form id="loginForm" class="panel glass-panel auth-panel is-active" data-auth-panel="login">
               <h3>Connexion</h3>
 
               <label for="username">Identifiant</label>
@@ -52,6 +31,21 @@
 
               <button type="submit">Se connecter</button>
               <p id="loginMessage" class="message"></p>
+              <button id="showCreateProfileBtn" type="button" class="secondary auth-switch">Créer un compte</button>
+            </form>
+
+            <form id="createProfileForm" class="panel glass-panel auth-panel hidden" data-auth-panel="create">
+              <h3>Créer un compte</h3>
+
+              <label for="newUsername">Identifiant</label>
+              <input id="newUsername" name="newUsername" type="text" required />
+
+              <label for="newPassword">Mot de passe</label>
+              <input id="newPassword" name="newPassword" type="password" required />
+
+              <button type="submit">Créer le compte</button>
+              <p id="createProfileMessage" class="message"></p>
+              <button id="showLoginBtn" type="button" class="secondary auth-switch">Retour à la connexion</button>
             </form>
           </div>
         </section>

@@ -80,6 +80,8 @@ const appSection = document.getElementById('appSection');
 const productTabs = Array.from(document.querySelectorAll('[data-product-tab]'));
 const productViews = Array.from(document.querySelectorAll('[data-product-view]'));
 const connectionStatus = document.getElementById('connectionStatus');
+const showCreateProfileBtn = document.getElementById('showCreateProfileBtn');
+const showLoginBtn = document.getElementById('showLoginBtn');
 const createProfileForm = document.getElementById('createProfileForm');
 const createProfileMessage = document.getElementById('createProfileMessage');
 const loginForm = document.getElementById('loginForm');
@@ -1076,6 +1078,7 @@ async function logout() {
 function showLogin() {
   loginSection.classList.remove('hidden');
   appSection.classList.add('hidden');
+  setAuthMode('login');
 }
 
 function showApp() {
@@ -1085,6 +1088,15 @@ function showApp() {
   renderParticipants();
   renderBracket();
   renderLiveTimerPanel();
+}
+
+function setAuthMode(mode) {
+  const showCreate = mode === 'create';
+
+  loginForm?.classList.toggle('hidden', showCreate);
+  createProfileForm?.classList.toggle('hidden', !showCreate);
+  loginMessage.textContent = '';
+  createProfileMessage.textContent = '';
 }
 
 function renderConnectionStatus() {
@@ -1438,6 +1450,9 @@ navItems.forEach((item) => {
   });
 });
 
+showCreateProfileBtn?.addEventListener('click', () => setAuthMode('create'));
+showLoginBtn?.addEventListener('click', () => setAuthMode('login'));
+
 createProfileForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(createProfileForm);
@@ -1454,6 +1469,8 @@ createProfileForm.addEventListener('submit', async (event) => {
 
     if (result.ok) {
       createProfileForm.reset();
+      setAuthMode('login');
+      loginMessage.textContent = result.message;
     }
   } catch (error) {
     console.error('Erreur création du compte', error);
