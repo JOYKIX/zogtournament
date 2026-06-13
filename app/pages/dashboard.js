@@ -240,15 +240,13 @@ function getResolvedCurrentTimer(now = Date.now()) {
 }
 
 async function persistTimerTick() {
-  const timer = normalizeTimerState(currentOverlay.timer);
+  const timer = getResolvedCurrentTimer();
   if (!timer.activeParticipant) {
     return;
   }
 
   const nextTimer = resolveTimerNow(timer, Date.now());
   const hasChanged =
-    nextTimer.participant1.remainingMs !== timer.participant1.remainingMs ||
-    nextTimer.participant2.remainingMs !== timer.participant2.remainingMs ||
     nextTimer.participant1.status !== timer.participant1.status ||
     nextTimer.participant2.status !== timer.participant2.status ||
     nextTimer.activeParticipant !== timer.activeParticipant;
@@ -303,14 +301,14 @@ function renderActiveView(viewName) {
 
 function formatMsToClock(value) {
   const safeMs = Math.max(0, Math.round(Number(value) || 0));
-  const totalSeconds = Math.floor(safeMs / TIMER_SECOND_MS);
+  const totalSeconds = Math.ceil(safeMs / TIMER_SECOND_MS);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function renderLiveTimerPanel() {
-  const timer = normalizeTimerState(currentOverlay.timer);
+  const timer = getResolvedCurrentTimer();
   const activeParticipant = timer.activeParticipant;
   const participant1Ms = timer.participant1.remainingMs;
   const participant2Ms = timer.participant2.remainingMs;

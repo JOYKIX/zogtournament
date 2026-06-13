@@ -26,6 +26,7 @@ import {
   sanitizeTextColor,
   sanitizeTimerProfile,
 } from '../shared/duel-overlay-settings.js';
+import { tickTimerState } from '../shared/timer-state.js';
 
 const leftFighter = document.getElementById('leftFighter');
 const rightFighter = document.getElementById('rightFighter');
@@ -61,6 +62,7 @@ let currentFontSizes = { ...DEFAULT_DUEL_FONT_SIZES };
 let currentTimerOffsetYPx = DEFAULT_DUEL_TIMER_OFFSET_Y_PX;
 let currentTimerProfile = DEFAULT_TIMER_PROFILE;
 let currentTimer = null;
+let timerAnimationFrame = null;
 const pageParams = new URLSearchParams(window.location.search);
 
 async function resolveActiveProductRefs() {
@@ -140,10 +142,10 @@ function render() {
 
   leftFighter.innerHTML = fighterMarkup(match?.left);
   rightFighter.innerHTML = fighterMarkup(match?.right);
-  const resolvedTimer = normalizeDuelTimerState({
+  const resolvedTimer = normalizeDuelTimerState(tickTimerState({
     ...currentTimer,
     profile: currentTimerProfile,
-  });
+  }));
 
   if (duelView) {
     duelView.style.setProperty('--fighter-image-height', `${currentImageHeightPx}px`);
@@ -241,4 +243,17 @@ onValue(activeProductRefs.overlayRef, (snapshot) => {
   currentTimerProfile = sanitizeTimerProfile(value.timerProfile ?? value.timer?.profile);
   currentTimer = normalizeDuelTimerState(value.timer);
   render();
+});
+
+function renderTimerFrame() {
+  render();
+  timerAnimationFrame = window.requestAnimationFrame(renderTimerFrame);
+}
+
+timerAnimationFrame = window.requestAnimationFrame(renderTimerFrame);
+
+window.addEventListener('beforeunload', () => {
+  if (timerAnimationFrame) {
+    window.cancelAnimationFrame(timerAnimationFrame);
+  }
 });
